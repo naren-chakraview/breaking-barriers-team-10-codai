@@ -109,3 +109,6 @@ The source lives in [`database/data-model.mmd`](./database/data-model.mmd).
 ## Team
 
 Breaking Barriers Hackathon — Team 10.
+
+## CS Teacher Requirements
+https://csteachers.org/pk12standards/view/?sa=Artificial%2520Intelligence%2CCybersecurity 
