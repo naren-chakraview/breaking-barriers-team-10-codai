@@ -13,6 +13,10 @@ settled architecture:
     and raises flags to the teacher. Runs **event-driven + periodic checkpoint**.
 - **Teacher view has no agents** — it is a read/control surface over the data the
   agents produce, plus human-in-the-loop routing.
+- **Safety, validation, routing, and fallback are first-class.** Content safety
+  filtering runs on student input and model output; a validation service scores
+  submissions against a rubric; routing draws only from human-approved
+  trajectories; and any failure falls back to a working non-adaptive path.
 
 Participants used across diagrams:
 
@@ -21,6 +25,8 @@ Participants used across diagrams:
   `Codegen` (code-generation model/tool)
 - `Passive` (Passive Agent), `Skill` (skill-score/remediation store)
 - `Teacher`, `TeacherUI`, `API`, `DB`
+- `Safety` (content safety filter), `Validation` (validation service),
+  `Routing` (routing service), `Content` (human-approved content store)
 
 ---
 
@@ -68,7 +74,7 @@ sequenceDiagram
     UI-->>Student: Render skill tree, pointer, review flags
 ```
 
-## 3. Starting-knowledge assessment
+## 3. Formative placement and background assessment
 
 ```mermaid
 sequenceDiagram
@@ -78,14 +84,18 @@ sequenceDiagram
     participant Passive
     participant Skill
     Student->>UI: Begin lesson
-    UI->>Active: Request starting assessment
-    Active-->>Student: Present 3-5 questions
-    Student->>Active: Answers
-    Active->>Passive: Submit assessment results (event)
-    Passive->>Skill: Record starting level per topic
-    Skill-->>Passive: Stored
-    Passive-->>Active: Starting level + pace hint
-    Active-->>Student: Feedback naming what they did well
+    opt optional short diagnostic
+        Active-->>Student: Light placement check
+        Student->>Active: Response
+    end
+    Active->>Passive: Baseline signal (event)
+    Passive->>Skill: Set starting baseline per topic
+    Note over Passive,Skill: Thereafter, assess quietly in the background
+    loop as student works
+        Active->>Passive: Signals (submissions, time, revisions, stuck points)
+        Passive->>Skill: Update topic signals (formative, not summative)
+    end
+    Active-->>Student: Constructive feedback naming what they did well
 ```
 
 ## 4. Build loop with live preview
@@ -109,10 +119,13 @@ sequenceDiagram
     actor Student
     participant UI
     participant Active
+    participant Safety
     participant Verifier
     participant Codegen
     Student->>UI: Write a prompt
     UI->>Active: Submit prompt
+    Active->>Safety: Filter student input
+    Safety-->>Active: Clean (else block/replace)
     Active->>Verifier: Verify scope/clarity
     alt prompt too vague or too broad
         Verifier-->>Active: Needs narrowing
@@ -121,9 +134,12 @@ sequenceDiagram
         Verifier-->>Active: OK
         Active->>Codegen: Delegate code generation
         Codegen-->>Active: Generated code
+        Active->>Safety: Filter model output
+        Safety-->>Active: Clean (else block/replace)
         Active-->>Student: Code + explanation
     end
     Note over Active,Codegen: Verification and codegen use different models
+    Note over Safety: Filtering runs on both input and output (Req 18)
 ```
 
 ## 6. Run, error detection, and skill-aware hints
@@ -206,10 +222,11 @@ sequenceDiagram
     Passive->>Skill: Full reassessment across topics
     Skill-->>Passive: Aggregated mastery
     alt mastery sufficient
-        Passive-->>Active: Advance to next lesson
+        Passive-->>Active: Deepen on the same shared objective
     else gaps found
         Passive-->>Active: Reiterate / route to remediation
     end
+    Note over Passive,Active: Objectives stay shared - vary depth not volume (Req 6)
     Active-->>Student: Next step
 ```
 
@@ -325,13 +342,119 @@ sequenceDiagram
     API-->>TeacherUI: Routing applied
 ```
 
+## 15. Content safety filtering (input and output)
+
+```mermaid
+sequenceDiagram
+    actor Student
+    participant Active
+    participant Safety
+    participant Model
+    Student->>Active: Input (prompt, code, chat)
+    Active->>Safety: Filter input before any model call
+    alt input flagged unsafe/age-inappropriate
+        Safety-->>Active: Blocked
+        Active-->>Student: Blocked/replaced (not processed)
+    else input clean
+        Safety-->>Active: Pass
+        Active->>Model: Process
+        Model-->>Active: Output
+        Active->>Safety: Filter output before delivery
+        alt output flagged
+            Safety-->>Active: Blocked
+            Active-->>Student: Blocked/replaced (not shown)
+        else output clean
+            Safety-->>Active: Pass
+            Active-->>Student: Deliver output
+        end
+    end
+    Note over Safety: Student data never shared commercially (Req 18)
+```
+
+## 16. Validation service and mastery signal
+
+```mermaid
+sequenceDiagram
+    actor Student
+    participant UI
+    participant Active
+    participant Validation
+    participant Skill
+    Student->>UI: Submit work on a task
+    UI->>Active: Submission
+    Active->>Validation: Score against task rubric
+    alt reliable mastery signal
+        Validation-->>Active: Mastery signal for objective
+        Active->>Skill: Record signal as routing evidence
+        Note over Validation: Agreement with human raters meets launch-gate threshold (Req 19)
+    else unreliable signal
+        Validation-->>Active: Low confidence
+        Active->>Active: Trigger non-adaptive fallback (see Diagram 17)
+    end
+```
+
+## 17. Non-adaptive fallback path
+
+```mermaid
+sequenceDiagram
+    actor Student
+    participant Active
+    participant Validation
+    participant Routing
+    participant Content
+    Note over Active: On failure of validation, routing, generation, or filtering
+    Active->>Routing: Request next step
+    alt adaptive path available
+        Routing-->>Active: Next approved skill
+    else failure
+        Routing-->>Active: Fallback requested
+        Active->>Content: Load pre-authored non-adaptive content for objective
+        Content-->>Active: Approved content
+        Active->>Active: Record failure for audit
+        Active-->>Student: Working non-adaptive path (not a broken state)
+    end
+```
+
+## 18. Approved-trajectory routing with quality and safety gates
+
+```mermaid
+sequenceDiagram
+    participant Skill
+    participant Routing
+    participant Content
+    participant Gen
+    participant Quality
+    participant Safety
+    actor Student
+    Skill->>Routing: Accumulated mastery evidence
+    Routing->>Routing: Select next skill (approved trajectories only)
+    alt pre-authored content (default)
+        Routing->>Content: Fetch approved content
+        Content-->>Routing: Pre-approved content
+        Routing-->>Student: Deliver content
+    else generated content (exploratory)
+        Routing->>Gen: Generate within fixed objective + approved bounds
+        Gen-->>Quality: Candidate content
+        Quality->>Safety: Quality + safety check
+        alt passes both gates
+            Safety-->>Routing: Approved
+            Routing-->>Student: Deliver generated content
+        else fails a gate
+            Safety-->>Routing: Rejected
+            Routing->>Content: Fall back to approved content
+            Content-->>Routing: Pre-approved content
+            Routing-->>Student: Deliver fallback content
+        end
+    end
+```
+
 ## Coverage map
 
 | Diagram | Requirement(s) |
 | --- | --- |
 | 1 Login and role routing | 1 |
 | 2 Homepage and skill tree | 2 |
-| 3 Starting assessment | 3 |
+| 3 Formative placement + background assessment | 3 |
 | 4 Build loop with live preview | 4 |
 | 5 Prompt coaching + delegated codegen | 7 |
 | 6 Run, error detection, skill-aware hints | 4, 5 |
@@ -343,3 +466,7 @@ sequenceDiagram
 | 12 Teacher review of student | 9 |
 | 13 Teacher controls over help ladder | 10 |
 | 14 Human-in-the-loop routing | 8, 9 |
+| 15 Content safety filtering | 18 |
+| 16 Validation service + mastery signal | 19 |
+| 17 Non-adaptive fallback path | 20 |
+| 18 Approved-trajectory routing + gates | 21 |
