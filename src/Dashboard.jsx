@@ -1,8 +1,15 @@
 import StudentDashboard from './StudentDashboard.jsx'
 
-export default function Dashboard({ user, onLogout }) {
+export default function Dashboard({ user, onLogout, onContinueLesson, onViewCourse }) {
   if (user.role === 'student') {
-    return <StudentDashboard user={user} onLogout={onLogout} />
+    return (
+      <StudentDashboard
+        user={user}
+        onLogout={onLogout}
+        onContinueLesson={onContinueLesson}
+        onViewCourse={onViewCourse}
+      />
+    )
   }
 
   // Teacher view

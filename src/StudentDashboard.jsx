@@ -7,7 +7,7 @@ const COURSES = [
   },
 ]
 
-export default function StudentDashboard({ user, onLogout }) {
+export default function StudentDashboard({ user, onLogout, onContinueLesson, onViewCourse }) {
   return (
     <div className="dash">
       <header className="dash-header">
@@ -51,10 +51,14 @@ export default function StudentDashboard({ user, onLogout }) {
               </div>
 
               <div className="course-actions">
-                <button type="button" className="btn btn--outline">
+                <button type="button" className="btn btn--outline" onClick={onViewCourse}>
                   View course
                 </button>
-                <button type="button" className="btn btn--primary">
+                <button
+                  type="button"
+                  className="btn btn--primary"
+                  onClick={onContinueLesson}
+                >
                   Continue lesson
                 </button>
               </div>
