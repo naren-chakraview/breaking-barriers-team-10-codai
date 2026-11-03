@@ -25,6 +25,9 @@ for them.
 
 - [`wireframe-design.md`](./wireframe-design.md) — the wireframe design for the
   learning interface, including the full layout and a component reference.
+- [`teacher-view-design.md`](./teacher-view-design.md) — the teacher's view of a
+  lesson: class roster plus a per-student detail panel (skills, code, CS-standards
+  grade, and the scaffolded help timeline).
 - [`database/data-model.mmd`](./database/data-model.mmd) — the data model as a
   Mermaid ER diagram (rendered below).
 - [`CONTRIBUTING.md`](./CONTRIBUTING.md) — how the team branches, reviews, and
