@@ -1,64 +1,76 @@
 erDiagram
-    UNIT ||--o{ LESSON : contains
-    LESSON ||--o{ LEVEL : "made up of"
-    LESSON ||--o{ LESSON_OBJECTIVE : has
-    OBJECTIVE ||--o{ LESSON_OBJECTIVE : "referenced by"
-    OBJECTIVE ||--o{ LEVEL : "targeted by"
-    OBJECTIVE ||--o{ SKILL : "advanced by"
-    SKILL ||--o{ SKILL_LEVEL : "delivered via"
-    LEVEL ||--o{ SKILL_LEVEL : "delivers"
-    SKILL ||--o{ SKILL_EDGE : "from"
-    SKILL ||--o{ SKILL_EDGE : "to"
+    SKILL_TREE ||--o{ CHECKPOINT : contains
+    SKILL_TREE ||--o{ SKILL : defines
 
-    UNIT {
-        bigint unit_id PK
+    SKILL ||--o{ SKILL_EVIDENCE_LEVEL : "has rubric"
+
+    CHECKPOINT ||--o{ CHECKPOINT_REQUIRES : "prereq of"
+    CHECKPOINT ||--o{ CHECKPOINT_REQUIRES : "required by"
+    CHECKPOINT ||--o{ CHECKPOINT_TARGET : "targets skill at"
+    SKILL ||--o{ CHECKPOINT_TARGET : "targeted by"
+    CHECKPOINT ||--o{ STEP : "made up of"
+
+    STEP ||--o{ MEASURE : "scores"
+    SKILL ||--o{ MEASURE : "measured by"
+
+    SKILL_TREE {
+        varchar tree_id PK
+        int format_version
         varchar title
-        int sequence
-        varchar status
-    }
-    LESSON {
-        bigint lesson_id PK
-        bigint unit_id FK
-        varchar title
-        int sequence
-        int estimated_minutes
-        varchar status
-    }
-    OBJECTIVE {
-        bigint objective_id PK
-        varchar code UK
-        varchar title
-        text description
-    }
-    LESSON_OBJECTIVE {
-        bigint lesson_id FK
-        bigint objective_id FK
-        decimal weight
-    }
-    LEVEL {
-        bigint level_id PK
-        bigint lesson_id FK
-        bigint objective_id FK
-        int sequence
-        varchar content_type
-        text instructions
-        int difficulty
-        boolean is_fallback
-        varchar status
+        text objective
+        varchar map_layout
+        varchar project_template_level
+        text project_description
     }
     SKILL {
-        bigint skill_id PK
-        bigint objective_id FK
-        varchar name
-        int difficulty
+        varchar skill_id PK
+        varchar tree_id FK
+        varchar title
+        text description
+        varchar icon
     }
-    SKILL_LEVEL {
-        bigint skill_id FK
-        bigint level_id FK
+    SKILL_EVIDENCE_LEVEL {
+        varchar skill_id FK
+        int level
+        text descriptor
     }
-    SKILL_EDGE {
-        bigint from_skill_id FK
-        bigint to_skill_id FK
-        varchar edge_type
-        varchar condition
+    CHECKPOINT {
+        varchar checkpoint_id PK
+        varchar tree_id FK
+        varchar title
+        text description
+        varchar destination
+        boolean skippable
+        boolean route_after_completion
+        int sequence
+    }
+    CHECKPOINT_REQUIRES {
+        varchar checkpoint_id FK
+        varchar requires_checkpoint_id FK
+    }
+    CHECKPOINT_TARGET {
+        varchar checkpoint_id FK
+        varchar skill_id FK
+        int target_evidence_level
+    }
+    STEP {
+        varchar step_id PK
+        varchar checkpoint_id FK
+        int sequence
+        varchar kind
+        varchar title
+        varchar level_ref
+        boolean is_project
+        text instructions
+        text instructions_prompt
+        json payload
+        text validation_condition
+        varchar validation_skill_id
+    }
+    MEASURE {
+        bigint measure_id PK
+        varchar step_id FK
+        varchar skill_id FK
+        varchar question_name
+        json evidence_map
     }
