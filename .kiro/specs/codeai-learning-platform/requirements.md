@@ -84,19 +84,23 @@ the skill tree, so that I know where I am and what to do next.
 3. THE SYSTEM SHALL show a pointer indicating the current lesson to work on.
 4. THE SYSTEM SHALL visually flag topics that are up for review.
 
-### Requirement 3: Starting-knowledge assessment
+### Requirement 3: Formative placement and background assessment
 
-**User Story:** As a student, I want a few questions at the start of a lesson, so
-that the platform can gauge my starting level and give me feedback.
+**User Story:** As a student, I want the platform to gauge my level without
+making me feel constantly tested, so that the experience stays open-ended and
+engaging while still adapting to me.
 
 #### Acceptance Criteria
 
-1. WHEN a student begins a lesson THE SYSTEM SHALL present 3-5 questions that
-   assess current knowledge.
-2. WHEN the student completes the assessment THE SYSTEM SHALL record a starting
-   level for the relevant skills.
-3. WHEN the assessment is scored THE SYSTEM SHALL give the student feedback that
-   names what they did well.
+1. WHEN a student begins a lesson THE SYSTEM SHALL establish a starting baseline
+   for the relevant skills, optionally via a short formative diagnostic.
+2. THE SYSTEM SHALL capture assessment signals continuously and quietly in the
+   background from the student's work (task submissions, time on task, revisions,
+   and where they get stuck) rather than relying on explicit summative tests.
+3. THE SYSTEM SHALL keep assessment formative, so the student should not feel
+   they are being constantly evaluated.
+4. WHEN the system gives the student feedback THE SYSTEM SHALL frame it
+   constructively, naming what they did well.
 
 ### Requirement 4: Visually dynamic build-and-feedback IDE
 
@@ -135,7 +139,8 @@ so that I get the right amount of help for my level.
 ### Requirement 6: Skill-level scoring model
 
 **User Story:** As the platform, I want a numeric skill level per topic per
-student, so that adaptation and routing are data-driven.
+student, so that adaptation varies the depth of shared objectives rather than
+racing some students ahead of the class.
 
 #### Acceptance Criteria
 
@@ -146,8 +151,15 @@ student, so that adaptation and routing are data-driven.
 3. WHEN a student makes repeated mistakes on the same topic THE SYSTEM SHALL
    trigger a separate remediation/flagging mechanism for that topic rather than
    decreasing their skill-level score.
-4. THE SYSTEM SHALL store student performance long-term to route the student to
-   specific future lessons.
+4. THE SYSTEM SHALL keep learning objectives consistent across students, so that
+   lower-level and higher-level students work toward the same objectives.
+5. WHEN a student has a higher skill level THE SYSTEM SHALL increase the depth of
+   the shared objectives (deeper practice, less scaffolding) rather than
+   advancing them into future content ahead of the class.
+6. THE SYSTEM SHALL allow students to complete different quantities of levels
+   while converging on the same objectives.
+7. THE SYSTEM SHALL store student performance to inform routing within the
+   current lesson (intra-lesson adaptivity), with cross-lesson use a later step.
 
 ### Requirement 7: Prompting coaching and two-stage generation
 
@@ -432,9 +444,8 @@ compute, so that its environmental footprint is kept low.
 - Which adaptivity approach should be built: pre-written pathways, AI-selects-
   next-step, or AI-generates-within-constraints — or the hint/coaching middle
   ground that keeps one authored path but personalizes coaching along it?
-- Should adaptivity vary depth on shared objectives (vision direction) rather
-  than letting advanced students race ahead, and how does that reconcile with
-  the upfront assessment in Requirement 3 (formative vs. summative)?
+- Should the formative diagnostic in Requirement 3 be required or optional for
+  the MVP, and how light can it be while still placing students accurately?
 - How many tasks/skills should the MVP skill tree contain, and which sample
   lesson is the best MVP candidate?
 - NOTE (scope): the teacher view (Requirements 9-10) exceeds the vision's MVP,
