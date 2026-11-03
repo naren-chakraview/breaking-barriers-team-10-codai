@@ -27,6 +27,8 @@ for them.
   learning interface, including the full layout and a component reference.
 - [`database/data-model.mmd`](./database/data-model.mmd) — the data model as a
   Mermaid ER diagram (rendered below).
+- [`CONTRIBUTING.md`](./CONTRIBUTING.md) — how the team branches, reviews, and
+  merges work.
 
 ## Data model
 
