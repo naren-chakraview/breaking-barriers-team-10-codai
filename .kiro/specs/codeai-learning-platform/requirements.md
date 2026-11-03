@@ -29,7 +29,8 @@ Scope notes from the planning doc:
 - **Tutor/evaluator agent:** The AI that assesses a student's work, adapts the
   pace, and provides scaffolded hints.
 - **Skill level:** A numeric score per student per topic, raised by correct
-  practice and lowered by repeated mistakes.
+  practice. Repeated mistakes trigger a separate remediation/flagging mechanism
+  rather than lowering the score.
 - **Human-in-the-loop routing:** Combining the agent's assessment with teacher
   input to choose a student's next lesson.
 - **Scaffolded help ladder:** The escalating sequence of help — inline hint,
@@ -54,8 +55,9 @@ that I see the experience and permissions for my role.
    and show an error without revealing which field was wrong.
 4. WHEN an authenticated request is made THE SYSTEM SHALL require the access
    token, user id, and role in the request header.
-5. THE SYSTEM SHALL support a side-by-side student and teacher demo (both roles
-   usable in the same session for demonstration).
+5. THE SYSTEM SHALL support a side-by-side student and teacher demo, and WHEN
+   demo mode is active THE SYSTEM SHALL allow both roles to be used in the same
+   session without requiring user authentication.
 
 ### Requirement 2: Student homepage and lesson navigation
 
@@ -96,8 +98,9 @@ live feedback, so that I form a mental connection between code and UI.
    feedback and surface concept lessons drawn from the lesson skill tree.
 2. WHEN a student changes their code THE SYSTEM SHALL reflect the change in a
    live visual preview of the UI.
-3. WHEN a student runs their code THE SYSTEM SHALL test it for errors, both
-   syntax errors and conceptual errors relative to the project goal.
+3. WHEN a student runs their code THE SYSTEM SHALL test it for both compile-time
+   (syntax) errors and runtime/logic errors, including conceptual errors
+   relative to the project goal.
 
 ### Requirement 5: Adaptive AI tutor/evaluator agent
 
@@ -111,7 +114,8 @@ so that I get the right amount of help for my level.
 2. WHEN the agent detects a student is advanced THE SYSTEM SHALL reduce guidance
    and favor guiding questions over examples.
 3. IF a student is over-focused on a non-essential detail (e.g. a color choice)
-   THEN THE SYSTEM SHALL nudge them to move on.
+   THEN THE SYSTEM SHALL actively redirect the student away from that detail
+   with a visible change in guidance, not merely log the flag.
 4. WHEN a run produces an error THE SYSTEM SHALL first determine the problem
    topic from the error, then tailor the hint to the student's skill level in
    that topic (guiding questions for advanced students, examples for slower
@@ -129,7 +133,8 @@ student, so that adaptation and routing are data-driven.
 2. WHEN a student practices a topic correctly THE SYSTEM SHALL increase their
    score for that topic.
 3. WHEN a student makes repeated mistakes on the same topic THE SYSTEM SHALL
-   decrease their score for that topic.
+   trigger a separate remediation/flagging mechanism for that topic rather than
+   decreasing their skill-level score.
 4. THE SYSTEM SHALL store student performance long-term to route the student to
    specific future lessons.
 
@@ -157,8 +162,10 @@ student, so that routing combines AI assessment with my judgment.
 
 1. WHEN the agent proposes a routing decision THE SYSTEM SHALL allow a teacher to
    review and influence it before it is applied.
-2. THE SYSTEM SHALL combine the agent's skill assessment with teacher input when
-   choosing a student's next lesson.
+2. WHEN choosing a student's next lesson THE SYSTEM SHALL compute the routing
+   decision as a precise, deterministic function of the agent's skill
+   assessment and the teacher input (e.g. a defined combining rule such as a
+   logical AND), rather than considering the inputs in an unspecified way.
 
 ### Requirement 9: Teacher view student summary
 
@@ -191,8 +198,9 @@ student builds, so that students get real scaffolding before seeing an answer.
    provide the answer and walk through the solution.
 4. WHEN a student has seen the worked solution THE SYSTEM SHALL offer a next
    module that is an iteration of what they just learned.
-5. THE SYSTEM SHALL provide a "See the answer" option available to the student
-   via a button or on timeout.
+5. THE SYSTEM SHALL make the "See the answer" option visible to the student only
+   after a teacher-configured escalation step has occurred (e.g. after a hint or
+   a stuck-time threshold), via a button or on timeout.
 6. THE SYSTEM SHALL allow the teacher to reveal the answer immediately, send a
    custom hint, and configure the answer timeout.
 
