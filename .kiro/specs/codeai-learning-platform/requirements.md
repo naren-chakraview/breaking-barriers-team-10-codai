@@ -235,6 +235,16 @@ course/lesson/skill browsing, and progress recording.
 - What are the exact thresholds for raising/lowering a topic skill score, and the
   default answer-timeout duration?
 
+## Sequence Diagrams
+
+Interaction and intervention flows for these requirements are maintained as a
+companion document: [`sequence-diagrams.md`](./sequence-diagrams.md). It covers
+login/role routing, the student build loop, prompt coaching and delegated code
+generation, run/error/skill-aware hints, skill scoring and remediation, the
+passive agent's adaptive-pacing and checkpoint interventions, the scaffolded
+help ladder, teacher escalation, teacher review and controls, and
+human-in-the-loop routing. Each diagram maps back to the requirements above.
+
 ## Source
 
 Derived from the team planning doc "AWS CodeAI Hackathon Planning Doc."
