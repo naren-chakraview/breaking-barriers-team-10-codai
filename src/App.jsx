@@ -3,11 +3,13 @@ import Login from './Login.jsx'
 import Dashboard from './Dashboard.jsx'
 import WeblabLesson from './weblab/WeblabLesson.jsx'
 import CourseOverview from './weblab/CourseOverview.jsx'
+import SkillTree from './weblab/SkillTree.jsx'
 
 export default function App() {
   // When a user signs in, we store { username, role } here.
   const [user, setUser] = useState(null)
-  // Which screen the signed-in student is on: 'dashboard' | 'course' | 'lesson'.
+  // Which screen the signed-in student is on:
+  // 'dashboard' | 'course' | 'lesson' | 'skilltree'.
   const [view, setView] = useState('dashboard')
 
   if (!user) {
@@ -15,7 +17,23 @@ export default function App() {
   }
 
   if (view === 'lesson') {
-    return <WeblabLesson user={user} onExit={() => setView('dashboard')} />
+    return (
+      <WeblabLesson
+        user={user}
+        onExit={() => setView('dashboard')}
+        onViewSkillTree={() => setView('skilltree')}
+      />
+    )
+  }
+
+  if (view === 'skilltree') {
+    return (
+      <SkillTree
+        user={user}
+        onExit={() => setView('dashboard')}
+        onOpenLesson={() => setView('lesson')}
+      />
+    )
   }
 
   if (view === 'course') {

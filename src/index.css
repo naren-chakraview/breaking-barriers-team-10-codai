@@ -803,3 +803,73 @@ body {
   .ca-ws-body--split { grid-template-columns: 1fr; }
   .ca-editor-wrap { grid-template-columns: 110px 1fr; }
 }
+
+/* ===================== Skill tree ===================== */
+.st {
+  --ca-indigo: #3b2fb5;
+  --st-green: #22c55e;
+  --st-purple: #6d5ef0;
+  --st-amber: #f59e0b;
+  --st-locked: #cbd5e1;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background: #f3f4f6;
+}
+.st-subbar { padding: 8px 16px; font-size: 13px; font-weight: 600; color: #374151; background: #fff; border-bottom: 1px solid #e5e7eb; }
+
+.st-body { flex: 1; display: grid; grid-template-columns: 1fr 280px; min-height: 0; }
+
+.st-canvas-wrap { position: relative; overflow: auto; background: #f8fafc; }
+.st-canvas { width: 100%; height: 100%; display: block; }
+
+.st-cluster-box { fill: #ffffff; stroke: #d1d5db; stroke-width: 1.5; }
+.st-cluster-label { fill: #6b7280; font-size: 12px; font-weight: 700; text-anchor: middle; }
+
+.st-edge { stroke: var(--st-green); stroke-width: 3; }
+.st-edge--locked { stroke: var(--st-locked); stroke-dasharray: 5 5; }
+
+.st-node-circle { fill: #ffffff; stroke: var(--st-purple); stroke-width: 3; }
+.st-node-icon { font-size: 15px; }
+.st-node-label { fill: #374151; font-size: 11px; font-weight: 600; paint-order: stroke; stroke: #f8fafc; stroke-width: 3px; stroke-linejoin: round; }
+.st-node-label--below { fill: #4b5563; font-size: 11px; }
+
+.st-node--completed .st-node-circle { fill: var(--st-green); stroke: var(--st-green); }
+.st-node--completed .st-node-icon { fill: #fff; }
+.st-node--current .st-node-circle { fill: #fff; stroke: var(--st-amber); stroke-width: 3; stroke-dasharray: 4 3; }
+.st-node--available .st-node-circle { fill: #fff; stroke: var(--st-purple); }
+.st-node--locked .st-node-circle { fill: #eef1f5; stroke: var(--st-locked); }
+.st-node--locked .st-node-label { fill: #9ca3af; }
+
+.st-node.is-clickable { cursor: pointer; }
+.st-node.is-clickable:hover .st-node-circle { filter: brightness(0.97); stroke-width: 4; }
+.st-node.is-selected .st-node-circle { stroke: var(--ca-indigo); stroke-width: 4; }
+.st-node:focus { outline: none; }
+.st-node:focus-visible .st-node-circle { stroke: var(--ca-indigo); stroke-width: 4; }
+
+.st-zoom { position: absolute; top: 12px; right: 12px; display: flex; flex-direction: column; gap: 4px; }
+.st-zoom button { width: 30px; height: 30px; border: 1px solid #d1d5db; background: #fff; border-radius: 6px; font-size: 14px; cursor: pointer; }
+
+/* Right — My Project */
+.st-project { background: #fff; border-left: 1px solid #e5e7eb; padding: 16px; display: flex; flex-direction: column; gap: 10px; }
+.st-project-head { font-size: 11px; font-weight: 700; letter-spacing: 0.06em; color: #6b7280; }
+.st-project-title { margin: 0; font-size: 20px; color: #111827; }
+.st-project-desc { margin: 0; font-size: 13px; color: #6b7280; }
+.st-project-cta { width: 100%; }
+
+.st-selected { margin-top: 10px; border-top: 1px solid #e5e7eb; padding-top: 12px; }
+.st-selected-label { margin: 0; font-size: 11px; font-weight: 700; letter-spacing: 0.05em; color: #9ca3af; }
+.st-selected-title { margin: 2px 0 10px; font-size: 15px; font-weight: 700; color: #111827; }
+
+/* Reuse ca-btn tokens for the skill tree */
+.ca-btn { border: 1px solid transparent; border-radius: 8px; font-weight: 600; cursor: pointer; }
+.ca-btn--primary { background: var(--ca-indigo); color: #fff; padding: 10px 16px; font-size: 14px; }
+.ca-btn--primary:hover { background: #2d2496; }
+.ca-btn--outline { background: #fff; color: #374151; border-color: #d1d5db; }
+.ca-btn--sm { padding: 7px 12px; font-size: 13px; }
+.ca-btn--ghost { background: transparent; color: #6b7280; }
+
+@media (max-width: 860px) {
+  .st-body { grid-template-columns: 1fr; }
+  .st-project { border-left: none; border-top: 1px solid #e5e7eb; }
+}

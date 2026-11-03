@@ -9,7 +9,7 @@ import Tutor from './Tutor.jsx'
 //  left     — AI TUTOR (chat, scaffolded hints, adaptive tracking)
 //  center   — WORKSPACE (Code/Preview/Split toggles, Files, tabs, editor)
 //  right    — browser-style live preview
-export default function WeblabLesson({ user, onExit }) {
+export default function WeblabLesson({ user, onExit, onViewSkillTree }) {
   const [levelId, setLevelId] = useState(FIRST_LEVEL_ID)
   const level = getLevel(levelId)
 
@@ -123,7 +123,7 @@ export default function WeblabLesson({ user, onExit }) {
       <header className="ca-topbar">
         <div className="ca-logo">CODE<span className="ca-logo-tri">∆</span>I</div>
         <div className="ca-topbar-center">
-          <button type="button" className="ca-pill">⛏ View skill tree</button>
+          <button type="button" className="ca-pill" onClick={onViewSkillTree}>⛏ View skill tree</button>
           <button type="button" className="ca-pill ca-pill--project">My Project ☁</button>
         </div>
         <div className="ca-topbar-right">
