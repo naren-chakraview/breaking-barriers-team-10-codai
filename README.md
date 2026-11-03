@@ -25,6 +25,81 @@ for them.
 
 - [`wireframe-design.md`](./wireframe-design.md) — the wireframe design for the
   learning interface, including the full layout and a component reference.
+- [`database/data-model.mmd`](./database/data-model.mmd) — the data model as a
+  Mermaid ER diagram (rendered below).
+
+## Data model
+
+The entities and relationships behind lessons, objectives, levels, and skills:
+
+```mermaid
+erDiagram
+    UNIT ||--o{ LESSON : contains
+    LESSON ||--o{ LEVEL : "made up of"
+    LESSON ||--o{ LESSON_OBJECTIVE : has
+    OBJECTIVE ||--o{ LESSON_OBJECTIVE : "referenced by"
+    OBJECTIVE ||--o{ LEVEL : "targeted by"
+    OBJECTIVE ||--o{ SKILL : "advanced by"
+    SKILL ||--o{ SKILL_LEVEL : "delivered via"
+    LEVEL ||--o{ SKILL_LEVEL : "delivers"
+    SKILL ||--o{ SKILL_EDGE : "from"
+    SKILL ||--o{ SKILL_EDGE : "to"
+
+    UNIT {
+        bigint unit_id PK
+        varchar title
+        int sequence
+        varchar status
+    }
+    LESSON {
+        bigint lesson_id PK
+        bigint unit_id FK
+        varchar title
+        int sequence
+        int estimated_minutes
+        varchar status
+    }
+    OBJECTIVE {
+        bigint objective_id PK
+        varchar code UK
+        varchar title
+        text description
+    }
+    LESSON_OBJECTIVE {
+        bigint lesson_id FK
+        bigint objective_id FK
+        decimal weight
+    }
+    LEVEL {
+        bigint level_id PK
+        bigint lesson_id FK
+        bigint objective_id FK
+        int sequence
+        varchar content_type
+        text instructions
+        int difficulty
+        boolean is_fallback
+        varchar status
+    }
+    SKILL {
+        bigint skill_id PK
+        bigint objective_id FK
+        varchar name
+        int difficulty
+    }
+    SKILL_LEVEL {
+        bigint skill_id FK
+        bigint level_id FK
+    }
+    SKILL_EDGE {
+        bigint from_skill_id FK
+        bigint to_skill_id FK
+        varchar edge_type
+        varchar condition
+    }
+```
+
+The source lives in [`database/data-model.mmd`](./database/data-model.mmd).
 
 ## Team
 
