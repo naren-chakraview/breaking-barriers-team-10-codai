@@ -1,10 +1,11 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { askTutor } from './engine.js'
 
 // Left-column "AI TUTOR" panel, styled to match the CodeAI Web Lab layout:
 // a tutor message/chat area, scaffolded step-by-step hints, the adaptive
-// objectives + mastery tucked in (our spec's blend), a chat input with an
-// "Add file" affordance, and a "Back to map" button. Responses are simulated.
+// objectives + mastery tucked in (our spec's blend), an always-available
+// "Get a hint" action, a chat input, and a "Back to map" button. Responses
+// are simulated.
 export default function Tutor({
   level,
   objectives,
@@ -20,12 +21,18 @@ export default function Tutor({
   const [messages, setMessages] = useState([
     {
       role: 'tutor',
-      text: 'Work on your project here! Ask me anything, or I will offer a hint if you get stuck.',
+      text: 'Work on your project here! Ask me anything, or tap "Get a hint" whenever you want one.',
     },
   ])
   const [input, setInput] = useState('')
   const [thinking, setThinking] = useState(false)
   const [hint, setHint] = useState(null) // { steps, revealed }
+
+  // Reset any showing hint when the student moves to a new level, so the
+  // "Get a hint" button always targets the current level's hint.
+  useEffect(() => {
+    setHint(null)
+  }, [level.id])
 
   function startHint(h) {
     if (!h) return
@@ -40,6 +47,19 @@ export default function Tutor({
       return { ...prev, revealed: prev.revealed + 1 }
     })
   }
+
+  // Always-available hint action: start the level's hint, or reveal the next
+  // step if one is already showing.
+  function getHint() {
+    if (!hint) {
+      startHint(level.hint)
+    } else if (hint.revealed < hint.steps.length) {
+      revealNext()
+    }
+  }
+
+  const hintExhausted = hint && hint.revealed >= hint.steps.length
+  const getHintLabel = !hint ? 'Get a hint' : 'Next hint step'
 
   async function send(e) {
     e?.preventDefault()
@@ -125,6 +145,18 @@ export default function Tutor({
           )}
           {thinking && <div className="ca-msg ca-msg--tutor ca-msg--thinking">Thinking…</div>}
         </div>
+      </div>
+
+      {/* Always-available hint action */}
+      <div className="ca-hint-bar">
+        <button
+          type="button"
+          className="ca-btn ca-btn--outline ca-gethint"
+          onClick={getHint}
+          disabled={hintExhausted}
+        >
+          💡 {hintExhausted ? 'No more hints' : getHintLabel}
+        </button>
       </div>
 
       <form className="ca-chat-input" onSubmit={send}>

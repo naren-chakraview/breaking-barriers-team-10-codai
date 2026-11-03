@@ -873,3 +873,8 @@ body {
   .st-body { grid-template-columns: 1fr; }
   .st-project { border-left: none; border-top: 1px solid #e5e7eb; }
 }
+
+/* Always-available "Get a hint" action bar in the tutor panel */
+.ca-hint-bar { padding: 8px 10px 0; }
+.ca-gethint { width: 100%; }
+.ca-gethint:disabled { opacity: 0.55; cursor: default; }
