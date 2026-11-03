@@ -38,6 +38,16 @@ Scope notes from the planning doc:
   front-end pointer, additional hint, timed answer reveal, iteration module.
 - **CS teacher standards:** An external computer-science standards framework
   (e.g. CSTA) used to grade a student's ability.
+- **Validation service:** Scores a task submission against a rubric to produce a
+  mastery signal, benchmarked against human raters.
+- **Routing service:** Selects the next skill from human-approved trajectories
+  based on accumulated mastery evidence.
+- **Non-adaptive fallback path:** A working, pre-authored lesson path used when
+  validation, routing, generation, or filtering fails.
+- **Content safety filtering:** Filtering applied to both student input and
+  model output so no unsafe or age-inappropriate content is processed or shown.
+- **Intra-lesson adaptivity:** Adapting to how a student performs within the
+  current lesson (the MVP focus), as opposed to across their full history.
 
 ## Requirements
 
@@ -225,6 +235,78 @@ course/lesson/skill browsing, and progress recording.
 6. IF a protected endpoint is called without a valid access token THEN THE SYSTEM
    SHALL reject the request.
 
+### Requirement 18: Content safety filtering
+
+**User Story:** As a student (a minor) and a program owner, I want all content
+filtered for safety, so that nothing harmful or age-inappropriate reaches a
+student and AI-generated content stays fair and appropriate.
+
+#### Acceptance Criteria
+
+1. WHEN a student submits input (prompt, code, chat) THE SYSTEM SHALL apply
+   content filtering to that input before it is processed by any model.
+2. WHEN a model produces output intended for a student THE SYSTEM SHALL apply
+   content filtering to that output before it is delivered.
+3. IF content filtering flags student input or model output as unsafe or
+   age-inappropriate THEN THE SYSTEM SHALL block or replace it and SHALL NOT
+   deliver the flagged content to the student.
+4. THE SYSTEM SHALL ensure AI-generated routing decisions and content are fair,
+   safe, and appropriate for a K-12 student audience.
+5. THE SYSTEM SHALL NOT share student data for commercial purposes.
+
+### Requirement 19: Validation service and mastery signal
+
+**User Story:** As the platform, I want a validation service that scores a
+student's task submission against a rubric, so that routing has a trustworthy
+mastery signal.
+
+#### Acceptance Criteria
+
+1. WHEN a student submits work on a task THE SYSTEM SHALL score the submission
+   against the task's rubric and produce a mastery signal for the relevant
+   objective.
+2. THE SYSTEM SHALL measure the validation service's agreement with human raters
+   on a benchmark set, and THE SYSTEM SHALL meet a defined agreement threshold as
+   a launch gate.
+3. WHEN a mastery signal is produced THE SYSTEM SHALL record it as the evidence
+   used for routing.
+4. IF validation cannot produce a reliable mastery signal THEN THE SYSTEM SHALL
+   trigger the non-adaptive fallback path.
+
+### Requirement 20: Non-adaptive fallback path
+
+**User Story:** As a student, I want a working lesson even when adaptivity fails,
+so that a failure never leaves me on a broken path.
+
+#### Acceptance Criteria
+
+1. IF validation, routing, content generation, or content filtering fails THEN
+   THE SYSTEM SHALL fall back to a working non-adaptive path for the current
+   objective rather than a broken state.
+2. WHEN the fallback path is active THE SYSTEM SHALL deliver pre-authored,
+   human-approved content for the objective.
+3. WHEN a failure triggers the fallback THE SYSTEM SHALL record the failure so it
+   can be audited later.
+
+### Requirement 21: Human-authored content and approved-trajectory routing
+
+**User Story:** As the curriculum team, I want routing to draw only from
+human-authored and human-approved content, so that students only ever receive
+safe, high-quality material.
+
+#### Acceptance Criteria
+
+1. THE SYSTEM SHALL route students only among human-authored, human-approved
+   learning trajectories.
+2. WHEN the routing service selects the next skill THE SYSTEM SHALL deliver
+   pre-authored, pre-approved content for that skill.
+3. IF content is generated on the fly (exploratory) THEN THE SYSTEM SHALL keep
+   the objective fixed, stay within approved concept and skill boundaries, and
+   pass the generated content through safety filtering and a curriculum-quality
+   check before it reaches the student.
+4. IF generated content fails the quality check or safety filtering THEN THE
+   SYSTEM SHALL fall back to approved pre-authored content for that objective.
+
 ## Non-Functional Requirements
 
 These requirements are organized around the six pillars of the AWS
@@ -345,6 +427,19 @@ compute, so that its environmental footprint is kept low.
   tree and data model?
 - What are the exact thresholds for raising/lowering a topic skill score, and the
   default answer-timeout duration?
+- What is the human-agreement threshold the validation service must meet as a
+  launch gate (Req 19)?
+- Which adaptivity approach should be built: pre-written pathways, AI-selects-
+  next-step, or AI-generates-within-constraints — or the hint/coaching middle
+  ground that keeps one authored path but personalizes coaching along it?
+- Should adaptivity vary depth on shared objectives (vision direction) rather
+  than letting advanced students race ahead, and how does that reconcile with
+  the upfront assessment in Requirement 3 (formative vs. summative)?
+- How many tasks/skills should the MVP skill tree contain, and which sample
+  lesson is the best MVP candidate?
+- NOTE (scope): the teacher view (Requirements 9-10) exceeds the vision's MVP,
+  which defers teacher dashboards and class-wide views. Keep intentionally or
+  defer?
 
 ## Sequence Diagrams
 
@@ -358,4 +453,6 @@ human-in-the-loop routing. Each diagram maps back to the requirements above.
 
 ## Source
 
-Derived from the team planning doc "AWS CodeAI Hackathon Planning Doc."
+Derived from the team planning doc "AWS CodeAI Hackathon Planning Doc" and
+aligned with the recipients' "Vision Document: CodeAI Adaptive Learning Engine"
+(Hackathon MVP draft from the CodeAI AWS Imagine Grant, Round 2).
