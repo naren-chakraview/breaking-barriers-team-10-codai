@@ -11,8 +11,9 @@ guiding questions — and teachers stay in the loop, reviewing progress and
 influencing how the agent routes a student to their next lesson.
 
 This document captures the functional requirements derived from the team
-planning doc. Each requirement has a user story and acceptance criteria written
-in EARS style (WHEN/IF ... THE SYSTEM SHALL ...).
+planning doc, plus non-functional requirements organized around the six pillars
+of the AWS Well-Architected Framework. Each requirement has a user story and
+acceptance criteria written in EARS style (WHEN/IF ... THE SYSTEM SHALL ...).
 
 Scope notes from the planning doc:
 
@@ -223,6 +224,116 @@ course/lesson/skill browsing, and progress recording.
    success/failure result THE SYSTEM SHALL record progress and respond 200 OK.
 6. IF a protected endpoint is called without a valid access token THEN THE SYSTEM
    SHALL reject the request.
+
+## Non-Functional Requirements
+
+These requirements are organized around the six pillars of the AWS
+Well-Architected Framework: Operational Excellence, Security, Reliability,
+Performance Efficiency, Cost Optimization, and Sustainability.
+
+### Requirement 12: Operational Excellence
+
+**User Story:** As an operator, I want the platform to be observable and safe to
+change, so that we can run it during a live classroom session and improve it
+without disruption.
+
+#### Acceptance Criteria
+
+1. THE SYSTEM SHALL emit structured logs, metrics, and traces for API requests
+   and for each agent interaction (active hints, passive interventions, codegen
+   calls, escalations).
+2. WHEN an agent intervention or escalation occurs THE SYSTEM SHALL record it
+   with enough context (student, topic, trigger, severity) to audit and debug
+   later.
+3. THE SYSTEM SHALL be deployable through an automated, repeatable pipeline that
+   supports rollback of a failed release.
+4. WHEN a classroom session is in progress THE SYSTEM SHALL surface operational
+   health (error rate, agent/model latency) so operators can react.
+
+### Requirement 13: Security
+
+**User Story:** As a student, teacher, and administrator, I want student data and
+access to be protected, so that minors' information and classroom work stay safe.
+
+#### Acceptance Criteria
+
+1. THE SYSTEM SHALL enforce role-based access control so a student cannot access
+   another student's data and only teachers can access the teacher view.
+2. THE SYSTEM SHALL encrypt data in transit (TLS) and at rest.
+3. WHEN an access token is issued THE SYSTEM SHALL scope and expire it, and THE
+   SYSTEM SHALL reject expired or invalid tokens on protected endpoints.
+4. THE SYSTEM SHALL store credentials using a salted one-way hash and never log
+   secrets, tokens, or passwords.
+5. THE SYSTEM SHALL validate and sanitize student-submitted prompts and code,
+   and execute student code in an isolated sandbox with no access to platform
+   secrets or other students' data.
+6. THE SYSTEM SHALL handle student (minor) personal data in line with applicable
+   privacy requirements, collecting only what is needed.
+
+### Requirement 14: Reliability
+
+**User Story:** As a teacher running a lesson, I want the platform to stay
+available and not lose student progress, so that a class is not derailed by a
+failure.
+
+#### Acceptance Criteria
+
+1. THE SYSTEM SHALL persist student progress durably so that a client crash or
+   reload does not lose completed work.
+2. IF a model or agent call fails or times out THEN THE SYSTEM SHALL degrade
+   gracefully (e.g. retry, fall back, or queue) without breaking the student's
+   session.
+3. WHEN a dependency is temporarily unavailable THE SYSTEM SHALL present a clear
+   state to the user rather than failing silently.
+4. THE SYSTEM SHALL recover student session state after a transient outage so the
+   student can resume where they left off.
+
+### Requirement 15: Performance Efficiency
+
+**User Story:** As a student, I want fast feedback while I build, so that hints
+and previews feel responsive during the lesson.
+
+#### Acceptance Criteria
+
+1. WHEN a student runs code THE SYSTEM SHALL return error detection and an inline
+   hint within a target interactive latency (e.g. a few seconds).
+2. WHEN a student edits code THE SYSTEM SHALL update the live preview promptly
+   enough to preserve the code-to-UI connection.
+3. THE SYSTEM SHALL route work to an appropriately sized model for the task
+   (e.g. a faster/cheaper model for lightweight checks, a stronger model for
+   complex code reasoning).
+4. THE SYSTEM SHALL support the expected concurrent classroom load without
+   material degradation of interactive latency.
+
+### Requirement 16: Cost Optimization
+
+**User Story:** As a program owner, I want model and infrastructure spend kept
+efficient, so that the platform is affordable to run for classrooms.
+
+#### Acceptance Criteria
+
+1. THE SYSTEM SHALL select the lowest-cost model that meets the quality bar for
+   each task (e.g. prompt verification vs. code generation).
+2. THE SYSTEM SHALL attribute and track model/token and infrastructure usage so
+   cost can be monitored per lesson or per student cohort.
+3. THE SYSTEM SHALL avoid redundant model calls (e.g. cache or reuse results)
+   where it does not reduce learning quality.
+4. THE SYSTEM SHALL scale compute with demand so idle classroom capacity does not
+   incur unnecessary cost.
+
+### Requirement 17: Sustainability
+
+**User Story:** As a responsible team, I want the platform to minimize wasted
+compute, so that its environmental footprint is kept low.
+
+#### Acceptance Criteria
+
+1. THE SYSTEM SHALL prefer the smallest model and compute footprint that meets a
+   task's quality bar.
+2. THE SYSTEM SHALL scale resources down during idle periods (e.g. outside class
+   hours) rather than running continuously.
+3. THE SYSTEM SHALL avoid unnecessary recomputation by reusing cached assessments
+   and generated content where valid.
 
 ## Open Questions
 
