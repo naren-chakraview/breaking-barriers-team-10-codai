@@ -1,31 +1,45 @@
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { askTutor } from './engine.js'
 
-// Left-column "AI TUTOR" panel, styled to match the CodeAI Web Lab layout:
-// a tutor message/chat area, scaffolded step-by-step hints, the adaptive
-// objectives + mastery tucked in (our spec's blend), a chat input with an
-// "Add file" affordance, and a "Back to map" button. Responses are simulated.
+// Right-bottom card from the wireframe: the AI Tutor. Shows a proactive nudge
+// bubble, the chat (student / tutor messages), scaffolded hints revealed one
+// step at a time, an always-available "Get a hint", and the chat input.
+// Responses are simulated (no model). `incoming` lets other parts of the page
+// talk to the tutor: { id, kind: 'ask' | 'say', text }.
+const INTRO = {
+  role: 'tutor',
+  text: 'Hi! Build in the editor and press Run anytime. Ask me a question, or tap “Get a hint” whenever you want one.',
+}
+
 export default function Tutor({
   level,
-  objectives,
-  completed,
-  mastery,
-  hintsUsed,
-  timeStr,
+  code,
   nudge,
   onDismissNudge,
   onHintRevealed,
-  onBackToMap,
+  onActiveStepTarget,
+  incoming,
 }) {
-  const [messages, setMessages] = useState([
-    {
-      role: 'tutor',
-      text: 'Work on your project here! Ask me anything, or I will offer a hint if you get stuck.',
-    },
-  ])
+  const [messages, setMessages] = useState([INTRO])
   const [input, setInput] = useState('')
   const [thinking, setThinking] = useState(false)
   const [hint, setHint] = useState(null) // { steps, revealed }
+  const endRef = useRef(null)
+  const handledRef = useRef(null)
+
+  // New level -> clear any showing hint so "Get a hint" targets this level.
+  useEffect(() => { setHint(null) }, [level.id])
+
+  // Report the revealed hint step's target so the inline arrow follows it.
+  useEffect(() => {
+    if (!onActiveStepTarget) return
+    if (!hint) { onActiveStepTarget(null); return }
+    onActiveStepTarget(level.hint?.stepTargets?.[hint.revealed - 1] || null)
+  }, [hint, level.id, onActiveStepTarget])
+
+  useEffect(() => {
+    endRef.current?.scrollIntoView?.({ block: 'nearest' })
+  }, [messages, hint, thinking])
 
   function startHint(h) {
     if (!h) return
@@ -41,17 +55,36 @@ export default function Tutor({
     })
   }
 
-  async function send(e) {
-    e?.preventDefault()
-    const q = input.trim()
+  function getHint() {
+    if (!hint) startHint(level.hint)
+    else revealNext()
+  }
+
+  async function ask(question) {
+    const q = (question || '').trim()
     if (!q || thinking) return
     setMessages((m) => [...m, { role: 'student', text: q }])
-    setInput('')
     setThinking(true)
-    const res = await askTutor(level, q)
+    const res = await askTutor(level, q, code)
     setThinking(false)
     setMessages((m) => [...m, { role: 'tutor', text: res.reply }])
     if (res.hint) startHint(res.hint)
+  }
+
+  // Messages sent from elsewhere on the page (Ask a question / Generate).
+  useEffect(() => {
+    if (!incoming || handledRef.current === incoming.id) return
+    handledRef.current = incoming.id
+    if (incoming.kind === 'ask') ask(incoming.text)
+    else setMessages((m) => [...m, { role: 'tutor', text: incoming.text }])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [incoming])
+
+  function send(e) {
+    e.preventDefault()
+    const q = input
+    setInput('')
+    ask(q)
   }
 
   function acceptNudge() {
@@ -61,87 +94,77 @@ export default function Tutor({
     startHint(h)
   }
 
-  const total = objectives?.length ?? 0
-  const doneCount = Object.keys(completed || {}).length
+  const hintExhausted = hint && hint.revealed >= hint.steps.length
 
   return (
-    <div className="ca-tutor">
-      <div className="ca-panel-head">AI TUTOR</div>
+    <section className="wf-card wf-tutor" aria-label="AI Tutor">
+      <div className="wf-card-head">
+        <h2 className="wf-card-title wf-tutor-title">
+          <span className="wf-tutor-dot" aria-hidden="true" />
+          AI Tutor
+        </h2>
+        {nudge && <span className="wf-pill-nudge">💡 nudge available</span>}
+      </div>
 
-      <div className="ca-tutor-body">
-        <div className="ca-tutor-intro">{messages[0].text}</div>
-
-        {/* Adaptive tracking tucked into the tutor panel (spec blend) */}
-        <div className="ca-track">
-          <div className="ca-track-row">
-            <span className="ca-track-label">Objectives</span>
-            <span className="ca-track-val">{doneCount}/{total}</span>
-          </div>
-          <ul className="ca-track-objs">
-            {objectives?.map((o) => {
-              const isDone = completed?.[o.id]
-              const isActive = o.id === level.objectiveId
-              return (
-                <li key={o.id} className={`ca-track-obj ${isDone ? 'is-done' : ''} ${isActive ? 'is-active' : ''}`}>
-                  <span aria-hidden="true">{isDone ? '✓' : isActive ? '▸' : '○'}</span>
-                  {o.title}
-                </li>
-              )
-            })}
-          </ul>
-          <div className="ca-track-stats">
-            <span>Mastery <strong>{mastery == null ? '—' : mastery}</strong></span>
-            <span>Hints <strong>{hintsUsed}</strong></span>
-            <span>Time <strong>{timeStr}</strong></span>
-          </div>
-        </div>
-
+      <div className="wf-chat" aria-live="polite">
         {nudge && (
-          <div className="ca-nudge" role="status">
-            <p>{nudge.message}</p>
-            <div className="ca-nudge-actions">
-              <button type="button" className="ca-btn ca-btn--primary ca-btn--sm" onClick={acceptNudge}>Show a hint</button>
-              <button type="button" className="ca-btn ca-btn--ghost ca-btn--sm" onClick={onDismissNudge}>Dismiss</button>
+          <div className="wf-nudge" role="status">
+            <p className="wf-nudge-title">I noticed you might be stuck 🤔</p>
+            <p className="wf-nudge-text">{nudge.message}</p>
+            <div className="wf-nudge-actions">
+              <button type="button" className="wf-btn wf-btn--blue wf-btn--xs" onClick={acceptNudge}>Show hint</button>
+              <button type="button" className="wf-btn wf-btn--ghost wf-btn--xs" onClick={onDismissNudge}>Dismiss</button>
             </div>
           </div>
         )}
 
-        <div className="ca-chat">
-          {messages.slice(1).map((m, i) => (
-            <div key={i} className={`ca-msg ca-msg--${m.role}`}>{m.text}</div>
-          ))}
-          {hint && (
-            <div className="ca-hint">
-              <div className="ca-hint-label">Hint — step {hint.revealed} of {hint.steps.length}</div>
-              <ol className="ca-hint-steps">
-                {hint.steps.slice(0, hint.revealed).map((s, i) => <li key={i}>{s}</li>)}
-              </ol>
-              {hint.revealed < hint.steps.length ? (
-                <button type="button" className="ca-btn ca-btn--outline ca-btn--sm" onClick={revealNext}>Reveal next step</button>
-              ) : (
-                <p className="ca-hint-done">That's the last step — you've got this!</p>
-              )}
-            </div>
-          )}
-          {thinking && <div className="ca-msg ca-msg--tutor ca-msg--thinking">Thinking…</div>}
-        </div>
+        {messages.map((m, i) => (
+          <div key={i} className={`wf-msg wf-msg--${m.role}`}>{m.text}</div>
+        ))}
+
+        {hint && (
+          <div className="wf-hint">
+            <div className="wf-hint-label">Hint — step {hint.revealed} of {hint.steps.length}</div>
+            <ol className="wf-hint-steps">
+              {hint.steps.slice(0, hint.revealed).map((s, i) => <li key={i}>{s}</li>)}
+            </ol>
+            {hint.revealed < hint.steps.length ? (
+              <button type="button" className="wf-link" onClick={revealNext}>
+                Reveal step {hint.revealed + 1} of {hint.steps.length} →
+              </button>
+            ) : (
+              <p className="wf-hint-done">That's the last step — you've got this!</p>
+            )}
+          </div>
+        )}
+
+        {thinking && <div className="wf-msg wf-msg--tutor wf-msg--thinking">Thinking…</div>}
+        <div ref={endRef} />
       </div>
 
-      <form className="ca-chat-input" onSubmit={send}>
-        <input
-          type="text"
-          value={input}
-          onChange={(e) => setInput(e.target.value)}
-          placeholder="Add a chat message…"
-          aria-label="Ask the AI Tutor a question"
-        />
-        <button type="button" className="ca-addfile" title="Add file" aria-label="Add file">+ Add file</button>
-        <button type="submit" className="ca-send" disabled={thinking} aria-label="Send message">↑</button>
-      </form>
-
-      <button type="button" className="ca-backmap" onClick={onBackToMap}>
-        Back to map →
-      </button>
-    </div>
+      <div className="wf-tutor-foot">
+        <button
+          type="button"
+          className="wf-btn wf-btn--soft wf-btn--xs wf-gethint"
+          onClick={getHint}
+          disabled={hintExhausted}
+        >
+          💡 {hintExhausted ? 'No more hints' : hint ? 'Next hint step' : 'Get a hint'}
+        </button>
+        <form className="wf-chat-input" onSubmit={send}>
+          <input
+            type="text"
+            value={input}
+            onChange={(e) => setInput(e.target.value)}
+            placeholder="Ask the tutor anything..."
+            aria-label="Ask the tutor anything"
+            maxLength={2000}
+          />
+          <button type="submit" className="wf-btn wf-btn--purple wf-btn--pill" disabled={thinking || !input.trim()}>
+            Send
+          </button>
+        </form>
+      </div>
+    </section>
   )
 }
