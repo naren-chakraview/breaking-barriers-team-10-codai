@@ -16,3 +16,12 @@ npm-debug.log*
 # Env
 .env
 .env.*
+!.env.example
+
+# Python
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+.cdk.staging/
+cdk.out/

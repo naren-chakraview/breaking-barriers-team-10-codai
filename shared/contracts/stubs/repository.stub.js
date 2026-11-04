@@ -1,7 +1,7 @@
 import { REPOSITORY_METHODS, LIMITS } from '../seams.js'
 
 // In-memory repository stub for seam 4. It is the behavioral reference the JSON-file
-// adapter (demo mode) and the DynamoDB adapter (Task 7) must both match via
+// adapter (demo mode) and the Aurora adapter (ADR-016) must both match via
 // runRepositoryContract. Deliberately simple: Maps and arrays, no persistence.
 
 const byTime = (a, b) => (a.createdAt < b.createdAt ? -1 : a.createdAt > b.createdAt ? 1 : 0)
