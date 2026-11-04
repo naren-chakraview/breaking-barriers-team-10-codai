@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { LESSON, FIRST_LEVEL_ID, getLevel } from './courseData.js'
 import { validateSubmission, routeNextLevel, buildNudge, describeRoute, computeConfidence, applyEstablished } from './engine.js'
+import { writeProgress } from './progressStore.js'
 import { buildProject } from './tools.js'
 import { useServices } from '../services/ServicesContext.jsx'
 import { adaptTree, adaptSubmit } from '../services/treeAdapter.js'
@@ -118,6 +119,9 @@ export default function WeblabLesson({ user, onExit, onViewSkillTree }) {
     return () => clearInterval(t)
   }, [])
 
+  // Persist that the lesson has been started so the dashboard reflects real state.
+  useEffect(() => { writeProgress(user?.username, { started: true }) }, [user])
+
   const bannerTimer = useRef(null)
   const flash = useCallback((msg, ms = 4000) => {
     setBanner(msg)
@@ -208,6 +212,12 @@ export default function WeblabLesson({ user, onExit, onViewSkillTree }) {
     setBestMastery((m) => Math.max(m, signal.score)) // mastery never shown decreasing
     if (signal.passing) setCompleted((c) => ({ ...c, [level.objectiveId]: true }))
     if (signal.passing) setEstablished((e) => ({ ...e, [level.objectiveId]: applyEstablished(level.tier, e[level.objectiveId]) }))
+
+    // Persist real progress so the dashboard reflects what actually happened.
+    writeProgress(user?.username, {
+      bestMastery: Math.max(bestMastery, signal.score),
+      completed: signal.passing ? { [level.objectiveId]: true } : {},
+    })
 
     // Confidence in this objective's level drives whether we probe to confirm.
     const conf = computeConfidence(signal, level.tier)
