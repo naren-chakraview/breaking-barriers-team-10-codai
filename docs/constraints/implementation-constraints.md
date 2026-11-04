@@ -192,6 +192,9 @@ Errors: `{ "error": { "code": str, "message": str } }`. Timeouts follow the fron
 **C-30 Stack: stay as built.** React 18 + Vite, **JavaScript (JSX)**, plain `index.css`. No TypeScript
 migration, no MUI and no CSS Modules tomorrow. Put JSDoc `@typedef`s in `src/services/types.js`.
 (DEFAULT. CodeAI runs React 18 + MUI 7: mention the mapping in the pitch.)
+This rule governs the **front end only**. The backend language is Python (ADR-015) and infrastructure
+is CDK in TypeScript (ADR-010); neither changes the front-end stack. The shared contract schemas in
+`shared/contracts/schemas/` are language-neutral JSON Schema.
 
 **C-31 Layout: the code wins** (tutor left, workspace centre, preview right; "CodeAI studio" style).
 Frontend F-1.2 to F-1.4 describe a different arrangement: update F-1 to match the code after the

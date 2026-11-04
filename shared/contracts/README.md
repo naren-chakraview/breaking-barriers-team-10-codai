@@ -48,8 +48,8 @@ Make it match the stub's signatures, then run the matching harness against it:
 
 ```js
 import { runRepositoryContract } from '../../shared/contracts/harness.js'
-import { createDynamoRepository } from './dynamo-repository.js'
-runRepositoryContract('dynamodb', () => createDynamoRepository(testConfig))
+import { createAuroraRepository } from './aurora-repository.js'
+runRepositoryContract('aurora', () => createAuroraRepository(testConfig))
 ```
 
 When it is green, flip the mode switch (`STORE_MODE`, `MODEL_MODE`, or

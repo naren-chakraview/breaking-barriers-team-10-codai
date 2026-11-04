@@ -77,7 +77,7 @@ export function runServicesContract(label, makeServices) {
 }
 
 /**
- * Seam 4. Verify a repository implementation (JSON file or DynamoDB) against the same suite.
+ * Seam 4. Verify a repository implementation (JSON file or Aurora) against the same suite.
  * @param {string} label
  * @param {() => object | Promise<object>} makeRepo returns a fresh, empty repository
  */

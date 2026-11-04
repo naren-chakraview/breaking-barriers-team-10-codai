@@ -1,0 +1,5 @@
+# Python dev dependencies for the backend domain core and store (ADR-015).
+# Pinned exact for reproducible CI. Install in a venv:
+#   python -m venv .venv && . .venv/bin/activate && pip install -r requirements-dev.txt
+jsonschema==4.23.0
+pytest==8.3.4
