@@ -575,11 +575,17 @@ alarm, the dashboard and the UI.
 ### Task 11: Golden-set gate in CI (MVP)
 Owner: ____ · Serves: C-17, P-19.2 · Architecture: 2.5
 
-- [ ] CI job on `main` runs the validator on the pinned model and prompt version
-- [ ] Fails below kappa 0.70 (exact, within-1 and quadratic weighted kappa reported)
-- [ ] The kappa number is available for the demo
+- [x] Agreement metrics: exact, within-1, quadratic weighted kappa (`backend/eval/metrics.py`, hand-verified)
+- [x] Golden-set runner + launch gate: ≥ 15 submissions AND pooled QWK ≥ 0.70, pooled + per-skill report
+- [x] CLI gate `python -m backend.eval <file>` — prints the numbers, exits non-zero below the gate
+- [x] Placeholder sample set wires the gate (18 synthetic pairs, PASS); demo-ready report format
+- [ ] Replace the placeholder with ≥ 15 **real** human-rated submissions (Track G — slow dependency)
+- [ ] `modelLevel` snapshot from the real validator (C-14) on a pinned model + prompt version
+- [ ] CI job on `main` runs `python -m backend.eval` against the snapshot (not every PR, to limit spend)
 
-**Tests:** the gate passes and fails correctly on fixtures. **Demo:** the pipeline shows the value.
+**Tests:** `pytest backend/eval` → 26 passing (metric math, count gate, QWK gate, validation, CLI exit
+codes). **Demo:** `python -m backend.eval backend/eval/fixtures/golden-set.sample.json` prints the pooled
+QWK and per-skill breakdown.
 
 ### Task 12: Demo director and recording script (MVP)
 Owner: ____ · Serves: C-33 (extended) · Architecture: 2.13
