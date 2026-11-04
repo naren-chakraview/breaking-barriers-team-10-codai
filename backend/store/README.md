@@ -6,7 +6,7 @@ The store seam (seam 4, ADR-016). A storage-agnostic repository interface
 | Adapter | `STORE_MODE` | Status |
 |---|---|---|
 | `JsonRepository` | `json` (default) | **Built.** Demo mode: in-memory, optional JSON-file persistence. No AWS. Passes the contract suite. |
-| Aurora adapter | `aurora` | **Deferred** (see below). |
+| Aurora adapter | `aurora` | **Not built yet, unblocked** by Task 4.6 (see below). |
 
 Both adapters must pass the same contract (`tests/contract.py`), so switching
 `STORE_MODE` is a config change, not a rewrite.
@@ -16,25 +16,22 @@ Both adapters must pass the same contract (`tests/contract.py`), so switching
 Methods take and return the camelCase records in
 `shared/contracts/schemas/records.schema.json`.
 
-## Why the Aurora adapter is deferred
+## Aurora adapter: the agreed shape (Task 4.6, ADR-017)
 
-The schema of record is now `database/schema.sql` (merged via PR #13, owned by the data
-track). It differs from the contract records in ways that need a team decision, not a
-unilateral mapping:
+`database/schema.sql` now matches the contract records, so the adapter needs no id
+translation:
 
-- **Student id type.** The contracts use a string `studentId` (e.g. `stu-quick`); the
-  schema uses an INTEGER `StudentId` with an FK to `STUDENT_PROFILE`. An adapter must
-  resolve string ids to integer ids (or the contract must change).
-- **Column case.** Postgres folds the unquoted identifiers to lowercase (`studentid`,
-  `createdat`), so result-set mapping is lowercase-to-camelCase, not snake_case.
-- **Teacher input.** The contracts assume a `teacher_input` record; the schema models it
-  as `ROUTING_DECISION.TeacherInput` (enum) plus a `TeacherId` FK. These need reconciling.
-- **No `synthetic` column** on the student tables, which the demo personas rely on.
-- **Evidence range.** The schema allows `Level` 0–4 (a 5-point competence scale); the skill
-  rubric maxima are 2/3/3.
+- Student and teacher ids are strings (`stu-quick`); skills are referenced by slug (`build`).
+- Every student-state column is its record key in lower case. Map a result row to a record
+  with `row[key.lower()]` for each key in the record schema, and format `TIMESTAMPTZ` values
+  as ISO 8601 UTC (`2026-11-04T09:10:00Z`).
+- Teacher input: `TEACHER_INPUT` holds the standing hold or assign (no row means `auto`), and
+  `ROUTING_DECISION.TeacherInput` is a JSONB snapshot of `{mode, checkpointId}`.
+- `EvidenceId`, `FlagId` and `FallbackEventId` are internal surrogate keys. Do not return them.
+- Use Data API `parameters` for every value. Never build SQL by string concatenation.
 
-Until these are agreed, the backend runs on `JsonRepository`, which satisfies the whole
-contract and needs no AWS. See the PR notes for the proposed reconciliation.
+The seeded rows already validate against `records.schema.json` with this mapping. The adapter
+still has to pass the store contract suite against a live cluster.
 
 ## Tests
 
