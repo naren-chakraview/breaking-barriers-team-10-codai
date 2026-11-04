@@ -1,0 +1,410 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://codeai.local/contracts/services.schema.json",
+  "title": "Services API (UI and backend)",
+  "description": "Seam 1. Arguments and responses for the eight src/services functions (C-28), which map one-to-one to the C-29 endpoints. camelCase on the wire. Student id, token and role travel in the P-1.4 headers, not in these bodies. There are NO client timing or telemetry fields anywhere in this file (ADR-006); additionalProperties is false so adding one is rejected.",
+  "$defs": {
+    "Session": {
+      "description": "P-1.4 headers: Authorization: Bearer <token>, X-User-Id, X-Role. Demo mode uses a fixed demo token (C-33).",
+      "type": "object",
+      "required": ["token", "userId", "role"],
+      "additionalProperties": false,
+      "properties": {
+        "token": { "type": "string", "minLength": 1 },
+        "userId": { "$ref": "common.schema.json#/$defs/StudentId" },
+        "role": { "enum": ["student", "teacher"] }
+      }
+    },
+
+    "Notice": {
+      "description": "Shown to the student when adaptivity is unavailable (F-14.1) or content was blocked (C-25).",
+      "type": "object",
+      "required": ["code", "message"],
+      "additionalProperties": false,
+      "properties": {
+        "code": { "enum": ["ADAPTIVE_UNAVAILABLE", "CONTENT_BLOCKED"] },
+        "message": { "type": "string", "minLength": 1, "maxLength": 300 }
+      }
+    },
+
+    "GetTreeArgs": {
+      "type": "object",
+      "required": ["courseId"],
+      "additionalProperties": false,
+      "properties": { "courseId": { "$ref": "common.schema.json#/$defs/Slug" } }
+    },
+    "TreeResponse": {
+      "description": "GET /courses/{course_id}. `course` means skill tree (C-4). Progress and evidence are the signed-in student's.",
+      "type": "object",
+      "required": ["tree", "progress", "evidence", "current", "fallbackActive", "correlationId"],
+      "additionalProperties": false,
+      "properties": {
+        "tree": { "$ref": "tree.schema.json#/$defs/Tree" },
+        "progress": {
+          "type": "object",
+          "propertyNames": { "pattern": "^[a-z0-9][a-z0-9-]*$" },
+          "additionalProperties": { "$ref": "common.schema.json#/$defs/ProgressStatus" },
+          "description": "checkpointId to status. Node state is computed from this, never hard-coded (C-6)."
+        },
+        "evidence": {
+          "type": "object",
+          "propertyNames": { "pattern": "^[a-z0-9][a-z0-9-]*$" },
+          "additionalProperties": { "$ref": "common.schema.json#/$defs/Level" },
+          "description": "skillId to the student's level (the max observed, C-10)."
+        },
+        "current": {
+          "oneOf": [
+            {
+              "type": "object",
+              "required": ["checkpointId", "stepId"],
+              "additionalProperties": false,
+              "properties": {
+                "checkpointId": { "$ref": "common.schema.json#/$defs/Slug" },
+                "stepId": { "$ref": "common.schema.json#/$defs/Slug" }
+              }
+            },
+            { "type": "null" }
+          ]
+        },
+        "fallbackActive": { "type": "boolean" },
+        "correlationId": { "$ref": "common.schema.json#/$defs/CorrelationId" }
+      }
+    },
+
+    "SubmitStepArgs": {
+      "description": "POST /steps/{step_id}/submit. `prompt`: the student's requirement prompt (and optionally the resulting project). `answer`: a question answer. `complete`: completion only (panels). No timing fields: the server stamps time (ADR-006).",
+      "type": "object",
+      "required": ["stepId", "courseId", "checkpointId", "kind"],
+      "additionalProperties": false,
+      "properties": {
+        "stepId": { "$ref": "common.schema.json#/$defs/Slug" },
+        "courseId": { "$ref": "common.schema.json#/$defs/Slug" },
+        "checkpointId": { "$ref": "common.schema.json#/$defs/Slug" },
+        "kind": { "enum": ["prompt", "answer", "complete"] },
+        "text": { "type": "string", "minLength": 1, "maxLength": 4000 },
+        "questionId": { "type": "integer" },
+        "choiceId": { "type": "string", "pattern": "^[a-z]$" },
+        "project": { "$ref": "common.schema.json#/$defs/Project" }
+      },
+      "allOf": [
+        { "if": { "properties": { "kind": { "const": "prompt" } } }, "then": { "required": ["text"] } },
+        {
+          "if": { "properties": { "kind": { "const": "answer" } } },
+          "then": { "required": ["questionId"], "anyOf": [{ "required": ["choiceId"] }, { "required": ["text"] }] }
+        }
+      ]
+    },
+    "SubmitResponse": {
+      "description": "Evidence, the next step, and why. `outcome`: scored = a validator or answer map produced evidence; recorded = completion only (C-15); blocked = the safety filter blocked the input or output; fallback = adaptivity failed and the linear path applies (C-21). `source` says where model-derived content came from, so a stub can never pass as live (architecture 1.8).",
+      "type": "object",
+      "required": ["stepId", "outcome", "evidence", "masteryDisplay", "completed", "next", "hint", "passive", "notice", "source", "correlationId"],
+      "additionalProperties": false,
+      "properties": {
+        "stepId": { "$ref": "common.schema.json#/$defs/Slug" },
+        "outcome": { "enum": ["scored", "recorded", "blocked", "fallback"] },
+        "evidence": {
+          "oneOf": [
+            {
+              "type": "object",
+              "required": ["skillId", "level", "max", "confidence", "conditionMet", "note"],
+              "additionalProperties": false,
+              "properties": {
+                "skillId": { "$ref": "common.schema.json#/$defs/Slug" },
+                "level": { "$ref": "common.schema.json#/$defs/Level" },
+                "max": { "type": "integer", "minimum": 1, "maximum": 3 },
+                "confidence": { "$ref": "common.schema.json#/$defs/Confidence" },
+                "conditionMet": { "type": "boolean" },
+                "note": { "$ref": "common.schema.json#/$defs/EvidenceText" }
+              }
+            },
+            { "type": "null" }
+          ]
+        },
+        "masteryDisplay": {
+          "oneOf": [{ "type": "integer", "minimum": 0, "maximum": 100 }, { "type": "null" }],
+          "description": "round(100 x level / max). Display only; never stored or sent to routing (C-11)."
+        },
+        "completed": { "type": "boolean", "description": "True when this submit completed the checkpoint (C-12)." },
+        "next": {
+          "oneOf": [
+            {
+              "type": "object",
+              "required": ["checkpointId", "stepId", "reason"],
+              "additionalProperties": false,
+              "properties": {
+                "checkpointId": { "$ref": "common.schema.json#/$defs/Slug" },
+                "stepId": { "$ref": "common.schema.json#/$defs/Slug" },
+                "reason": { "$ref": "common.schema.json#/$defs/Reason" }
+              }
+            },
+            { "type": "null" }
+          ]
+        },
+        "hint": {
+          "oneOf": [
+            {
+              "type": "object",
+              "required": ["style", "text"],
+              "additionalProperties": false,
+              "properties": {
+                "style": { "$ref": "common.schema.json#/$defs/HintStyle" },
+                "text": { "type": "string", "minLength": 1, "maxLength": 2000 }
+              }
+            },
+            { "type": "null" }
+          ]
+        },
+        "passive": {
+          "description": "The student-safe part of Passive's signal. The student only ever hears Active (C-27); this tells the UI which visible adaptation to apply.",
+          "oneOf": [
+            {
+              "type": "object",
+              "required": ["signal", "hintStyle", "reason"],
+              "additionalProperties": false,
+              "properties": {
+                "signal": { "$ref": "common.schema.json#/$defs/PassiveSignalName" },
+                "hintStyle": { "$ref": "common.schema.json#/$defs/HintStyle" },
+                "reason": { "$ref": "common.schema.json#/$defs/Reason" }
+              }
+            },
+            { "type": "null" }
+          ]
+        },
+        "notice": { "oneOf": [{ "$ref": "#/$defs/Notice" }, { "type": "null" }] },
+        "source": { "$ref": "common.schema.json#/$defs/Source" },
+        "correlationId": { "$ref": "common.schema.json#/$defs/CorrelationId" }
+      },
+      "allOf": [
+        {
+          "if": { "properties": { "outcome": { "const": "fallback" } } },
+          "then": { "properties": { "notice": { "type": "object", "properties": { "code": { "const": "ADAPTIVE_UNAVAILABLE" } } } } }
+        },
+        {
+          "if": { "properties": { "outcome": { "const": "blocked" } } },
+          "then": { "properties": { "notice": { "type": "object", "properties": { "code": { "const": "CONTENT_BLOCKED" } } } } }
+        },
+        {
+          "if": { "properties": { "outcome": { "const": "scored" } } },
+          "then": { "properties": { "evidence": { "type": "object" }, "masteryDisplay": { "type": "integer" } } }
+        },
+        {
+          "if": { "properties": { "outcome": { "const": "recorded" } } },
+          "then": { "properties": { "evidence": { "type": "null" }, "masteryDisplay": { "type": "null" } } }
+        }
+      ]
+    },
+
+    "AskTutorArgs": {
+      "description": "POST /tutor/ask",
+      "type": "object",
+      "required": ["courseId", "checkpointId", "stepId", "question"],
+      "additionalProperties": false,
+      "properties": {
+        "courseId": { "$ref": "common.schema.json#/$defs/Slug" },
+        "checkpointId": { "$ref": "common.schema.json#/$defs/Slug" },
+        "stepId": { "$ref": "common.schema.json#/$defs/Slug" },
+        "question": { "type": "string", "minLength": 1, "maxLength": 1000 }
+      }
+    },
+    "TutorResponse": {
+      "type": "object",
+      "required": ["answer", "hintStyle", "notice", "source", "correlationId"],
+      "additionalProperties": false,
+      "properties": {
+        "answer": { "type": "string", "minLength": 1, "maxLength": 4000 },
+        "hintStyle": { "$ref": "common.schema.json#/$defs/HintStyle" },
+        "notice": { "oneOf": [{ "$ref": "#/$defs/Notice" }, { "type": "null" }] },
+        "source": { "$ref": "common.schema.json#/$defs/Source" },
+        "correlationId": { "$ref": "common.schema.json#/$defs/CorrelationId" }
+      }
+    },
+
+    "VerifyPromptArgs": {
+      "description": "POST /prompts/verify. Checks scope and clarity before any code is generated (P-7.1).",
+      "type": "object",
+      "required": ["courseId", "checkpointId", "stepId", "prompt"],
+      "additionalProperties": false,
+      "properties": {
+        "courseId": { "$ref": "common.schema.json#/$defs/Slug" },
+        "checkpointId": { "$ref": "common.schema.json#/$defs/Slug" },
+        "stepId": { "$ref": "common.schema.json#/$defs/Slug" },
+        "prompt": { "type": "string", "minLength": 1, "maxLength": 4000 }
+      }
+    },
+    "VerifyResponse": {
+      "type": "object",
+      "required": ["verdict", "guidance", "notice", "source", "correlationId"],
+      "additionalProperties": false,
+      "properties": {
+        "verdict": { "enum": ["ok", "needs_narrowing"] },
+        "guidance": { "type": "string", "minLength": 1, "maxLength": 2000, "description": "When needs_narrowing, suggests a narrower, step-by-step prompt (P-7.3)." },
+        "notice": { "oneOf": [{ "$ref": "#/$defs/Notice" }, { "type": "null" }] },
+        "source": { "$ref": "common.schema.json#/$defs/Source" },
+        "correlationId": { "$ref": "common.schema.json#/$defs/CorrelationId" }
+      }
+    },
+
+    "GenerateArgs": {
+      "description": "POST /prompts/generate. Codegen is a different model from the verifier (P-7.2).",
+      "type": "object",
+      "required": ["courseId", "checkpointId", "stepId", "prompt", "project"],
+      "additionalProperties": false,
+      "properties": {
+        "courseId": { "$ref": "common.schema.json#/$defs/Slug" },
+        "checkpointId": { "$ref": "common.schema.json#/$defs/Slug" },
+        "stepId": { "$ref": "common.schema.json#/$defs/Slug" },
+        "prompt": { "type": "string", "minLength": 1, "maxLength": 4000 },
+        "project": { "$ref": "common.schema.json#/$defs/Project" }
+      }
+    },
+    "GenerateResponse": {
+      "type": "object",
+      "required": ["project", "explanation", "notice", "source", "correlationId"],
+      "additionalProperties": false,
+      "properties": {
+        "project": { "oneOf": [{ "$ref": "common.schema.json#/$defs/Project" }, { "type": "null" }] },
+        "explanation": { "type": "string", "maxLength": 4000 },
+        "notice": { "oneOf": [{ "$ref": "#/$defs/Notice" }, { "type": "null" }] },
+        "source": { "$ref": "common.schema.json#/$defs/Source" },
+        "correlationId": { "$ref": "common.schema.json#/$defs/CorrelationId" }
+      }
+    },
+
+    "GetTeacherRosterArgs": {
+      "description": "GET /teacher/students",
+      "type": "object",
+      "required": ["courseId"],
+      "additionalProperties": false,
+      "properties": { "courseId": { "$ref": "common.schema.json#/$defs/Slug" } }
+    },
+    "RoutingDecisionView": {
+      "description": "A routing decision as shown to the teacher and student (why this checkpoint, C-19.5).",
+      "type": "object",
+      "required": ["decisionId", "studentId", "proposedCheckpointId", "teacherInput", "appliedCheckpointId", "reason", "createdAt"],
+      "additionalProperties": false,
+      "properties": {
+        "decisionId": { "type": "string", "pattern": "^[A-Za-z0-9_-]{4,64}$" },
+        "studentId": { "$ref": "common.schema.json#/$defs/StudentId" },
+        "proposedCheckpointId": { "$ref": "common.schema.json#/$defs/Slug" },
+        "teacherInput": { "$ref": "common.schema.json#/$defs/TeacherInput" },
+        "appliedCheckpointId": { "$ref": "common.schema.json#/$defs/Slug" },
+        "reason": { "$ref": "common.schema.json#/$defs/Reason" },
+        "createdAt": { "$ref": "common.schema.json#/$defs/Timestamp" }
+      }
+    },
+    "RosterResponse": {
+      "type": "object",
+      "required": ["students", "correlationId"],
+      "additionalProperties": false,
+      "properties": {
+        "students": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["studentId", "displayName", "synthetic", "currentCheckpointId", "mastery", "flags", "passive", "lastRouting", "teacherInput"],
+            "additionalProperties": false,
+            "properties": {
+              "studentId": { "$ref": "common.schema.json#/$defs/StudentId" },
+              "displayName": { "type": "string", "minLength": 1, "maxLength": 80 },
+              "synthetic": { "type": "boolean" },
+              "currentCheckpointId": { "oneOf": [{ "$ref": "common.schema.json#/$defs/Slug" }, { "type": "null" }] },
+              "mastery": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "required": ["skillId", "level", "max", "display"],
+                  "additionalProperties": false,
+                  "properties": {
+                    "skillId": { "$ref": "common.schema.json#/$defs/Slug" },
+                    "level": { "$ref": "common.schema.json#/$defs/Level" },
+                    "max": { "type": "integer", "minimum": 1, "maximum": 3 },
+                    "display": { "type": "integer", "minimum": 0, "maximum": 100 }
+                  }
+                }
+              },
+              "flags": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "required": ["skillId", "reason", "severity", "createdAt"],
+                  "additionalProperties": false,
+                  "properties": {
+                    "skillId": { "$ref": "common.schema.json#/$defs/Slug" },
+                    "reason": { "$ref": "common.schema.json#/$defs/Reason" },
+                    "severity": { "$ref": "common.schema.json#/$defs/Severity" },
+                    "createdAt": { "$ref": "common.schema.json#/$defs/Timestamp" }
+                  }
+                }
+              },
+              "passive": {
+                "oneOf": [
+                  {
+                    "type": "object",
+                    "required": ["signal", "hintStyle", "reason", "confidence", "createdAt"],
+                    "additionalProperties": false,
+                    "properties": {
+                      "signal": { "$ref": "common.schema.json#/$defs/PassiveSignalName" },
+                      "hintStyle": { "$ref": "common.schema.json#/$defs/HintStyle" },
+                      "reason": { "$ref": "common.schema.json#/$defs/Reason" },
+                      "confidence": { "$ref": "common.schema.json#/$defs/Confidence" },
+                      "createdAt": { "$ref": "common.schema.json#/$defs/Timestamp" }
+                    }
+                  },
+                  { "type": "null" }
+                ]
+              },
+              "lastRouting": { "oneOf": [{ "$ref": "#/$defs/RoutingDecisionView" }, { "type": "null" }] },
+              "teacherInput": { "$ref": "common.schema.json#/$defs/TeacherInput" }
+            }
+          }
+        },
+        "correlationId": { "$ref": "common.schema.json#/$defs/CorrelationId" }
+      }
+    },
+
+    "SetTeacherInputArgs": {
+      "description": "POST /teacher/students/{id}/routing",
+      "type": "object",
+      "required": ["studentId", "input"],
+      "additionalProperties": false,
+      "properties": {
+        "studentId": { "$ref": "common.schema.json#/$defs/StudentId" },
+        "input": { "$ref": "common.schema.json#/$defs/TeacherInput" }
+      }
+    },
+    "SetTeacherInputResponse": {
+      "type": "object",
+      "required": ["decision", "correlationId"],
+      "additionalProperties": false,
+      "properties": {
+        "decision": { "$ref": "#/$defs/RoutingDecisionView" },
+        "correlationId": { "$ref": "common.schema.json#/$defs/CorrelationId" }
+      }
+    },
+
+    "HealthArgs": { "type": "object", "additionalProperties": false },
+    "HealthResponse": {
+      "description": "GET /health. The UI re-checks at least every 30 s while on fallback and resumes adaptive mode when status is ok (C-23).",
+      "type": "object",
+      "required": ["status", "components", "checkedAt", "correlationId"],
+      "additionalProperties": false,
+      "properties": {
+        "status": { "enum": ["ok", "degraded", "down"] },
+        "correlationId": { "$ref": "common.schema.json#/$defs/CorrelationId" },
+        "components": {
+          "type": "object",
+          "required": ["validation", "routing", "generation", "safety", "passive"],
+          "additionalProperties": false,
+          "properties": {
+            "validation": { "enum": ["ok", "down"] },
+            "routing": { "enum": ["ok", "down"] },
+            "generation": { "enum": ["ok", "down"] },
+            "safety": { "enum": ["ok", "down"] },
+            "passive": { "enum": ["ok", "down"] }
+          }
+        },
+        "checkedAt": { "$ref": "common.schema.json#/$defs/Timestamp" }
+      }
+    }
+  }
+}

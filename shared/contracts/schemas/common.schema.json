@@ -1,0 +1,63 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://codeai.local/contracts/common.schema.json",
+  "title": "Shared definitions",
+  "description": "Enums and small types used by every seam. Enums must match shared/contracts/seams.js (checked by tests/seams-drift.test.js).",
+  "$defs": {
+    "Slug": {
+      "type": "string",
+      "pattern": "^[a-z0-9][a-z0-9-]*$",
+      "maxLength": 80,
+      "description": "Content ids are the JSON string slugs (C-5). No new id schemes."
+    },
+    "StudentId": { "type": "string", "pattern": "^[A-Za-z0-9_-]{1,64}$" },
+    "Timestamp": {
+      "type": "string",
+      "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(\\.\\d{1,3})?Z$",
+      "description": "UTC ISO 8601, set by the server (ADR-006: no client timing)."
+    },
+    "CorrelationId": { "type": "string", "pattern": "^[A-Za-z0-9_-]{8,64}$" },
+    "Level": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 3,
+      "description": "Evidence level. The per-skill maximum (build 2, language 3, debug 3) is checked against the tree at runtime."
+    },
+    "Confidence": { "type": "number", "minimum": 0, "maximum": 1 },
+    "EvidenceText": { "type": "string", "maxLength": 240 },
+    "Reason": { "type": "string", "minLength": 1, "maxLength": 400 },
+
+    "Source": { "enum": ["stub", "bedrock", "rules", "cache", "none"] },
+    "HintStyle": { "enum": ["guiding_question", "example", "analogy", "step_by_step"] },
+    "PassiveSignalName": { "enum": ["speed_up", "slow_down", "redirect", "reengage", "steady"] },
+    "ProgressStatus": { "enum": ["locked", "available", "current", "completed", "tested_out"] },
+    "RoutingMode": { "enum": ["auto", "hold", "assign"] },
+    "FallbackComponent": { "enum": ["validation", "routing", "generation", "safety", "passive"] },
+    "Severity": { "enum": ["normal", "high"] },
+
+    "Project": {
+      "type": "object",
+      "required": ["html", "css", "js"],
+      "additionalProperties": false,
+      "properties": {
+        "html": { "type": "string", "maxLength": 100000 },
+        "css": { "type": "string", "maxLength": 100000 },
+        "js": { "type": "string", "maxLength": 100000 }
+      },
+      "description": "A student project. Rendered in a sandboxed iframe with srcdoc (C-32)."
+    },
+
+    "TeacherInput": {
+      "type": "object",
+      "required": ["mode"],
+      "additionalProperties": false,
+      "properties": {
+        "mode": { "$ref": "#/$defs/RoutingMode" },
+        "checkpointId": { "$ref": "#/$defs/Slug" }
+      },
+      "if": { "properties": { "mode": { "const": "assign" } } },
+      "then": { "required": ["checkpointId"] },
+      "description": "Teacher routing input (C-19.4). `assign` needs a checkpointId."
+    }
+  }
+}

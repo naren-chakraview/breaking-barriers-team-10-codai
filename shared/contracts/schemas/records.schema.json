@@ -1,0 +1,158 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://codeai.local/contracts/records.schema.json",
+  "title": "Repository records",
+  "description": "Seam 4. camelCase records returned and accepted by the repository. Adapters map them to and from the snake_case columns in C-8 (see TABLES in seams.js). Student tables marked PROPOSED are not in C-8 yet.",
+  "$defs": {
+    "Student": {
+      "description": "PROPOSED. C-8 has no student table, but the roster and the personas need one.",
+      "type": "object",
+      "required": ["studentId", "displayName", "synthetic"],
+      "additionalProperties": false,
+      "properties": {
+        "studentId": { "$ref": "common.schema.json#/$defs/StudentId" },
+        "displayName": { "type": "string", "minLength": 1, "maxLength": 80 },
+        "synthetic": { "type": "boolean", "description": "True for demo personas. The UI labels them (architecture 2.7)." }
+      }
+    },
+    "StudentSkillEvidence": {
+      "description": "C-8 student_skill_evidence. Append-only. A student's level for a skill is the MAX of these rows and never decreases (C-10).",
+      "type": "object",
+      "required": ["studentId", "skillId", "level", "sourceStepId", "createdAt"],
+      "additionalProperties": false,
+      "properties": {
+        "studentId": { "$ref": "common.schema.json#/$defs/StudentId" },
+        "skillId": { "$ref": "common.schema.json#/$defs/Slug" },
+        "level": { "$ref": "common.schema.json#/$defs/Level" },
+        "sourceStepId": { "$ref": "common.schema.json#/$defs/Slug" },
+        "createdAt": { "$ref": "common.schema.json#/$defs/Timestamp" }
+      }
+    },
+    "StepAttempt": {
+      "description": "C-8 step_attempt. One row per submit. Holds student text, so it is access-restricted and encrypted. No client telemetry fields (ADR-006).",
+      "type": "object",
+      "required": ["attemptId", "studentId", "stepId", "inputText", "projectSnapshotRef", "evidenceLevel", "confidence", "createdAt"],
+      "additionalProperties": false,
+      "properties": {
+        "attemptId": { "type": "string", "pattern": "^[A-Za-z0-9_-]{4,64}$" },
+        "studentId": { "$ref": "common.schema.json#/$defs/StudentId" },
+        "stepId": { "$ref": "common.schema.json#/$defs/Slug" },
+        "inputText": { "type": ["string", "null"], "maxLength": 4000 },
+        "projectSnapshotRef": { "type": ["string", "null"], "maxLength": 200 },
+        "evidenceLevel": { "oneOf": [{ "$ref": "common.schema.json#/$defs/Level" }, { "type": "null" }] },
+        "confidence": { "oneOf": [{ "$ref": "common.schema.json#/$defs/Confidence" }, { "type": "null" }] },
+        "createdAt": { "$ref": "common.schema.json#/$defs/Timestamp" }
+      }
+    },
+    "CheckpointProgress": {
+      "description": "C-8 checkpoint_progress.",
+      "type": "object",
+      "required": ["studentId", "checkpointId", "status", "updatedAt"],
+      "additionalProperties": false,
+      "properties": {
+        "studentId": { "$ref": "common.schema.json#/$defs/StudentId" },
+        "checkpointId": { "$ref": "common.schema.json#/$defs/Slug" },
+        "status": { "$ref": "common.schema.json#/$defs/ProgressStatus" },
+        "updatedAt": { "$ref": "common.schema.json#/$defs/Timestamp" }
+      }
+    },
+    "RemediationFlag": {
+      "description": "C-8 remediation_flag. Two consecutive misses create one. Severity high after four raises a teacher flag (C-10).",
+      "type": "object",
+      "required": ["studentId", "skillId", "reason", "severity", "createdAt", "resolvedAt"],
+      "additionalProperties": false,
+      "properties": {
+        "studentId": { "$ref": "common.schema.json#/$defs/StudentId" },
+        "skillId": { "$ref": "common.schema.json#/$defs/Slug" },
+        "reason": { "$ref": "common.schema.json#/$defs/Reason" },
+        "severity": { "$ref": "common.schema.json#/$defs/Severity" },
+        "createdAt": { "$ref": "common.schema.json#/$defs/Timestamp" },
+        "resolvedAt": { "oneOf": [{ "$ref": "common.schema.json#/$defs/Timestamp" }, { "type": "null" }] }
+      }
+    },
+    "RoutingDecision": {
+      "description": "C-8 routing_decision. Written on every route call with a human-readable reason (C-19.5).",
+      "type": "object",
+      "required": ["decisionId", "studentId", "proposedCheckpointId", "teacherInput", "appliedCheckpointId", "reason", "createdAt"],
+      "additionalProperties": false,
+      "properties": {
+        "decisionId": { "type": "string", "pattern": "^[A-Za-z0-9_-]{4,64}$" },
+        "studentId": { "$ref": "common.schema.json#/$defs/StudentId" },
+        "proposedCheckpointId": { "$ref": "common.schema.json#/$defs/Slug" },
+        "teacherInput": { "$ref": "common.schema.json#/$defs/TeacherInput" },
+        "appliedCheckpointId": { "$ref": "common.schema.json#/$defs/Slug" },
+        "reason": { "$ref": "common.schema.json#/$defs/Reason" },
+        "createdAt": { "$ref": "common.schema.json#/$defs/Timestamp" }
+      }
+    },
+    "FallbackEvent": {
+      "description": "C-8 fallback_event. Every trigger writes one (C-22). `passive` is a PROPOSED addition to the component list.",
+      "type": "object",
+      "required": ["studentId", "stepId", "component", "error", "createdAt"],
+      "additionalProperties": false,
+      "properties": {
+        "studentId": { "$ref": "common.schema.json#/$defs/StudentId" },
+        "stepId": { "oneOf": [{ "$ref": "common.schema.json#/$defs/Slug" }, { "type": "null" }] },
+        "component": { "$ref": "common.schema.json#/$defs/FallbackComponent" },
+        "error": { "type": "string", "minLength": 1, "maxLength": 400, "description": "A code or short reason. Never student text." },
+        "createdAt": { "$ref": "common.schema.json#/$defs/Timestamp" }
+      }
+    },
+    "PassiveSignalRecord": {
+      "description": "PROPOSED passive_signal table (Task 8a). One row per Passive evaluation, with enough to explain and cache it.",
+      "type": "object",
+      "required": ["signalId", "studentId", "signal", "hintStyle", "angleToTry", "reason", "evidenceRefs", "confidence", "featuresHash", "modelId", "promptVersion", "createdAt"],
+      "additionalProperties": false,
+      "properties": {
+        "signalId": { "type": "string", "pattern": "^[A-Za-z0-9_-]{4,64}$" },
+        "studentId": { "$ref": "common.schema.json#/$defs/StudentId" },
+        "signal": { "$ref": "common.schema.json#/$defs/PassiveSignalName" },
+        "hintStyle": { "$ref": "common.schema.json#/$defs/HintStyle" },
+        "angleToTry": { "type": ["string", "null"], "maxLength": 120 },
+        "reason": { "$ref": "common.schema.json#/$defs/Reason" },
+        "evidenceRefs": { "type": "array", "maxItems": 10, "items": { "type": "string", "maxLength": 80 } },
+        "confidence": { "$ref": "common.schema.json#/$defs/Confidence" },
+        "featuresHash": { "type": "string", "pattern": "^[a-f0-9]{8,64}$" },
+        "modelId": { "type": "string", "minLength": 1, "maxLength": 200, "description": "Model id, or `rules` for the rule-based fallback." },
+        "promptVersion": { "type": "string", "minLength": 1, "maxLength": 64 },
+        "createdAt": { "$ref": "common.schema.json#/$defs/Timestamp" }
+      }
+    },
+    "HintEvent": {
+      "description": "PROPOSED hint_event table. Needed for 'hints used' and 'angles already tried' (architecture 2.7); C-8 has nowhere to record them.",
+      "type": "object",
+      "required": ["hintId", "studentId", "stepId", "style", "angle", "createdAt"],
+      "additionalProperties": false,
+      "properties": {
+        "hintId": { "type": "string", "pattern": "^[A-Za-z0-9_-]{4,64}$" },
+        "studentId": { "$ref": "common.schema.json#/$defs/StudentId" },
+        "stepId": { "$ref": "common.schema.json#/$defs/Slug" },
+        "style": { "$ref": "common.schema.json#/$defs/HintStyle" },
+        "angle": { "type": ["string", "null"], "maxLength": 120 },
+        "createdAt": { "$ref": "common.schema.json#/$defs/Timestamp" }
+      }
+    },
+    "TeacherInputRecord": {
+      "description": "PROPOSED teacher_input table. A hold or assign persists until the teacher changes it, so it needs storage separate from routing_decision.",
+      "type": "object",
+      "required": ["studentId", "mode", "checkpointId", "updatedAt"],
+      "additionalProperties": false,
+      "properties": {
+        "studentId": { "$ref": "common.schema.json#/$defs/StudentId" },
+        "mode": { "$ref": "common.schema.json#/$defs/RoutingMode" },
+        "checkpointId": { "oneOf": [{ "$ref": "common.schema.json#/$defs/Slug" }, { "type": "null" }] },
+        "updatedAt": { "$ref": "common.schema.json#/$defs/Timestamp" }
+      }
+    },
+    "TeacherConfig": {
+      "description": "C-8 teacher_config. answerTimeoutSeconds defaults to 180.",
+      "type": "object",
+      "required": ["teacherId", "answerTimeoutSeconds"],
+      "additionalProperties": false,
+      "properties": {
+        "teacherId": { "$ref": "common.schema.json#/$defs/StudentId" },
+        "answerTimeoutSeconds": { "type": "integer", "minimum": 10, "maximum": 3600 }
+      }
+    }
+  }
+}

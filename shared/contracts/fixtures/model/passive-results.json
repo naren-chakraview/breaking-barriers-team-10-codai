@@ -1,0 +1,23 @@
+{
+  "description": "Canned Passive reasoner results, one per persona, plus a low-confidence case that forces the rule fallback. None contains a checkpoint id: routing is not a model decision (C-18).",
+  "quick": {
+    "ok": true, "source": "stub",
+    "signal": { "signal": "speed_up", "hintStyle": "guiding_question", "angleToTry": "ask for the trade-off behind a choice", "reason": "Level 2 on all skills from the diagnostic, first-try success, no hints used. Favor guiding questions and less scaffolding.", "evidenceRefs": ["att-quick-02", "att-quick-05"], "confidence": 0.86 }
+  },
+  "slow": {
+    "ok": true, "source": "stub",
+    "signal": { "signal": "slow_down", "hintStyle": "step_by_step", "angleToTry": "break the prompt into one goal then one detail", "reason": "Repeated misses on build; example and analogy angles already tried. Slow the pace and try a step-by-step angle.", "evidenceRefs": ["att-slow-05", "att-slow-06", "att-slow-08"], "confidence": 0.78 }
+  },
+  "distracted_detail": {
+    "ok": true, "source": "stub",
+    "signal": { "signal": "redirect", "hintStyle": "guiding_question", "angleToTry": "name the one visitor action that matters most", "reason": "Target reached once, then many color and font edits with flat evidence. Redirect from styling back to the page's purpose.", "evidenceRefs": ["att-detail-07", "att-detail-09", "att-detail-10"], "confidence": 0.74 }
+  },
+  "distracted_inattentive": {
+    "ok": true, "source": "stub",
+    "signal": { "signal": "reengage", "hintStyle": "guiding_question", "reason": "Several very short submissions far apart in time, with no progress. A gentle check-in; could also be slow thinking, so confidence is low.", "evidenceRefs": ["att-away-05", "att-away-07"], "confidence": 0.55 }
+  },
+  "low_confidence_fallback": {
+    "ok": false,
+    "fallback": { "component": "passive", "reason": "reasoner confidence 0.42 below 0.6; using rule-based signal" }
+  }
+}
