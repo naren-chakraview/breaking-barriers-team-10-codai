@@ -1,131 +1,174 @@
-// Simulated adaptive engine for the demo: validation, routing, and the AI
-// tutor. No network, no model — just rules + canned content with a little
-// artificial latency so the UI shows real loading/validating states.
+// Simulated adaptive engine for the demo: validation, routing, code-aware
+// diagnostics, and the AI tutor. No network, no model — rules + canned content
+// that inspect the student's ACTUAL code so help feels responsive.
 
-import { LESSON, LEVELS, getLevel } from './courseData.js'
+import { LESSON, LEVELS } from './courseData.js'
 
 const delay = (ms) => new Promise((r) => setTimeout(r, ms))
 
-// --- Validation: score the student's submission against the level rubric. ---
-// Returns a mastery signal { passing, score } for the level's objective.
-export async function validateSubmission(level, code) {
-  await delay(700 + Math.random() * 500) // feels like real evaluation
-
-  const rubric = level.rubric || {}
-  const checks = []
-  if (rubric.html) {
-    for (const needle of rubric.html) {
-      checks.push(code.html.toLowerCase().includes(needle.toLowerCase()))
-    }
-  }
-  if (rubric.css) {
-    for (const needle of rubric.css) {
-      checks.push(code.css.toLowerCase().includes(needle.toLowerCase()))
-    }
-  }
-
-  let passed
-  const hits = checks.filter(Boolean).length
-  if (rubric.anyOf) {
-    passed = hits > 0
-  } else {
-    passed = checks.length > 0 && hits === checks.length
-  }
-
-  // Score is the proportion of rubric checks met, scaled 0-100.
-  const score = checks.length ? Math.round((hits / checks.length) * 100) : 0
-  return { objectiveId: level.objectiveId, passing: passed, score }
+// Human-friendly labels for the rubric needles, so diagnostics can talk about
+// what's missing in plain language with a concrete example.
+export const NEEDLE_INFO = {
+  '<h1': { label: 'a heading (<h1>)', example: '<h1>Your Name</h1>' },
+  '</h1>': { label: 'a closing </h1> tag', example: '<h1>Your Name</h1>' },
+  '<p': { label: 'a paragraph (<p>)', example: '<p>One thing you like</p>' },
+  '</p>': { label: 'a closing </p> tag', example: '<p>One thing you like</p>' },
+  '<ul': { label: 'a list (<ul>)', example: '<ul><li>Reading</li></ul>' },
+  '<li': { label: 'a list item (<li>)', example: '<li>Reading</li>' },
+  background: { label: 'a background color', example: 'background: #f0f9ff;' },
+  color: { label: 'a text color', example: 'color: navy;' },
+  'max-width': { label: 'a max-width', example: 'max-width: 600px;' },
+  margin: { label: 'a margin to center it', example: 'margin: 0 auto;' },
 }
 
-// --- Routing: pick the next level from the authored curriculum based on the
-// accumulated signal. Same objectives for everyone; struggling students get a
-// support tier, fast/accurate students can get a stretch tier. ---
+function has(code, needle) {
+  return (code || '').toLowerCase().includes(needle.toLowerCase())
+}
+
+// Inspect the student's code against the level rubric. Returns the met/missing
+// needles plus a targeted, beginner-friendly message about THEIR gap.
+export function diagnose(level, code) {
+  const rubric = level.rubric || {}
+  const items = []
+  ;(rubric.html || []).forEach((n) => items.push({ needle: n, where: 'html', met: has(code.html, n) }))
+  ;(rubric.css || []).forEach((n) => items.push({ needle: n, where: 'css', met: has(code.css, n) }))
+
+  const met = items.filter((i) => i.met)
+  const missing = items.filter((i) => !i.met)
+  const passing = rubric.anyOf ? met.length > 0 : missing.length === 0 && items.length > 0
+
+  // Build a message about the first meaningful gap (deduped by label).
+  let message
+  if (passing) {
+    message = "This looks complete — press Submit & continue when you're ready."
+  } else if (met.length === 0) {
+    const first = missing[0] && NEEDLE_INFO[missing[0].needle]
+    message = first
+      ? `You haven't added ${first.label} yet. Try: ${first.example}`
+      : "You haven't started this step yet — give it a go, or tap Get a hint."
+  } else {
+    // Some progress made — name what's still missing.
+    const seen = new Set()
+    const names = []
+    for (const m of missing) {
+      const info = NEEDLE_INFO[m.needle]
+      const key = info ? info.label : m.needle
+      if (!seen.has(key)) { seen.add(key); names.push(info ? info.label : m.needle) }
+    }
+    const firstMissingInfo = missing.map((m) => NEEDLE_INFO[m.needle]).find(Boolean)
+    const example = firstMissingInfo ? ` For example: ${firstMissingInfo.example}` : ''
+    message = `Nice start! You still need ${names.slice(0, 2).join(' and ')}.${example}`
+  }
+
+  return { passing, met, missing, message }
+}
+
+// --- Validation: score the submission against the rubric. ---
+export async function validateSubmission(level, code) {
+  await delay(700 + Math.random() * 500)
+  const { passing, met, missing } = diagnose(level, code)
+  const total = met.length + missing.length
+  const score = total ? Math.round((met.length / total) * 100) : 0
+  return { objectiveId: level.objectiveId, passing, score }
+}
+
+// --- Routing: unchanged logic. ---
 export async function routeNextLevel(currentLevel, signal, history) {
   await delay(500 + Math.random() * 400)
-
   const objectives = LESSON.objectives
-  const currentObjIndex = objectives.findIndex(
-    (o) => o.id === currentLevel.objectiveId,
-  )
+  const currentObjIndex = objectives.findIndex((o) => o.id === currentLevel.objectiveId)
 
-  // If the student did NOT pass, keep them on the same objective but drop to a
-  // support-tier level if one exists and they haven't seen it yet.
   if (!signal.passing) {
     const support = LEVELS.find(
-      (l) =>
-        l.objectiveId === currentLevel.objectiveId &&
-        l.tier === 'support' &&
-        !history.includes(l.id),
+      (l) => l.objectiveId === currentLevel.objectiveId && l.tier === 'support' && !history.includes(l.id),
     )
     if (support) return { level: support, reason: 'support' }
-    // No support level available: let them retry the current one.
     return { level: currentLevel, reason: 'retry' }
   }
 
-  // Passed. Move to the next objective.
   const nextObj = objectives[currentObjIndex + 1]
-  if (!nextObj) {
-    return { level: null, reason: 'complete' } // lesson finished
-  }
+  if (!nextObj) return { level: null, reason: 'complete' }
 
-  // For the next objective, send a strong performer (high score, no support
-  // needed so far) to a stretch level when one exists.
   const strong = signal.score >= 100
-  const stretch = LEVELS.find(
-    (l) => l.objectiveId === nextObj.id && l.tier === 'stretch',
-  )
+  const stretch = LEVELS.find((l) => l.objectiveId === nextObj.id && l.tier === 'stretch')
   if (strong && stretch) return { level: stretch, reason: 'stretch' }
 
-  const core = LEVELS.find(
-    (l) => l.objectiveId === nextObj.id && l.tier === 'core',
-  )
+  const core = LEVELS.find((l) => l.objectiveId === nextObj.id && l.tier === 'core')
   return { level: core || null, reason: core ? 'advance' : 'complete' }
 }
 
-// --- AI Tutor: canned, scaffolded responses. Returns the level's hint as a
-// step list the UI reveals one step at a time. ---
-export async function askTutor(level, question) {
-  await delay(600 + Math.random() * 500)
-  const q = (question || '').toLowerCase()
+// --- AI Tutor: intent-matched, code-aware replies. Takes the student's code
+// so answers can reference their actual progress. ---
+export async function askTutor(level, question, code = { html: '', css: '' }) {
+  await delay(500 + Math.random() * 500)
+  const q = (question || '').toLowerCase().trim()
+  const dx = diagnose(level, code)
 
-  // A couple of lightweight intent matches so chat feels responsive.
-  if (q.includes('color') || q.includes('colour')) {
-    return {
-      reply:
-        "Colors live in your CSS. Try a rule like `body { background: #f0f9ff; }` for the page, and `h1 { color: navy; }` for your heading. Want me to walk through it step by step?",
-      hint: level.hint,
-    }
-  }
-  if (q.includes('center') || q.includes('centre') || q.includes('middle')) {
-    return {
-      reply:
-        'To center your content, give the body a `max-width` and then `margin: 0 auto;`. That caps the width and pushes equal space to each side.',
-      hint: level.hint,
-    }
-  }
-  if (q.includes('stuck') || q.includes('help') || q.includes('how')) {
-    return {
-      reply:
-        "No problem — let's break it down. I'll reveal one step at a time so you can try each part yourself.",
-      hint: level.hint,
-    }
+  const reply = (text) => ({ reply: text, hint: level.hint })
+
+  // Empty question
+  if (!q) return reply("Ask me anything about your code, or tap “Get a hint” and I'll walk you through it step by step.")
+
+  // "Is it right / am I done / check" → use the diagnosis
+  if (/\b(done|finished|right|correct|check|good)\b/.test(q)) {
+    return reply(dx.passing
+      ? "Looks complete to me! Press Submit & continue to move on."
+      : `Not quite yet. ${dx.message}`)
   }
 
-  return {
-    reply:
-      "Good question! Here's a hint to get you moving. I'll show it one step at a time so you stay in the driver's seat.",
-    hint: level.hint,
+  // "Not working / nothing shows / blank"
+  if (/(not working|nothing|blank|empty|doesn't|does not|won't|wont show|broken)/.test(q)) {
+    return reply(`A blank preview usually means it hasn't run yet, or a tag isn't closed. Press ▸ Run first. ${dx.passing ? '' : dx.message}`)
   }
+
+  // Tag / heading / paragraph help
+  if (/(tag|<h1|heading|title)/.test(q)) {
+    return reply("A heading uses paired tags: `<h1>` to open and `</h1>` to close, with your text in between — e.g. `<h1>Alex</h1>`. Everything you type between the tags shows up big and bold.")
+  }
+  if (/(<p|paragraph|sentence|text)/.test(q)) {
+    return reply("Use `<p>` for a paragraph: `<p>I like soccer.</p>`. The `<p>` opens it and `</p>` closes it.")
+  }
+  if (/(close|closing|unclosed)/.test(q)) {
+    return reply("Every tag you open needs a matching closing tag with a slash: `<h1>` pairs with `</h1>`, `<p>` with `</p>`. If something looks off, check for a missing closing tag.")
+  }
+
+  // Colors
+  if (/(color|colour|background)/.test(q)) {
+    return reply("Colors go in your CSS. Set the page background with `body { background: #f0f9ff; }` and your heading color with `h1 { color: navy; }`. You can use color names (navy, teal) or hex codes (#4f46e5).")
+  }
+
+  // Centering / layout
+  if (/(center|centre|middle|layout|wide|spacing)/.test(q)) {
+    return reply("To center the page, give the body a `max-width: 600px;` so lines aren't too wide, then `margin: 0 auto;` to push equal space on each side. Add `padding` for breathing room.")
+  }
+
+  // Lists / quotes (polish)
+  if (/(list|bullet|ul|li)/.test(q)) {
+    return reply("A bulleted list uses `<ul>` with `<li>` items inside: `<ul><li>Reading</li><li>Soccer</li></ul>`. Each `<li>` is one bullet.")
+  }
+  if (/(quote|blockquote)/.test(q)) {
+    return reply("For a quote, wrap text in `<blockquote>`: `<blockquote>Stay curious.</blockquote>`.")
+  }
+
+  // CSS "how do I write a rule"
+  if (/(css|rule|style|property)/.test(q)) {
+    return reply("A CSS rule is `selector { property: value; }`. For example `h1 { color: navy; }` colors every `<h1>`. Each line inside the braces ends with a semicolon.")
+  }
+
+  // Stuck / help / generic → lead with their specific gap, then offer steps
+  if (/(stuck|help|how|what|where|start)/.test(q)) {
+    return reply(`${dx.message} Want the full walkthrough? I'll reveal it one step at a time below.`)
+  }
+
+  // Fallback still references their progress so it isn't generic.
+  return reply(`${dx.message} If you'd like, tap a hint step below and I'll guide you through it.`)
 }
 
-// --- Proactive nudge: given the student's recent activity, decide whether the
-// tutor should offer help unprompted. The UI calls this; here we just package
-// the level's hint as the nudge content. ---
-export function buildNudge(level) {
-  return {
-    objectiveId: level.objectiveId,
-    message:
-      "Looks like this step is tricky — want a hint? I'll reveal it one piece at a time.",
-    hint: level.hint,
-  }
+// --- Proactive nudge: references the student's actual gap. ---
+export function buildNudge(level, code = { html: '', css: '' }) {
+  const dx = diagnose(level, code)
+  const msg = dx.passing
+    ? "You're basically there — press Submit when you're ready, or ask me anything."
+    : `Looks like this step is tricky. ${dx.message}`
+  return { objectiveId: level.objectiveId, message: msg, hint: level.hint }
 }

@@ -1,0 +1,4 @@
+/* Shared brand assets (logo files from the team repo, unmodified). */
+.brand-mark { display: block; flex: 0 0 auto; border-radius: 22%; box-shadow: 0 4px 10px -4px rgba(15, 45, 74, 0.55); }
+.brand-logo { display: block; align-self: center; max-width: 100%; height: auto; }
+.brand-lockup { display: flex; align-items: center; gap: 10px; }
