@@ -43,12 +43,21 @@ def test_tested_out_counts_as_done_for_dependents(tree):
     assert "keep-or-redirect" in available_checkpoints(tree, progress)
 
 
-def test_auto_proposes_largest_gap_then_json_order(tree):
-    # intro done; no evidence. steer-it (build target 2) and use-the-lingo (language target 2)
-    # both have gap 2; tie breaks to JSON order, where steer-it comes first.
+def test_auto_proposes_first_available_in_json_order(tree):
+    # Stay-on-current (C-19.3, issue #24 q2): with no `current` set, propose the first
+    # available checkpoint in JSON order. After intro, steer-it is first.
     r = route(tree, {"intro": "completed"}, evidence={})
     assert r.checkpoint_id == "steer-it"
-    assert "largest gap" in r.reason
+    assert "first available" in r.reason
+
+
+def test_auto_stays_on_current_checkpoint(tree):
+    # When a checkpoint is marked `current` and still available, stay on it rather than
+    # jumping to another skill (depth not volume, P-6.5).
+    progress = {"intro": "completed", "steer-it": "current"}
+    r = route(tree, progress, evidence={})
+    assert r.checkpoint_id == "steer-it"
+    assert "Continue on steer-it" in r.reason
 
 
 def test_teacher_hold_keeps_current(tree):
