@@ -200,122 +200,6 @@ body {
 }
 
 /* ===== Student dashboard ===== */
-.dash {
-  min-height: 100vh;
-  background: #f1f5f9;
-}
-
-.dash-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 16px 24px;
-  background: #ffffff;
-  border-bottom: 1px solid var(--border);
-}
-
-.dash-brand {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-}
-
-.dash-user {
-  font-weight: 600;
-  font-size: 14px;
-  color: var(--text);
-}
-
-.dash-main {
-  max-width: 980px;
-  margin: 0 auto;
-  padding: 32px 24px;
-}
-
-.section-title {
-  margin: 0 0 20px;
-  font-size: 26px;
-  color: var(--text);
-}
-
-.course {
-  background: #ffffff;
-  border: 1px solid var(--border);
-  border-radius: 14px;
-  overflow: hidden;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
-}
-
-.course-banner {
-  background: var(--primary);
-  padding: 28px 28px;
-}
-
-.course-title {
-  margin: 0;
-  color: #ffffff;
-  font-size: 24px;
-  font-weight: 700;
-}
-
-.course-body {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 24px;
-  padding: 24px 28px;
-  flex-wrap: wrap;
-}
-
-.course-info {
-  flex: 1 1 420px;
-}
-
-.course-info p {
-  margin: 0 0 6px;
-  font-size: 14px;
-  color: var(--text);
-}
-
-.course-hint {
-  color: var(--muted) !important;
-}
-
-.progress {
-  margin-top: 16px;
-  display: flex;
-  align-items: center;
-  gap: 12px;
-}
-
-.progress-bar {
-  flex: 1;
-  max-width: 280px;
-  height: 8px;
-  background: #e2e8f0;
-  border-radius: 999px;
-  overflow: hidden;
-}
-
-.progress-fill {
-  height: 100%;
-  background: var(--primary);
-  border-radius: 999px;
-}
-
-.progress-label {
-  font-size: 12px;
-  font-weight: 600;
-  color: var(--muted);
-  white-space: nowrap;
-}
-
-.course-actions {
-  display: flex;
-  gap: 12px;
-  flex-shrink: 0;
-}
-
 .btn {
   padding: 10px 18px;
   border-radius: 8px;
@@ -357,14 +241,6 @@ body {
   color: var(--text);
 }
 
-@media (max-width: 640px) {
-  .course-actions {
-    width: 100%;
-  }
-  .course-actions .btn {
-    flex: 1;
-  }
-}
 
 /* ===================== Adaptive Web Lab ===================== */
 .wl {
