@@ -27,7 +27,7 @@ that does the work (C-36). The design behind each task is in
 
 | Tier | Done | Total |
 |---|---|---|
-| MVP | 0 | 18 |
+| MVP | 0 | 19 |
 | STRETCH | 0 | 2 |
 | FULL | 0 | 5 |
 
@@ -81,7 +81,7 @@ dependency in the whole plan (C-17), and they need no code.
 | A | Preflight done, CI green, DataStack synths | DataStack deployed (or JSON store chosen), config helpers | Guardrail and SSM parameters deployed, model IAM | Observability stack and alarms | Deploy pipeline (stretch), docs current |
 | B | `route`, evidence, tree loader, Passive features and rules, all tested | Fallback logic used by the API | Support | Persona regression tests | Fixes only |
 | C | Schemas, validator logic, safety module and `invoke` wrapper against stubs | Prompts v1, golden-set runner | Real Bedrock calls, Guardrail wired in, verify, generate and validate | Passive reasoner with cache, tutor | Kappa gate on `main` |
-| D | Handler skeleton on stubs | Submit orchestration, JSON and DynamoDB adapters, contract tests green | Real `invoke` wired in, throttling and per-student cap | Teacher endpoints | `GET /health`, hardening |
+| D | Handler skeleton on stubs | Submit orchestration, JSON and Aurora adapters, contract tests green | Real `invoke` wired in, throttling and per-student cap | Teacher endpoints | `GET /health`, hardening |
 | E | Tree, workspace and preview on mock services | HTTP service implementations and the mode switch | Prompt flow with real responses and hints | "Why" panels | Polish |
 | F | Roster with rule-based chips and persona fixtures on mocks | Replay control | Hold and assign over HTTP | Live chips and the redirect nudge | Demo director and recording |
 | G | Ratings started, red-team strings | 8 or more ratings | 15 or more ratings | Persona scripts | Voiceover script |
@@ -136,9 +136,9 @@ never stalls the others.
 - [ ] One `curl` to `POST /steps/{id}/submit` returns evidence, next checkpoint and the reason, with
   `MODEL_MODE=stub`
 - [ ] `step_attempt`, `routing_decision` and `fallback_event` rows are written through the store
-- [ ] The store contract suite passes on the JSON adapter, and on DynamoDB if Task 0 allowed a deploy
+- [ ] The store contract suite passes on the JSON adapter, and on Aurora if Task 0 allowed a deploy
 - [ ] The UI can flip `VITE_SERVICE_MODE=http` for the non-model calls
-- Fallback if missed: stay on the JSON adapter and run the API locally. Revisit DynamoDB after IC3.
+- Fallback if missed: stay on the JSON adapter and run the API locally. Revisit Aurora after IC3.
 
 **IC3: Real models and safety** · Target: ~65% · Clock time: ____ · Integrator: ____
 - [ ] `MODEL_MODE=bedrock` runs one real prompt through verify, generate and validate
@@ -303,19 +303,20 @@ Owner: ____ · Serves: C-1, C-36
 Owner: ____ · Serves: C-5, C-6, C-9 to C-12, C-18 to C-20 · Discrepancy items 7, 9 · Architecture: 2.6
 
 - [ ] `shared/` module (plain JS ESM with JSDoc types)
-- [ ] Tree loader and validator for `database/sample-skilltree.json`
-- [ ] Monotonic evidence per skill (max observed, never decreases)
-- [ ] Display-only 0 to 100 score (`round(100 × level / max)`)
-- [ ] `route(tree, progress, evidence, teacherInput)` returns `{ checkpointId, reason }`
-- [ ] Available = not completed and every `requires` is completed or tested out
-- [ ] Skippable test-out after `intro` (`steer-it`, `use-the-lingo`, `give-context`)
-- [ ] Largest skill gap wins, ties go to JSON order
-- [ ] Teacher `hold` and `assign` (assign only if available)
-- [ ] Returned ids verified to exist in the tree (C-20)
-- [ ] Default target 1 when a checkpoint has no `targetEvidenceLevels` (C-12)
+- [x] Tree loader and validator for `database/sample-skilltree.json` (`shared/core/tree.py`)
+- [x] Monotonic evidence per skill (max observed, never decreases)
+- [x] Display-only 0 to 100 score (`round(100 × level / max)`)
+- [x] `route(tree, progress, evidence, teacherInput)` returns `{ checkpointId, reason }`
+- [x] Available = not completed and every `requires` is completed or tested out
+- [x] Skippable test-out after `intro` (`steer-it`, `use-the-lingo`, `give-context`)
+- [x] Largest skill gap wins, ties go to JSON order
+- [x] Teacher `hold` and `assign` (assign only if available; unavailable -> proposal, C-19 open q)
+- [x] Returned ids verified to exist in the tree (C-20)
+- [x] Default target 1 when a checkpoint has no `targetEvidenceLevels` (C-12)
+- Note: built in **Python** (ADR-015); the front-end mock keeps the JS implementation.
 
 **Tests:** table-driven, one case per C-19 rule, plus the id-exists check.
-**Demo:** `npm test` prints routing decisions with reasons.
+**Demo:** `pytest shared/core` -> 33 passing. (Done in PR #14.)
 
 ### Task 3: Validator contract and eval harness (MVP)
 Owner: ____ · Serves: C-13 to C-17, P-19 · Discrepancy items 8, 16 · Architecture: 2.5
@@ -338,18 +339,27 @@ Track: C builds the schema, judge and metrics. Track G does the human ratings.
 fallback paths. **Demo:** the eval prints three agreement numbers on fixtures.
 
 ### Task 4: CDK app and DataStack (MVP)
-Owner: ____ · Serves: C-8, C-38, P-13 · Discrepancy item 3 · Architecture: 2.9, 2.11 · Blocked by: Task 0
+Owner: ____ · Serves: C-8, C-38, P-13 · Discrepancy item 3 · Architecture: 2.9, 2.11 · ADR-016
 
-- [ ] CDK app skeleton (TypeScript), stacks by concern
-- [ ] `DataStack`: the C-8 tables plus `passive_signal`, on-demand, KMS, point-in-time recovery
-- [ ] JSON-file adapter for demo mode with the same shapes
-- [ ] cdk-nag and `cdk synth` in CI
-- [ ] `database/data-model.mmd` gains the student-state tables
+- [x] CDK app skeleton (TypeScript) in `infra/`, stacks by concern
+- [x] `DataStack`: Aurora Serverless v2 (PostgreSQL, scale-to-zero, Data API) + KMS (cluster only)
+- [x] JSON-file adapter for demo mode with the same shapes (`backend/store/json_repository.py`)
+- [x] cdk-nag runs on synth (0 findings; suppressions carry written reasons)
+- [x] `database/data-model.mmd` carries the student-state tables (discrepancy item 3; data track's
+  version is authoritative after PR #13, my duplicate block removed)
+- [x] `cdk synth` verified locally (template produced, scale-to-zero + Data API + KMS confirmed)
+- [ ] Schema of record is `database/schema.sql` (PR #13, data track), applied by a migration runner
+  (still to build)
+- [ ] **Aurora store adapter — DEFERRED** until Task 4.6 (schema reconciliation) is done.
+  `database/schema.sql` uses INTEGER student ids and a different teacher-input model than the contract
+  records (see `backend/store/README.md`).
 - [ ] `cdk bootstrap` for `us-west-2` (**needs explicit confirmation first; creates IAM roles**)
-- [ ] First deploy of `DataStack` (if Task 0 allows)
+- [ ] First deploy of `DataStack` (not done this session; code-and-synth only)
+- [ ] CDK assertion tests (`infra` test script present; assertions still to write)
 
-**Tests:** CDK assertion tests for tables and encryption. **Demo:** synth passes in CI; deploy if
-permitted.
+**Tests:** `pytest backend/store` -> JSON adapter passes the contract suite. **Demo:** `cdk synth`
+produces the template; deploy when confirmed. (Aurora data PR; adapter deferred, bootstrap/deploy
+pending your go-ahead.)
 
 ### Task 4.5: Configuration and secrets (MVP)
 Owner: ____ · Serves: P-13.4, C-26, C-38 · ADR-013 · Architecture: 2.14 · Blocked by: Task 4
@@ -376,6 +386,34 @@ Keeps secrets and environment-specific values out of the repo and in AWS.
 policy grants wildcard parameter or secret access; helper tests for caching and for a missing value;
 gitleaks passes on the branch. **Demo:** change the model id parameter, show the next call use the new
 model with no redeploy.
+
+### Task 4.6: Reconcile the store schema with the contracts (MVP, cross-track)
+Owner: ____ (data track + whoever owns the store adapter) · Serves: C-4, C-5, C-8, C-29 · Architecture: 2.9 · Blocks: the Aurora store adapter and `STORE_MODE=aurora`
+
+`database/schema.sql` (merged, data track) and `shared/contracts/schemas/records.schema.json` (merged,
+contracts) describe the same student state differently. They must agree before the Aurora adapter can be
+built, because the adapter maps one to the other. Pick a resolution per row, update the losing side, and
+record it in an ADR. Until then the backend runs on `JsonRepository` (STORE_MODE=json), which satisfies
+the whole contract with no AWS.
+
+| Mismatch | `database/schema.sql` | Contract record | Decide |
+|---|---|---|---|
+| Student id type | `StudentId` INTEGER, FK to `STUDENT_PROFILE` | `studentId` string (`stu-quick`) | One type. If INTEGER wins, the API/services map slugs to ids at the edge; if string wins, the schema changes |
+| Column case | lowercase (Postgres folds unquoted ids) | camelCase records | Confirm the adapter maps lowercase result columns to camelCase |
+| Teacher input | `ROUTING_DECISION.TeacherInput` enum + `TeacherId` FK | a `teacher_input` record + JSON on the decision | One model for hold/assign persistence |
+| `synthetic` flag | not present | `student.synthetic` (demo personas) | Add a column, or carry it outside the DB |
+| Evidence range | `Level` 0..4 (competence scale) | 0..max per skill (build 2, language 3, debug 3) | Confirm the mapping; display-only 0-100 is separate (C-11) |
+| Proposed tables | `HINT_EVENT`, `PASSIVE_SIGNAL` present; no `TEACHER_INPUT` | `hint_event`, `passive_signal`, `teacher_input` | Confirm the C-8 edit covers the final set |
+
+- [ ] One decision per row above, agreed by the data track and the store-adapter owner
+- [ ] Update the losing side (schema, contracts, or both) in one coordinated PR
+- [ ] Make the C-8 edit for any agreed new tables/columns (ties in with Task 8a)
+- [ ] Write an ADR recording the student-id decision (it has the widest blast radius)
+- [ ] Then build the Aurora adapter against the agreed shape and run the store contract suite against a
+  live cluster (unblocks Task 4's deferred item)
+
+**Tests:** the store contract suite passes on both the JSON and the Aurora adapter after reconciliation.
+**Demo:** `STORE_MODE=aurora` serves the same submit flow as `STORE_MODE=json`.
 
 ### Task 5: Safety module and Guardrail (MVP)
 Owner: ____ · Serves: C-25, C-26, P-18 · Discrepancy item 10 · Architecture: 2.3 · Blocked by: Task 4.5
@@ -410,20 +448,37 @@ Owner: ____ · Serves: C-14, C-27, P-7.2 · Discrepancy item 11 · Architecture:
 verify, generate and validate.
 
 ### Task 7: API stack and submit orchestration (MVP)
-Owner: ____ · Serves: C-24, C-29, P-11, P-1.4 · Architecture: 2.2
+Owner: Track D · Serves: C-24, C-29, P-11, P-1.4 · Architecture: 2.2
 
-- [ ] REST API with stage throttling and a usage plan
-- [ ] Per-student call cap in the handler
-- [ ] `POST /steps/{id}/submit`: filter, validate or direct-map, persist, Passive, route
-- [ ] `POST /tutor/ask`, `POST /prompts/verify`, `POST /prompts/generate`
-- [ ] `GET /teacher/students`, `POST /teacher/students/{id}/routing`, `GET /health`
-- [ ] P-11 endpoints
-- [ ] Headers per P-1.4; error shape `{ "error": { "code", "message" } }`; camelCase JSON
-- [ ] Student work persisted before any model call returns (C-24)
-- [ ] 10 s timeouts on adaptive calls
+Application layer built in `backend/api/` (Python, ADR-015) against the frozen seams; passes
+the seam-1 services contract. Consumes `shared/core` (Track B) directly and the seam-3
+`ModelPort` (Track C) by injection. The API Gateway stack + usage plan is Track A's CDK
+(`infra/`); the transport-agnostic router here is ready to drop behind it.
 
-**Tests:** handler tests with stubs and a response-shape contract test.
-**Demo:** one `curl` returns evidence, next checkpoint and the reason.
+- [ ] REST API with stage throttling and a usage plan — BLOCKED: CDK is Track A (`infra/`, Task 4). Router is stack-ready.
+- [x] Per-student call cap in the handler (`backend/api/http.py`, `per_student_cap`; RATE_LIMITED)
+- [x] `POST /steps/{id}/submit`: filter, validate or direct-map, persist, route (`backend/api/submit.py`). Passive hook left for Task 8a/8b (Track B/C seam).
+- [x] `POST /tutor/ask`, `POST /prompts/verify`, `POST /prompts/generate` (`backend/api/services.py`)
+- [x] `GET /teacher/students`, `POST /teacher/students/{id}/routing`, `GET /health` (`backend/api/services.py`, `http.py`)
+- [x] P-11 endpoints (routed in `backend/api/http.py`)
+- [x] Headers per P-1.4; error shape `{ "error": { "code", "message" } }`; camelCase JSON (`http.py`, `util.py`)
+- [x] Student work persisted before any model result is used (C-24) (`submit.py`; tested)
+- [~] 10 s timeouts on adaptive calls — the timeout budget is passed in the invoke `opts`; enforcement lives in Track C's `invoke` (model seam).
+
+**Tests:** handler tests with stubs and a response-shape contract test — DONE
+(`backend/api/tests/`: `test_http.py`, `test_services_contract.py`, `test_submit.py`,
+`test_app.py`): 38 Track D API tests, all green via `pytest`. Responses validated against the
+JSON Schemas in `shared/contracts/schemas/` (`schema_validate.py`).
+**Demo:** `build_app()["router"]` (or `lambda_handler.handler`) handles one submit and returns
+evidence, next checkpoint and the reason, and writes attempt/routing_decision/progress rows.
+Verified at IC2 with `STORE_MODE=json` + the stub model, driving the real `shared.core.route`.
+
+> Track D note: the backend is Python (ADR-015). `shared/core` (Track B) is a merged
+> dependency used directly; the bedrock `ModelPort` (Track C) is injected via
+> `backend/api/model.py`. Until it lands, `MODEL_MODE=stub` uses `StubModel` (from the
+> contract fixtures); `MODEL_MODE=bedrock` fails fast without an injected port. The store is
+> `STORE_MODE=json` (`aurora` deferred, ADR-016); the API never imports AWS. The earlier JS
+> backend draft was replaced to match ADR-015/016.
 
 ### Task 8a: Passive features, rule baseline and store (MVP)
 Owner: ____ · Serves: C-10, C-27, P-5, P-6 · Architecture: 2.7, 2.9
@@ -621,3 +676,4 @@ are done inside these tasks. Tick them there as well.
 | 2026-11-04 | (initial) | First draft from the planning session. |
 | 2026-11-04 | #11 | Redacted the AWS account id. Added Task 4.5 (config and secrets), secret-scanning items in Task 1, and SSM/Secrets Manager checks in Task 0. |
 | 2026-11-04 | #11 | Replaced the sequential dependency graph with a parallel work plan: seven tracks, six integration checkpoints (IC0 to IC5) and Task 0.5 (contracts and stubs). |
+| 2026-11-04 | #16 | Added Task 4.6 (reconcile the store schema with the contracts), which blocks the Aurora adapter after the PR #13 schema merge. MVP task count 18 -> 19. |
