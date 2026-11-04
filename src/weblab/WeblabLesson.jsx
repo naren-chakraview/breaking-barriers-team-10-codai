@@ -9,7 +9,10 @@ import CodeWorkspace from './CodeWorkspace.jsx'
 import Preview from './Preview.jsx'
 import Tutor from './Tutor.jsx'
 import ProgressReport from './ProgressReport.jsx'
+import DemoPicker from './DemoPicker.jsx'
+import DemoPlayer from './DemoPlayer.jsx'
 import './lessonTheme.css'
+import './demo.css'
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms))
 
@@ -18,7 +21,7 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms))
 //   left     — lesson + objectives + "My outcomes"
 //   center   — requirements box, then Code / Files / Build log + status strip
 //   right    — live preview, then the AI Tutor
-export default function WeblabLesson({ user, onExit, onViewSkillTree }) {
+function LessonSession({ user, onExit, onViewSkillTree, onPlayDemo, demo, onExitDemo, onPickDemo, onReplayDemo }) {
   const [levelId, setLevelId] = useState(FIRST_LEVEL_ID)
   const level = getLevel(levelId)
 
@@ -48,6 +51,13 @@ export default function WeblabLesson({ user, onExit, onViewSkillTree }) {
   const [phase, setPhase] = useState('working') // working | validating | routing | complete
   const [banner, setBanner] = useState(null)
   const [nudge, setNudge] = useState(null)
+
+  // Adaptive signals shown by the demo panel (and used by routing): hints on
+  // this step, consecutive misses, best score so far, and the last route taken.
+  const [levelHints, setLevelHints] = useState(0)
+  const [streak, setStreak] = useState(0)
+  const [topScore, setTopScore] = useState(null)
+  const [lastRoute, setLastRoute] = useState(null)
 
   // Guidance: manual "show me where", the revealed hint step, undo/reset.
   const [showWhere, setShowWhere] = useState(false)
@@ -80,10 +90,10 @@ export default function WeblabLesson({ user, onExit, onViewSkillTree }) {
   const idleRef = useRef(null)
   useEffect(() => {
     clearTimeout(idleRef.current)
-    if (phase !== 'working' || nudge) return undefined
+    if (phase !== 'working' || nudge || demo) return undefined
     idleRef.current = setTimeout(() => setNudge(buildNudge(level, { html, css })), 18000)
     return () => clearTimeout(idleRef.current)
-  }, [levelId, phase, nudge, level, html, css])
+  }, [levelId, phase, nudge, level, html, css, demo])
 
   // Autosave indicator: edits mark "dirty", then settle to "saved".
   useEffect(() => {
@@ -114,6 +124,7 @@ export default function WeblabLesson({ user, onExit, onViewSkillTree }) {
     }
     setLevelStart({ html: startHtml, css: startCss })
     setUndoStack([])
+    setLevelHints(0)
     setPhase('working')
     setNudge(null)
     const labels = {
@@ -144,11 +155,15 @@ export default function WeblabLesson({ user, onExit, onViewSkillTree }) {
     setHasOutput(true)
     setOutOfDate(false)
     setPhase('validating')
-    const signal = await validateSubmission(level, { html, css })
+    const signal = { ...(await validateSubmission(level, { html, css })), hintsOnLevel: levelHints }
     setMastery(signal.score)
+    // Skill never goes down (Req 6): keep the best score. Misses build a streak.
+    setTopScore((m) => Math.max(m ?? 0, signal.score))
+    setStreak((n) => (signal.passing ? 0 : n + 1))
     if (signal.passing) setCompleted((c) => ({ ...c, [level.objectiveId]: true }))
     setPhase('routing')
     const result = await routeNextLevel(level, signal, history)
+    setLastRoute({ reason: result.reason, from: level.id, to: result.level?.id || null, score: signal.score, hints: levelHints })
     if (result.reason === 'complete') {
       setPhase('complete')
       setBanner(null)
@@ -234,6 +249,29 @@ export default function WeblabLesson({ user, onExit, onViewSkillTree }) {
   const totalObjectives = LESSON.objectives.length
   const clock = `${String(Math.floor(seconds / 60)).padStart(2, '0')}:${String(seconds % 60).padStart(2, '0')}`
 
+  // Demo support: a stable handle the DemoPlayer uses to drive this session.
+  const rootRef = useRef(null)
+  const live = useRef({})
+  live.current = {
+    levelId, tier: level.tier, phase, mastery, topScore, hintsUsed, levelHints,
+    streak, lastRoute, levelsVisited: history.length, buildStatus: build.status,
+    html, css, completedCount,
+  }
+  const demoApi = useRef(null)
+  demoApi.current = {
+    rootRef,
+    live,
+    setBuffer: (file, val) => {
+      setTab('code')
+      setActiveFile(file)
+      if (file === 'styles.css') setCss(val)
+      else setHtml(val)
+      setOutOfDate(true)
+      markDirty()
+    },
+    ask: (text) => setIncoming({ id: Date.now(), kind: 'ask', text }),
+  }
+
   if (phase === 'complete') {
     return (
       <div className="ca-complete">
@@ -254,7 +292,7 @@ export default function WeblabLesson({ user, onExit, onViewSkillTree }) {
   }
 
   return (
-    <div className="wf wfl">
+    <div className={`wf wfl${demo ? ' wfl--demo' : ''}`} ref={rootRef}>
       <LessonTopBar
         user={user}
         completedCount={completedCount}
@@ -265,6 +303,7 @@ export default function WeblabLesson({ user, onExit, onViewSkillTree }) {
         onSave={save}
         deployState={deployState}
         onDeploy={deploy}
+        onPlayDemo={demo ? null : onPlayDemo}
       />
 
       {banner && <div className="wf-banner" role="status">{banner}</div>}
@@ -328,7 +367,7 @@ export default function WeblabLesson({ user, onExit, onViewSkillTree }) {
             code={{ html, css }}
             nudge={nudge}
             onDismissNudge={() => setNudge(null)}
-            onHintRevealed={() => setHintsUsed((n) => n + 1)}
+            onHintRevealed={() => { setHintsUsed((n) => n + 1); setLevelHints((n) => n + 1) }}
             onActiveStepTarget={setActiveStepTarget}
             incoming={incoming}
           />
@@ -345,6 +384,47 @@ export default function WeblabLesson({ user, onExit, onViewSkillTree }) {
         timeLabel={clock}
         levelsVisited={history.length}
       />
+
+      {demo && (
+        <DemoPlayer
+          scenario={demo}
+          api={demoApi}
+          onExit={onExitDemo}
+          onPick={onPickDemo}
+          onReplay={onReplayDemo}
+        />
+      )}
     </div>
+  )
+}
+
+// The real lesson stays mounted (just hidden) while a demo plays in a separate,
+// throwaway session, so watching the demo never touches the student's own work.
+export default function WeblabLesson(props) {
+  const [picker, setPicker] = useState(false)
+  const [demo, setDemo] = useState(null) // { scenario, run }
+  const start = (scenario) => {
+    setPicker(false)
+    setDemo((d) => ({ scenario, run: (d?.run || 0) + 1 }))
+  }
+  return (
+    <>
+      <div style={{ display: demo ? 'none' : 'contents' }}>
+        <LessonSession {...props} onPlayDemo={() => setPicker(true)} />
+      </div>
+      {demo && (
+        <LessonSession
+          key={demo.run}
+          {...props}
+          demo={demo.scenario}
+          onExit={() => setDemo(null)}
+          onExitDemo={() => setDemo(null)}
+          onPickDemo={() => { setDemo(null); setPicker(true) }}
+          onReplayDemo={() => start(demo.scenario)}
+          onViewSkillTree={() => {}}
+        />
+      )}
+      {picker && <DemoPicker onStart={start} onClose={() => setPicker(false)} />}
+    </>
   )
 }

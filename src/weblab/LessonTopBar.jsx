@@ -4,7 +4,7 @@ import { BrandMark } from '../Brand.jsx'
 // are small text buttons so the student can always get back out.
 export default function LessonTopBar({
   user, completedCount, total, onExit, onViewSkillTree,
-  saveStatus, onSave, deployState, onDeploy,
+  saveStatus, onSave, deployState, onDeploy, onPlayDemo,
 }) {
   const pct = total ? Math.round((completedCount / total) * 100) : 0
   const saveText =
@@ -19,6 +19,11 @@ export default function LessonTopBar({
         <span className="wf-project">Project: My First Website</span>
         <button type="button" className="wf-textbtn" onClick={onExit}>← Dashboard</button>
         <button type="button" className="wf-textbtn" onClick={onViewSkillTree}>Skill tree</button>
+        {onPlayDemo && (
+          <button type="button" className="wf-demobtn" onClick={onPlayDemo}>
+            <span aria-hidden="true">▶</span> Play demo
+          </button>
+        )}
       </div>
 
       <div className="wf-progress" role="group" aria-label="Lesson progress">
