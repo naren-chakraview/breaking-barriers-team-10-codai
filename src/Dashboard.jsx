@@ -1,5 +1,5 @@
 import StudentDashboard from './StudentDashboard.jsx'
-import TeacherView from './teacher/TeacherView.jsx'
+import TeacherView from './weblab/TeacherView.jsx'
 
 export default function Dashboard({ user, onLogout, onContinueLesson, onViewCourse }) {
   if (user.role === 'student') {
@@ -13,6 +13,8 @@ export default function Dashboard({ user, onLogout, onContinueLesson, onViewCour
     )
   }
 
-  // Teacher: class roster + per-student detail (see teacher-view-design.md).
+  // Teacher: the lesson view (roster + student detail) from teacher-view-design.md.
+  // Uses my weblab/ implementation (persona-driven). The team's src/teacher/
+  // version is also present on main but not wired in here (Option B).
   return <TeacherView user={user} onLogout={onLogout} />
 }
