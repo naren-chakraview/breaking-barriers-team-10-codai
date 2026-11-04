@@ -43,12 +43,21 @@ def test_tested_out_counts_as_done_for_dependents(tree):
     assert "keep-or-redirect" in available_checkpoints(tree, progress)
 
 
-def test_auto_proposes_largest_gap_then_json_order(tree):
-    # intro done; no evidence. steer-it (build target 2) and use-the-lingo (language target 2)
-    # both have gap 2; tie breaks to JSON order, where steer-it comes first.
+def test_auto_proposes_first_available_in_json_order(tree):
+    # Stay-on-current (C-19.3, issue #24 q2): with no `current` set, propose the first
+    # available checkpoint in JSON order. After intro, steer-it is first.
     r = route(tree, {"intro": "completed"}, evidence={})
     assert r.checkpoint_id == "steer-it"
-    assert "largest gap" in r.reason
+    assert "first available" in r.reason
+
+
+def test_auto_stays_on_current_checkpoint(tree):
+    # When a checkpoint is marked `current` and still available, stay on it rather than
+    # jumping to another skill (depth not volume, P-6.5).
+    progress = {"intro": "completed", "steer-it": "current"}
+    r = route(tree, progress, evidence={})
+    assert r.checkpoint_id == "steer-it"
+    assert "Continue on steer-it" in r.reason
 
 
 def test_teacher_hold_keeps_current(tree):
@@ -90,3 +99,27 @@ def test_default_target_used_when_checkpoint_has_none(tree):
     r = route(tree, progress, evidence={"build": 0})
     # keep-or-redirect (build) is available; with build at 0 and default target 1 it has a gap.
     assert r.checkpoint_id is not None
+
+
+def test_routes_when_all_available_targets_already_exceeded(tree):
+    # Regression for issue #24 (question 1): a student who has MET or EXCEEDED every
+    # available checkpoint's target must still be routed to pre-authored content (depth,
+    # P-6.5), not dropped to None. Previously _largest_gap seeded best_gap=-1, so an
+    # all-(-1)-gap situation returned None.
+    progress = {
+        "intro": "completed",
+        "steer-it": "tested_out",
+        "use-the-lingo": "tested_out",
+        "give-context": "tested_out",
+    }
+    evidence = {"build": 2, "language": 2, "debug": 2}  # at/above every target
+    r = route(tree, progress, evidence)
+    assert r.checkpoint_id is not None
+    # keep-or-redirect requires steer-it (tested_out satisfies it) and is first in JSON order.
+    assert r.checkpoint_id == "keep-or-redirect"
+
+
+def test_tested_out_predecessor_satisfies_requires(tree):
+    # A tested_out checkpoint counts as done for a dependent's `requires` (C-19.1).
+    progress = {"intro": "completed", "steer-it": "tested_out"}
+    assert "keep-or-redirect" in available_checkpoints(tree, progress)

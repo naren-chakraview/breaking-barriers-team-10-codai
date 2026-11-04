@@ -1,0 +1,76 @@
+name: CI
+
+# Runs on every PR into main and on pushes to main. No AWS credentials are used:
+# the JS and Python suites are hermetic, and `cdk synth` runs environment-agnostic (no
+# account set), so the stacks resolve with dummy AZs and make no AWS lookups (ADR-013 —
+# the real account id never lives in the repo or CI).
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+# Cancel superseded runs on the same ref to save minutes.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  js:
+    name: JS (contracts + build)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+      - run: npm ci
+      - name: Unit tests (vitest contract suites)
+        run: npm test
+      - name: Front-end build
+        run: npm run build
+
+  python:
+    name: Python (domain core + backend)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install pinned dev deps
+        run: pip install -r requirements-dev.txt
+      - name: Pytest (shared/core + backend)
+        # PYTHONPATH=. so the `shared` and `backend` packages import from the repo root.
+        # The live Aurora test skips automatically (no AURORA_* env set).
+        run: PYTHONPATH=. pytest shared/core backend -q
+
+  infra:
+    name: Infra (cdk synth + cdk-nag)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+          cache-dependency-path: infra/package-lock.json
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install infra deps
+        working-directory: infra
+        run: npm ci
+      - name: cdk synth (all stacks, cdk-nag runs on synth)
+        working-directory: infra
+        # No CDK_DEFAULT_ACCOUNT on purpose: the stacks stay environment-agnostic, so the
+        # VPC uses dummy AZs and nothing performs an AWS lookup (CI has no credentials).
+        # A real `cdk deploy` picks up the account from the developer's AWS session.
+        env:
+          CDK_DEFAULT_REGION: us-west-2
+        run: npx cdk synth --quiet

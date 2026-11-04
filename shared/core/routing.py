@@ -84,23 +84,27 @@ def tested_out_after_intro(
     return out
 
 
-def _largest_gap(
-    tree: Tree, available: list[str], evidence: Mapping[str, int]
+def _propose(
+    tree: Tree,
+    available: list[str],
+    progress: Mapping[str, str],
 ) -> Optional[str]:
-    """The available checkpoint whose skill has the largest gap to target (C-19.3).
+    """Stay-on-current selection (C-19.3, issue #24 q2).
 
-    Ties go to JSON order. Gap uses the checkpoint's own target, or DEFAULT_TARGET.
+    The student finishes the checkpoint they are on before moving on: if the `current`
+    checkpoint is still available, propose it; otherwise propose the first available
+    checkpoint in JSON order. This keeps a student on one skill until its target is met
+    (depth not volume, P-6.5) rather than hopping to whichever skill has the largest gap.
+
+    `available` is already in JSON order, so `available[0]` is the lowest-order choice.
+    Returns None only when nothing is available (lesson complete / fully tested out).
     """
-    best_id: Optional[str] = None
-    best_gap = -1
-    for cid in available:  # already in JSON order
-        targets = tree.targets(cid) or {
-            s: DEFAULT_TARGET for s in tree.skill_ids(cid)
-        }
-        gap = max((level - evidence.get(skill, 0) for skill, level in targets.items()), default=0)
-        if gap > best_gap:
-            best_gap, best_id = gap, cid
-    return best_id
+    if not available:
+        return None
+    current = next((c for c, s in progress.items() if s == "current"), None)
+    if current and current in available:
+        return current
+    return available[0]
 
 
 def route(
@@ -120,8 +124,9 @@ def route(
 
     available = available_checkpoints(tree, progress)
 
-    # The deterministic proposal the agent's assessment would make.
-    proposal = _largest_gap(tree, available, evidence)
+    # The deterministic proposal: stay on the current checkpoint until its target is met,
+    # else the first available in JSON order (C-19.3, stay-on-current).
+    proposal = _propose(tree, available, progress)
 
     if mode == "hold":
         current = next((c for c, s in progress.items() if s == "current"), None)
@@ -144,9 +149,10 @@ def route(
 
     # mode == "auto"
     if proposal:
-        return RouteResult(
-            proposal,
-            f"{proposal} is the available checkpoint with the largest gap to target "
-            "(ties broken by lesson order).",
-        )
+        current = next((c for c, s in progress.items() if s == "current"), None)
+        if proposal == current:
+            reason = f"Continue on {proposal}; its target is not yet met."
+        else:
+            reason = f"{proposal} is the first available checkpoint in lesson order."
+        return RouteResult(proposal, reason)
     return RouteResult(None, "No available checkpoint; the lesson is complete or fully tested out.")

@@ -4,7 +4,8 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
-    "dev": "vite",
+    "dev": "VITE_PROXY_BASE=/proxy/5173/ vite",
+    "dev:local": "vite",
     "build": "vite build",
     "preview": "vite preview",
     "test": "vitest run",

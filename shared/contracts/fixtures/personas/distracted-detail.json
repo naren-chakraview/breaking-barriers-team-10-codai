@@ -1,7 +1,7 @@
 {
   "persona": "distracted-detail",
   "status": "draft",
-  "description": "Distracted learner, variant 1: over-focused on a non-essential detail. After reaching the target once (level 2) the student keeps tweaking colors and fonts on steer-it-project and evidence stays flat. Passive should redirect with a visible change in guidance (P-5.3). Synthetic.",
+  "description": "Distracted learner, variant 1: over-focused on a non-essential detail. The student keeps tweaking colors and fonts on steer-it-project; evidence stays flat at level 1 (below the build target of 2), so steer-it does NOT test out and they stay on it. Passive should redirect with a visible change in guidance (P-5.3). Synthetic.",
   "student": { "studentId": "stu-detail", "displayName": "Detail Dana", "synthetic": true },
   "attempts": [
     { "attemptId": "att-detail-01", "studentId": "stu-detail", "stepId": "intro-plan", "inputText": "A fan page for my cat Biscuit with photos and facts.", "projectSnapshotRef": null, "evidenceLevel": null, "confidence": null, "createdAt": "2026-11-04T13:00:30Z" },
@@ -9,11 +9,11 @@
     { "attemptId": "att-detail-03", "studentId": "stu-detail", "stepId": "intro-web-dev", "inputText": "q104:b", "projectSnapshotRef": null, "evidenceLevel": 1, "confidence": 1, "createdAt": "2026-11-04T13:02:30Z" },
     { "attemptId": "att-detail-04", "studentId": "stu-detail", "stepId": "intro-web-dev", "inputText": "q105:b", "projectSnapshotRef": null, "evidenceLevel": 1, "confidence": 1, "createdAt": "2026-11-04T13:03:20Z" },
     { "attemptId": "att-detail-05", "studentId": "stu-detail", "stepId": "steer-it-project", "inputText": "make the background teal", "projectSnapshotRef": "snap-detail-05", "evidenceLevel": 1, "confidence": 0.85, "createdAt": "2026-11-04T13:10:00Z" },
-    { "attemptId": "att-detail-06", "studentId": "stu-detail", "stepId": "steer-it-project", "inputText": "actually make it navy, #0a3d62, and keep the cat photo at the top", "projectSnapshotRef": "snap-detail-06", "evidenceLevel": 2, "confidence": 0.8, "createdAt": "2026-11-04T13:14:00Z" },
-    { "attemptId": "att-detail-07", "studentId": "stu-detail", "stepId": "steer-it-project", "inputText": "change the font to Comic Sans, keep the navy background", "projectSnapshotRef": "snap-detail-07", "evidenceLevel": 2, "confidence": 0.8, "createdAt": "2026-11-04T13:18:30Z" },
-    { "attemptId": "att-detail-08", "studentId": "stu-detail", "stepId": "steer-it-project", "inputText": "make the title 48px bold, and a slightly lighter navy for the background", "projectSnapshotRef": "snap-detail-08", "evidenceLevel": 2, "confidence": 0.75, "createdAt": "2026-11-04T13:23:00Z" },
-    { "attemptId": "att-detail-09", "studentId": "stu-detail", "stepId": "steer-it-project", "inputText": "round the photo corners to 12px, and try the navy one shade lighter again", "projectSnapshotRef": "snap-detail-09", "evidenceLevel": 2, "confidence": 0.75, "createdAt": "2026-11-04T13:28:00Z" },
-    { "attemptId": "att-detail-10", "studentId": "stu-detail", "stepId": "steer-it-project", "inputText": "the blue is still not right, try #0b4a7a and then #0c5a8a", "projectSnapshotRef": "snap-detail-10", "evidenceLevel": 2, "confidence": 0.7, "createdAt": "2026-11-04T13:33:00Z" }
+    { "attemptId": "att-detail-06", "studentId": "stu-detail", "stepId": "steer-it-project", "inputText": "actually make it navy, #0a3d62, and keep the cat photo at the top", "projectSnapshotRef": "snap-detail-06", "evidenceLevel": 1, "confidence": 0.8, "createdAt": "2026-11-04T13:14:00Z" },
+    { "attemptId": "att-detail-07", "studentId": "stu-detail", "stepId": "steer-it-project", "inputText": "change the font to Comic Sans, keep the navy background", "projectSnapshotRef": "snap-detail-07", "evidenceLevel": 1, "confidence": 0.8, "createdAt": "2026-11-04T13:18:30Z" },
+    { "attemptId": "att-detail-08", "studentId": "stu-detail", "stepId": "steer-it-project", "inputText": "make the title 48px bold, and a slightly lighter navy for the background", "projectSnapshotRef": "snap-detail-08", "evidenceLevel": 1, "confidence": 0.75, "createdAt": "2026-11-04T13:23:00Z" },
+    { "attemptId": "att-detail-09", "studentId": "stu-detail", "stepId": "steer-it-project", "inputText": "round the photo corners to 12px, and try the navy one shade lighter again", "projectSnapshotRef": "snap-detail-09", "evidenceLevel": 1, "confidence": 0.75, "createdAt": "2026-11-04T13:28:00Z" },
+    { "attemptId": "att-detail-10", "studentId": "stu-detail", "stepId": "steer-it-project", "inputText": "the blue is still not right, try #0b4a7a and then #0c5a8a", "projectSnapshotRef": "snap-detail-10", "evidenceLevel": 1, "confidence": 0.7, "createdAt": "2026-11-04T13:33:00Z" }
   ],
   "hints": [],
   "teacherInput": { "mode": "auto" },
