@@ -1,6 +1,7 @@
 import * as cdk from 'aws-cdk-lib'
 import { Duration } from 'aws-cdk-lib'
 import * as apigw from 'aws-cdk-lib/aws-apigateway'
+import * as iam from 'aws-cdk-lib/aws-iam'
 import * as lambda from 'aws-cdk-lib/aws-lambda'
 import * as logs from 'aws-cdk-lib/aws-logs'
 import { NagSuppressions } from 'cdk-nag'
@@ -8,6 +9,20 @@ import { Construct } from 'constructs'
 import * as path from 'path'
 import { execSync } from 'child_process'
 import * as fs from 'fs'
+
+/**
+ * The data-tier resources the API needs to reach the store, passed in by reference (not as
+ * literal ARNs) so nothing sensitive lands in the repo (ADR-013). `bin/codeai.ts` wires
+ * these from `DataStack`.
+ */
+export interface ApiStackProps extends cdk.StackProps {
+  /** Aurora cluster ARN, database name, and secret ARN the Data API calls need. */
+  readonly clusterArn: string
+  readonly databaseName: string
+  readonly secretArn: string
+  /** The DataStack managed policy granting rds-data:*, GetSecretValue, kms:Decrypt. */
+  readonly dataApiAccessPolicy: iam.IManagedPolicy
+}
 
 /**
  * The one Python runtime for the API: the Lambda runtime, the Docker bundling image, and the
@@ -31,7 +46,7 @@ const PYTHON_VERSION = PYTHON_RUNTIME.name.replace('python', '') // e.g. "3.14"
  * The handler fails fast if asked for bedrock/aurora before those land.
  */
 export class ApiStack extends cdk.Stack {
-  constructor(scope: Construct, id: string, props?: cdk.StackProps) {
+  constructor(scope: Construct, id: string, props: ApiStackProps) {
     super(scope, id, props)
 
     const fn = new lambda.Function(this, 'ApiFn', {
@@ -42,7 +57,13 @@ export class ApiStack extends cdk.Stack {
       memorySize: 512,
       environment: {
         MODEL_MODE: 'stub', // no Bedrock until Task 6; StubModel from fixtures
-        STORE_MODE: 'json', // Aurora adapter not built yet (schema reconciled by Task 4.6)
+        // The Aurora adapter is built (ADR-017). STORE_MODE stays 'json' as the safe default;
+        // flip to 'aurora' to run the backend on the deployed cluster. The AURORA_* coordinates
+        // below are what backend/store/factory.py reads, so flipping is a one-value change.
+        STORE_MODE: 'json',
+        AURORA_CLUSTER_ARN: props.clusterArn,
+        AURORA_SECRET_ARN: props.secretArn,
+        AURORA_DATABASE_NAME: props.databaseName,
         PYTHONPATH: '/var/task',
       },
       logGroup: new logs.LogGroup(this, 'ApiFnLogs', {
@@ -50,6 +71,11 @@ export class ApiStack extends cdk.Stack {
         removalPolicy: cdk.RemovalPolicy.DESTROY,
       }),
     })
+
+    // Let the API reach the store through the RDS Data API: attach the DataStack managed
+    // policy (rds-data:*, secretsmanager:GetSecretValue on the secret, kms:Decrypt). One
+    // source of truth for data-tier access, so the API and agents stay in sync.
+    fn.role!.addManagedPolicy(props.dataApiAccessPolicy)
 
     // Access log: request metadata only (standard fields: ip, method, path, status, latency).
     // API Gateway access logs never include request or response bodies, so no student text
@@ -198,7 +224,7 @@ export class ApiStack extends cdk.Stack {
       {
         id: 'AwsSolutions-IAM4',
         reason:
-          'The API Lambda uses AWSLambdaBasicExecutionRole for CloudWatch Logs. Scoped resource permissions (Aurora Data API, SSM, Bedrock) are added as those integrations land (Tasks 4.6, 6).',
+          'The API Lambda uses AWSLambdaBasicExecutionRole for CloudWatch Logs. Aurora Data API access is granted via the scoped DataStack DataApiAccessPolicy (rds-data:*, GetSecretValue, kms:Decrypt on the specific resources). Bedrock permissions are added when the model integration lands (Task 6).',
       },
     ])
   }

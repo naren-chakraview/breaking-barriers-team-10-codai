@@ -273,9 +273,7 @@ Owner: ____ · Serves: C-35, C-36, C-37, C-38 · Discrepancy items 1, 2
 - [ ] Rename `package.json` `name` from `login-app` to `codeai-adaptive`
 - [ ] Add Vitest and a first passing test
 - [ ] Add lint (ESLint) and a `npm run lint` script
-- [x] GitHub Actions workflow on PRs (`.github/workflows/ci.yml`): three parallel jobs — JS
-  (vitest + `vite build`), Python (`pytest shared/core backend`), infra (`cdk synth` + cdk-nag).
-  No AWS creds (synth uses a dummy account/region). ESLint/lint not yet added.
+- [ ] GitHub Actions workflow on PRs: lint, test, `vite build`
 - [ ] `.env.local` is in `.gitignore` (the `.env.*` rule already covers it)
 - [ ] Add `!.env.example` to `.gitignore` and commit an `.env.example` with variable **names** only
 - [ ] Docs check in CI: parse every mermaid code block in `docs/` so a broken diagram fails the PR
@@ -324,21 +322,21 @@ Owner: ____ · Serves: C-5, C-6, C-9 to C-12, C-18 to C-20 · Discrepancy items 
 Owner: ____ · Serves: C-13 to C-17, P-19 · Discrepancy items 8, 16 · Architecture: 2.5
 Track: C builds the schema, judge and metrics. Track G does the human ratings.
 
-- [ ] JSON Schema for `{ skillId, evidenceLevel, conditionMet, confidence, evidence }`
-- [ ] Parse with one repair retry, then fallback
-- [ ] `confidence < 0.6` triggers fallback
-- [ ] Multiple-choice answers map to levels with no model call (C-13)
-- [ ] Not-scored steps record completion only (C-15)
-- [ ] Condition source: `validation.condition`, else the `Evidence:` line of `instructionsPrompt`
-- [ ] Metrics: exact agreement, within-1 agreement, quadratic weighted kappa
-- [ ] Golden-set runner
-- [ ] Prompts in `prompts/` with version hashes
-- [ ] Human rating started: 15+ project submissions rated by people (**slowest dependency**)
-- [ ] `codeai-starter/contracts/model-contract.yaml` located and re-shaped (not in this repo; find it or
-  create the contract here and note it)
+- [x] JSON Schema for `{ skillId, evidenceLevel, conditionMet, confidence, evidence }` (`ValidatorOutput`, merged in contracts)
+- [x] LLM judge for project steps builds the rubric prompt and calls `invoke` (`backend/ai/validator.py`, C-14)
+- [x] Parse with one repair retry, then fallback (C-16)
+- [x] `confidence < 0.6` triggers fallback; out-of-range `evidenceLevel` triggers fallback
+- [x] Metrics: exact, within-1, quadratic weighted kappa (`backend/eval/metrics.py`, PR #33)
+- [x] Golden-set runner + launch gate + CLI (`backend/eval`, PR #33)
+- [ ] Multiple-choice answers map to levels with no model call (C-13) — lives in the submit flow (Track D), not here
+- [ ] Not-scored steps record completion only (C-15) — submit flow (Track D)
+- [ ] Condition source wiring (`validation.condition` / `Evidence:` line) — the submit flow passes `condition` into the ValidateRequest (Track D)
+- [ ] Human rating: 15+ project submissions rated by people (**slowest dependency**, Track G)
+- [ ] Snapshot the validator's `evidenceLevel`s into the golden set on a pinned model + prompt version
 
-**Tests:** kappa against hand-computed values, schema accept and reject cases, stubbed retry and
-fallback paths. **Demo:** the eval prints three agreement numbers on fixtures.
+**Tests:** `pytest backend/ai` (validator: valid/low-confidence/invalid-JSON-repair/out-of-range/model-fail,
+45 total) and `pytest backend/eval` (26, PR #33). **Demo:** `python -m backend.eval <file>` prints the
+three agreement numbers.
 
 ### Task 4: CDK app and DataStack (MVP)
 Owner: ____ · Serves: C-8, C-38, P-13 · Discrepancy item 3 · Architecture: 2.9, 2.11 · ADR-016
@@ -350,19 +348,22 @@ Owner: ____ · Serves: C-8, C-38, P-13 · Discrepancy item 3 · Architecture: 2.
 - [x] `database/data-model.mmd` carries the student-state tables (discrepancy item 3; data track's
   version is authoritative after PR #13, my duplicate block removed)
 - [x] `cdk synth` verified locally (template produced, scale-to-zero + Data API + KMS confirmed)
-- [ ] Schema of record is `database/schema.sql` (PR #13, data track), loaded with `database/seed.sql` by
-  the `DbLoader` custom resource in `DataStack` (built and synth-verified; untested until the first deploy)
-- [ ] **Aurora store adapter — DEFERRED** until Task 4.6 (schema reconciliation) is done.
-  `database/schema.sql` uses INTEGER student ids and a different teacher-input model than the contract
-  records (see `backend/store/README.md`).
+- [x] Schema of record is `database/schema.sql` (PR #13, data track), loaded with `database/seed.sql` by
+  the `DbLoader` custom resource in `DataStack` (loaded and verified through the Data API on the
+  2026-11-04 deploy)
+- [x] **Aurora store adapter — built** (`backend/store/aurora_repository.py`, ADR-017). Schema reconciled
+  (Task 4.6): string student ids and the agreed teacher-input model, so no id translation (see
+  `backend/store/README.md`). Passes the store contract suite with the JSON adapter; `STORE_MODE=aurora`
+  is wired end to end (factory + `ApiStack` env/IAM). Live contract test runs post-deploy.
 - [x] `cdk bootstrap` for `us-west-2` (run 2026-11-04 with the user's go-ahead)
 - [x] First deploy of `DataStack` (2026-11-04): Aurora PostgreSQL 16.13, schema and master data loaded and
   checked through the Data API
 - [ ] CDK assertion tests (`infra` test script present; assertions still to write)
 
-**Tests:** `pytest backend/store` -> JSON adapter passes the contract suite. **Demo:** `cdk synth`
-produces the template; deploy when confirmed. (Aurora data PR; adapter deferred, bootstrap/deploy
-pending your go-ahead.)
+**Tests:** `pytest backend/store` -> both the JSON and Aurora adapters pass the contract suite (the
+Aurora adapter via a fake Data API client; the live suite runs post-deploy). **Demo:** `DataStack`
+deployed 2026-11-04 (Aurora live, schema + master data loaded); `STORE_MODE=aurora` serves the same
+submit flow as `STORE_MODE=json`.
 
 ### Task 4.5: Configuration and secrets (MVP)
 Owner: ____ · Serves: P-13.4, C-26, C-38 · ADR-013 · Architecture: 2.14 · Blocked by: Task 4
@@ -444,19 +445,23 @@ safe replacement and the lesson continues (once wired into `invoke`/submit).
 ### Task 6: `invoke` wrapper and model Lambdas (MVP)
 Owner: ____ · Serves: C-14, C-27, P-7.2 · Discrepancy item 11 · Architecture: 2.4, 2.5, 2.8
 
-- [ ] `invoke(task, prompt)` is the only Bedrock caller
-- [ ] Model ids read through `getConfig` from SSM (Haiku 4.5 for verify/validate/Passive, Sonnet 4.5 for
-  codegen/hints), never hard-coded (Task 4.5)
-- [ ] `maxTokens` and a 10 s timeout on every call
-- [ ] `guardrailConfig` on every call
-- [ ] Verify and codegen use different models
-- [ ] Runtime IAM allows only the two profiles (inference-profile ARN and wildcard-region model ARN)
-- [ ] Decision log per call: correlation id, task, model id, prompt hash, Guardrail version, latency,
-  tokens, and no student text
-- [ ] Verifier, Codegen, Validator and Active Lambdas
+- [x] `invoke(task, prompt, opts)` is the only Bedrock caller (`backend/ai/invoke.py`)
+- [x] Model ids from config per tier (fast for verify/validate/passive, strong for codegen/tutor);
+  `create_bedrock_port(get_config)` reads SSM keys `model.fast`/`model.strong`, never hard-coded
+- [x] `maxTokens` always set and a 10 s read timeout on every call
+- [x] `guardrailConfig` (pinned id+version, `trace: disabled`) on every call; `untrusted` text wrapped in `guardContent`
+- [x] Verify and codegen resolve to different models (P-7.2)
+- [x] Decision log per call: correlation id, task, model id, prompt version, guardrail version/action,
+  latency, tokens — and no student text (ADR-011)
+- [x] Returns the `InvokeResult` contract; never raises a provider error (maps to the C-29 error envelope)
+- [x] Wired into the API via `build_app(model=create_bedrock_port(...))` for `MODEL_MODE=bedrock`
+- [ ] `validate_project` LLM judge (C-14) — still raises; separate task
+- [ ] Runtime IAM scoped to the two inference profiles (with the DataStack/Bedrock role work)
+- [ ] Live Bedrock smoke test (verify → generate round-trip) after deploy
 
-**Tests:** wrapper tests for timeout, throttle and guardrail block. **Demo:** a prompt goes through
-verify, generate and validate.
+**Tests:** `pytest backend/ai` → 34 passing; fake-client coverage of fast/strong routing, guardrail
+intervention, throttle/timeout/access-denied mapping, no-text-leak, and build_app integration.
+**Demo:** flip `MODEL_MODE=bedrock` with the injected port (needs a live Bedrock run to confirm).
 
 ### Task 7: API stack and submit orchestration (MVP)
 Owner: Track D · Serves: C-24, C-29, P-11, P-1.4 · Architecture: 2.2
@@ -488,7 +493,8 @@ Verified at IC2 with `STORE_MODE=json` + the stub model, driving the real `share
 > dependency used directly; the bedrock `ModelPort` (Track C) is injected via
 > `backend/api/model.py`. Until it lands, `MODEL_MODE=stub` uses `StubModel` (from the
 > contract fixtures); `MODEL_MODE=bedrock` fails fast without an injected port. The store is
-> `STORE_MODE=json` (`aurora` deferred, ADR-016); the API never imports AWS. The earlier JS
+> `STORE_MODE=json` by default; the `aurora` adapter is built (ADR-016/017) and the API reaches it
+> only through the Data API (boto3), never a direct DB connection. The earlier JS
 > backend draft was replaced to match ADR-015/016.
 
 ### Task 8a: Passive features, rule baseline and store (MVP)
@@ -575,11 +581,17 @@ alarm, the dashboard and the UI.
 ### Task 11: Golden-set gate in CI (MVP)
 Owner: ____ · Serves: C-17, P-19.2 · Architecture: 2.5
 
-- [ ] CI job on `main` runs the validator on the pinned model and prompt version
-- [ ] Fails below kappa 0.70 (exact, within-1 and quadratic weighted kappa reported)
-- [ ] The kappa number is available for the demo
+- [x] Agreement metrics: exact, within-1, quadratic weighted kappa (`backend/eval/metrics.py`, hand-verified)
+- [x] Golden-set runner + launch gate: ≥ 15 submissions AND pooled QWK ≥ 0.70, pooled + per-skill report
+- [x] CLI gate `python -m backend.eval <file>` — prints the numbers, exits non-zero below the gate
+- [x] Placeholder sample set wires the gate (18 synthetic pairs, PASS); demo-ready report format
+- [ ] Replace the placeholder with ≥ 15 **real** human-rated submissions (Track G — slow dependency)
+- [ ] `modelLevel` snapshot from the real validator (C-14) on a pinned model + prompt version
+- [ ] CI job on `main` runs `python -m backend.eval` against the snapshot (not every PR, to limit spend)
 
-**Tests:** the gate passes and fails correctly on fixtures. **Demo:** the pipeline shows the value.
+**Tests:** `pytest backend/eval` → 26 passing (metric math, count gate, QWK gate, validation, CLI exit
+codes). **Demo:** `python -m backend.eval backend/eval/fixtures/golden-set.sample.json` prints the pooled
+QWK and per-skill breakdown.
 
 ### Task 12: Demo director and recording script (MVP)
 Owner: ____ · Serves: C-33 (extended) · Architecture: 2.13

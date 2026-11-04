@@ -304,7 +304,9 @@ flowchart TD
 
 ### 2.4 Model access (`invoke`)
 
-**Status:** Proposed. **Serves:** C-27, P-7.2, P-15.3, P-16.
+**Status:** Built (wrapper + port wiring; live smoke test pending a Bedrock run).
+**Serves:** C-27, P-7.2, P-15.3, P-16. **Code:** `backend/ai/invoke.py`, `backend/ai/bedrock_port.py`,
+`backend/ai/factory.py`.
 
 One wrapper, `invoke(task, prompt)`, is the only code that calls Bedrock.
 
@@ -329,7 +331,9 @@ One wrapper, `invoke(task, prompt)`, is the only code that calls Bedrock.
 
 ### 2.5 Validator
 
-**Status:** Proposed. **Serves:** C-13 to C-17, P-19.
+**Status:** Built (LLM judge for project steps, C-14/C-16; multiple-choice direct map C-13 lives in the
+submit flow; the golden-set gate is `backend/eval`, Task 11). Live run pending a Bedrock smoke test.
+**Serves:** C-13 to C-17, P-19. **Code:** `backend/ai/validator.py`.
 
 - **Multiple choice** with `measures.evidenceLevels`: deterministic map from choice to level. No model
   call (C-13).
@@ -376,9 +380,8 @@ Rules (C-19):
    diagnostic evidence becomes `tested_out` and counts as done (depth not volume, P-6.5). In the
    current tree the skippable checkpoints are `steer-it` (build ≥ 2), `use-the-lingo` (language ≥ 2)
    and `give-context` (debug ≥ 2).
-3. Proposal = stay on the `current` checkpoint while it is still available, otherwise the first
-   available checkpoint in JSON order (stay-on-current; depth not volume, P-6.5). Issue #24 q2
-   replaced the earlier "largest gap" rule.
+3. Proposal = the available checkpoint whose skill has the largest gap to target. Ties go to JSON
+   order.
 4. Teacher input `{ mode: auto | hold | assign, checkpointId? }`. `assign` picks that checkpoint if
    available, `hold` stays, `auto` takes the proposal (P-8.2).
 5. Every call writes a `routing_decision` row with a readable `reason`, shown in the UI.
@@ -391,7 +394,7 @@ decreases (C-9, C-10). A checkpoint completes when its project step is validated
 flowchart TD
   S["route: tree, progress, evidence, teacherInput"] --> A["Available = not completed and every<br/>requires is completed or tested out"]
   A --> T["After intro: test out skippable checkpoints<br/>whose target is already met"]
-  T --> P["Proposal = stay on current if available,<br/>else first available in JSON order"]
+  T --> P["Proposal = available checkpoint with the<br/>largest skill gap, ties by JSON order"]
   P --> M{"teacherInput.mode"}
   M -- "auto" --> R1["Apply the proposal"]
   M -- "hold" --> R2["Stay on the current checkpoint"]
@@ -676,7 +679,7 @@ the master data in `database/seed.sql` through the Data API, in one transaction.
 database and skips when tables exist, so editing the SQL never drops data; later schema changes are
 migrations, not stack updates. The API and agent roles get access by attaching the stack's Data API
 managed policy (SSM `/codeai/data/access-policy-arn`). Tradeoff: a resume delay on the first query after
-idle (see ADR-016). The Python `STORE_MODE=aurora` adapter is deferred (see 2.9 above).
+idle (see ADR-016). The Python `STORE_MODE=aurora` adapter is built (`backend/store/aurora_repository.py`, see 2.9 above).
 
 **DynamoDB (superseded):** earlier drafts proposed DynamoDB on-demand. ADR-016 replaced it with Aurora
 to match the customer's stated system of record; `STORE_MODE` dropped `dynamodb` for `aurora`.
@@ -1165,3 +1168,6 @@ session on 2026-11-04 and are **Proposed** until the team reviews them.
 | 2026-11-04 | (Aurora data PR) | Rewrote 2.9 Database and 2.11 IaC for Aurora + Python; replaced DynamoDB references with Aurora; marked Task 0 IAM/model checks verified; updated database/data-model.mmd with the C-8 student-state tables (discrepancy item 3). Added the `infra/` CDK DataStack (synth-verified, 0 nag findings) and the `backend/store/` adapters. |
 | 2026-11-04 | (Safety PR) | Built the content-safety module (`backend/ai/safety.py`, C-25/C-26) with a `BedrockModelPort` skeleton (seam 3), and the K-12 `infra/GuardrailStack` (synth-verified, 0 nag findings). Marked 2.3 Built. `invoke`/validator still pending. |
 | 2026-11-04 | (routing policy PR) | Issue #24 q2: changed C-19.3 from "largest gap" to **stay-on-current** (stay on the current checkpoint while available, else first in JSON order). Updated routing prose + diagram. Fixed the `distracted-detail` persona (evidence capped at 1 so steer-it does not test out). The q1 None-routing bug is fixed separately in #26. |
+| 2026-11-04 | (invoke PR) | Built the `invoke` wrapper (C-27): `backend/ai/invoke.py` + `BedrockModelPort.invoke` + `create_bedrock_port` factory. Task→tier model routing (verify≠codegen, P-7.2), `maxTokens`+10s timeout, pinned guardrail, error-envelope on failure (never raises), decision log with no student text. Marked 2.4 Built. Validator (C-14) still pending; live smoke test pending a Bedrock run. |
+| 2026-11-04 | (validator PR) | Built the LLM-judge validator (C-14/C-16): `backend/ai/validator.py` — rubric prompt (trusted) + student text (untrusted/guardContent), one repair retry, fallback on invalid JSON / out-of-range level / confidence<0.6 / model failure; wired `BedrockModelPort.validate_project`. Marked 2.5 Built. Its evidence levels feed the golden-set gate (Task 11). C-13 direct-map and C-15 not-scored live in the submit flow (Track D); live smoke test pending. |
+| 2026-11-04 | (golden-set PR) | Built the validator eval harness (Task 11, C-17): `backend/eval/` — exact/within-1/QWK metrics (hand-verified), golden-set runner, launch gate (≥15 submissions AND QWK≥0.70), CLI. Placeholder sample set wires the gate; real human ratings (Track G) and the validator `modelLevel` snapshot (C-14) still pending. The validator (2.5) landed in the validator PR above; its levels feed this gate. |
