@@ -63,7 +63,33 @@ def test_invoke_requires_model_ids():
         port.invoke(req)
 
 
-def test_validate_project_still_not_implemented():
-    # The C-14 LLM-judge validator is a separate task.
-    with pytest.raises(NotImplementedError):
-        _port().validate_project({"skillId": "build"})
+def test_validate_project_works_through_the_port(validate_against):
+    import json
+    out = {"skillId": "build", "evidenceLevel": 2, "conditionMet": True,
+           "confidence": 0.9, "evidence": "matched"}
+
+    class FakeJudge(FakeBedrock):
+        def converse(self, **kwargs):
+            return {
+                "output": {"message": {"content": [{"text": json.dumps(out)}]}},
+                "stopReason": "end_turn",
+                "usage": {"inputTokens": 5, "outputTokens": 3},
+            }
+
+    port = BedrockModelPort(
+        "gr-1", "1",
+        model_ids={"fast": "m-fast", "strong": "m-strong"},
+        client=FakeJudge(),
+        descriptors_for=lambda s: {"0": "a", "1": "b", "2": "c"},  # build 0..2
+    )
+    req = {
+        "stepId": "steer-it-project", "skillId": "build",
+        "condition": "changed to match a detailed prompt",
+        "prompts": ["make the heading say X"],
+        "projectBefore": None, "projectAfter": {"html": "<h1>X</h1>", "css": "", "js": ""},
+        "correlationId": "corr-port-val1",
+    }
+    r = port.validate_project(req)
+    assert r["ok"] is True
+    assert r["result"]["evidenceLevel"] == 2
+    assert validate_against(r, "model", "ValidateResult") == []

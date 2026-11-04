@@ -9,6 +9,7 @@ from .safety import Safety, wrap_untrusted, SAFE_INPUT_REPLACEMENT, SAFE_OUTPUT_
 from .bedrock_port import BedrockModelPort
 from .invoke import invoke, build_converse_kwargs, TASK_TIER
 from .factory import create_bedrock_port
+from .validator import validate_project, build_judge_prompt, CONFIDENCE_MIN
 
 __all__ = [
     "Safety",
@@ -20,4 +21,7 @@ __all__ = [
     "build_converse_kwargs",
     "TASK_TIER",
     "create_bedrock_port",
+    "validate_project",
+    "build_judge_prompt",
+    "CONFIDENCE_MIN",
 ]

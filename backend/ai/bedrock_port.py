@@ -17,6 +17,7 @@ from typing import Any, Callable, Mapping, Optional
 
 from .safety import Safety
 from .invoke import invoke as _invoke, TIMEOUT_MS
+from .validator import validate_project as _validate_project
 
 
 class BedrockModelPort:
@@ -30,6 +31,7 @@ class BedrockModelPort:
         region_name: Optional[str] = None,
         client: Any = None,
         log: Optional[Callable[[Mapping[str, Any]], None]] = None,
+        descriptors_for: Optional[Callable[[str], Mapping[str, str]]] = None,
     ) -> None:
         self._region = region_name
         self._client = client
@@ -38,6 +40,8 @@ class BedrockModelPort:
         # {'fast': <model id>, 'strong': <model id>} — from SSM in production.
         self._model_ids = dict(model_ids or {})
         self._log = log
+        # Resolve a skill's {level: descriptor} rubric (C-14). Defaults to the tree.
+        self._descriptors_for = descriptors_for or _tree_descriptors
         self._safety: Optional[Safety] = None
 
     @property
@@ -90,9 +94,23 @@ class BedrockModelPort:
             log=self._log,
         )
 
-    # ---- validator (pending; separate task C-14) ----
+    # ---- validator (built) ----
     def validate_project(self, request: Mapping[str, Any]) -> dict[str, Any]:
-        raise NotImplementedError(
-            "validate_project is the LLM-judge validator task (C-14); not built yet. "
-            "Use MODEL_MODE=stub until then."
-        )
+        descriptors = self._descriptors_for(request["skillId"])
+        return _validate_project(request, invoke=self.invoke, evidence_descriptors=descriptors)
+
+
+# Lazily load the tree once and resolve a skill's evidence descriptors from it (C-14).
+_TREE = None
+
+
+def _tree_descriptors(skill_id: str) -> Mapping[str, str]:
+    global _TREE
+    if _TREE is None:
+        from shared.core import load_tree
+
+        _TREE = load_tree()
+    skill = _TREE.skills.get(skill_id)
+    if not skill:
+        raise ValueError(f"unknown skillId {skill_id!r}")
+    return skill["evidenceLevels"]
