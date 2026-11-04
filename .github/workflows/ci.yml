@@ -1,8 +1,9 @@
 name: CI
 
 # Runs on every PR into main and on pushes to main. No AWS credentials are used:
-# the JS and Python suites are hermetic, and `cdk synth` reads a dummy account/region
-# from the environment (ADR-013 — the real account id never lives in the repo or CI).
+# the JS and Python suites are hermetic, and `cdk synth` runs environment-agnostic (no
+# account set), so the stacks resolve with dummy AZs and make no AWS lookups (ADR-013 —
+# the real account id never lives in the repo or CI).
 
 on:
   pull_request:
@@ -67,8 +68,9 @@ jobs:
         run: npm ci
       - name: cdk synth (all stacks, cdk-nag runs on synth)
         working-directory: infra
-        # Dummy account/region: synth needs them for env-bound stacks but makes no AWS calls.
+        # No CDK_DEFAULT_ACCOUNT on purpose: the stacks stay environment-agnostic, so the
+        # VPC uses dummy AZs and nothing performs an AWS lookup (CI has no credentials).
+        # A real `cdk deploy` picks up the account from the developer's AWS session.
         env:
-          CDK_DEFAULT_ACCOUNT: '111111111111'
           CDK_DEFAULT_REGION: us-west-2
         run: npx cdk synth --quiet
