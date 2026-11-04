@@ -92,7 +92,7 @@ def _largest_gap(
     Ties go to JSON order. Gap uses the checkpoint's own target, or DEFAULT_TARGET.
     """
     best_id: Optional[str] = None
-    best_gap = -1
+    best_gap = float("-inf")  # so the first available checkpoint wins even when all gaps are <= 0
     for cid in available:  # already in JSON order
         targets = tree.targets(cid) or {
             s: DEFAULT_TARGET for s in tree.skill_ids(cid)

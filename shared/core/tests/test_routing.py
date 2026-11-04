@@ -90,3 +90,27 @@ def test_default_target_used_when_checkpoint_has_none(tree):
     r = route(tree, progress, evidence={"build": 0})
     # keep-or-redirect (build) is available; with build at 0 and default target 1 it has a gap.
     assert r.checkpoint_id is not None
+
+
+def test_routes_when_all_available_targets_already_exceeded(tree):
+    # Regression for issue #24 (question 1): a student who has MET or EXCEEDED every
+    # available checkpoint's target must still be routed to pre-authored content (depth,
+    # P-6.5), not dropped to None. Previously _largest_gap seeded best_gap=-1, so an
+    # all-(-1)-gap situation returned None.
+    progress = {
+        "intro": "completed",
+        "steer-it": "tested_out",
+        "use-the-lingo": "tested_out",
+        "give-context": "tested_out",
+    }
+    evidence = {"build": 2, "language": 2, "debug": 2}  # at/above every target
+    r = route(tree, progress, evidence)
+    assert r.checkpoint_id is not None
+    # keep-or-redirect requires steer-it (tested_out satisfies it) and is first in JSON order.
+    assert r.checkpoint_id == "keep-or-redirect"
+
+
+def test_tested_out_predecessor_satisfies_requires(tree):
+    # A tested_out checkpoint counts as done for a dependent's `requires` (C-19.1).
+    progress = {"intro": "completed", "steer-it": "tested_out"}
+    assert "keep-or-redirect" in available_checkpoints(tree, progress)
