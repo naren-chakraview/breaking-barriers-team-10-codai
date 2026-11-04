@@ -2,7 +2,7 @@
 // diagnostics, and the AI tutor. No network, no model — rules + canned content
 // that inspect the student's ACTUAL code so help feels responsive.
 
-import { LESSON, LEVELS } from './courseData.js'
+import { LESSON, LEVELS, getLevel } from './courseData.js'
 
 const delay = (ms) => new Promise((r) => setTimeout(r, ms))
 
@@ -69,15 +69,39 @@ export async function validateSubmission(level, code) {
   const { passing, met, missing } = diagnose(level, code)
   const total = met.length + missing.length
   const score = total ? Math.round((met.length / total) * 100) : 0
-  return { objectiveId: level.objectiveId, passing, score }
+  return { objectiveId: level.objectiveId, passing, score, met: met.length, total }
 }
 
-// --- Routing: unchanged logic. ---
+// --- Routing: performance-aware adaptivity (Req 5/6). ---
+// The signal carries how the student did on THIS step:
+//   { passing, score, hintsOnLevel, attempts }
+// Struggling (a miss) routes DOWN to an easier support level of the same skill,
+// slowing the pace and adding scaffolding. Doing well (a clean first-try pass
+// with no hints) routes UP to a tougher stretch version of the next skill.
+// A student who only scraped a pass moves on at the standard (core) pace.
+// Mastery is never lowered by routing — struggling just changes WHICH step.
+
+function pick(objectiveId, tier) {
+  return LEVELS.find((l) => l.objectiveId === objectiveId && l.tier === tier) || null
+}
+
+export function describeRoute(reason) {
+  return {
+    support: 'You hit a snag, so the lesson stepped back to an easier version of the same skill with more scaffolding.',
+    retry: 'Not quite yet — the same step again, with the hint ready when you want it.',
+    advance: 'Nice — passed, so on to the next skill at the standard pace.',
+    stretch: 'Strong work (clean pass, no hints) — here is a deeper take on the next skill.',
+    complete: 'That was the last skill in the lesson.',
+  }[reason] || ''
+}
+
 export async function routeNextLevel(currentLevel, signal, history) {
   await delay(500 + Math.random() * 400)
   const objectives = LESSON.objectives
   const currentObjIndex = objectives.findIndex((o) => o.id === currentLevel.objectiveId)
+  const hints = signal.hintsOnLevel || 0
 
+  // --- Struggling: route DOWN to support (same skill), or retry if none left. ---
   if (!signal.passing) {
     const support = LEVELS.find(
       (l) => l.objectiveId === currentLevel.objectiveId && l.tier === 'support' && !history.includes(l.id),
@@ -89,11 +113,14 @@ export async function routeNextLevel(currentLevel, signal, history) {
   const nextObj = objectives[currentObjIndex + 1]
   if (!nextObj) return { level: null, reason: 'complete' }
 
-  const strong = signal.score >= 100
-  const stretch = LEVELS.find((l) => l.objectiveId === nextObj.id && l.tier === 'stretch')
-  if (strong && stretch) return { level: stretch, reason: 'stretch' }
+  // --- Doing well: clean first-try pass, no hints, and not already on a support
+  // detour for this skill. Route UP to a stretch version of the NEXT skill. ---
+  const cameFromSupport = history.some((id) => getLevel(id)?.objectiveId === currentLevel.objectiveId && getLevel(id)?.tier === 'support')
+  const strong = signal.score >= 100 && hints === 0 && (signal.attempts || 1) <= 1 && !cameFromSupport
+  const stretch = pick(nextObj.id, 'stretch')
+  if (strong && stretch && !history.includes(stretch.id)) return { level: stretch, reason: 'stretch' }
 
-  const core = LEVELS.find((l) => l.objectiveId === nextObj.id && l.tier === 'core')
+  const core = pick(nextObj.id, 'core')
   return { level: core || null, reason: core ? 'advance' : 'complete' }
 }
 
