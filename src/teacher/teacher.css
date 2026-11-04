@@ -18,7 +18,6 @@
 /* Top bar */
 .tv-top { flex: 0 0 56px; display: flex; align-items: center; justify-content: space-between; padding: 0 16px; background: var(--tv-card); border-bottom: 1px solid var(--tv-line); }
 .tv-brand { display: flex; align-items: center; gap: 10px; min-width: 0; }
-.tv-logo { width: 20px; height: 20px; border-radius: 50%; background: #cfd4da; }
 .tv-brand-name { font-weight: 700; font-size: 15px; }
 .tv-context { color: var(--tv-muted); font-size: 13px; white-space: nowrap; }
 .tv-top-actions { display: flex; align-items: center; gap: 12px; }

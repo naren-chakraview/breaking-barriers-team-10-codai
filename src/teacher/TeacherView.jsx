@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import './teacher.css'
+import { BrandMark } from '../Brand.jsx'
 import { INITIAL_STUDENTS, SKILLS, STATUS, skillStates, overallScore, letterFor } from './teacherData.js'
 import Roster from './Roster.jsx'
 import StudentSummary from './StudentSummary.jsx'
@@ -150,8 +151,8 @@ export default function TeacherView({ user, onLogout }) {
     <div className="tv">
       <header className="tv-top">
         <div className="tv-brand">
-          <span className="tv-logo" aria-hidden="true" />
-          <span className="tv-brand-name">CodeAI</span>
+          <BrandMark size={30} />
+          <span className="tv-brand-name">AdaptAI</span>
           <span className="tv-context">Teacher · {MODULE}</span>
         </div>
         <div className="tv-top-actions">
