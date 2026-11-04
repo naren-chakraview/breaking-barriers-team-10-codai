@@ -410,20 +410,36 @@ Owner: ____ · Serves: C-14, C-27, P-7.2 · Discrepancy item 11 · Architecture:
 verify, generate and validate.
 
 ### Task 7: API stack and submit orchestration (MVP)
-Owner: ____ · Serves: C-24, C-29, P-11, P-1.4 · Architecture: 2.2
+Owner: Track D · Serves: C-24, C-29, P-11, P-1.4 · Architecture: 2.2
 
-- [ ] REST API with stage throttling and a usage plan
-- [ ] Per-student call cap in the handler
-- [ ] `POST /steps/{id}/submit`: filter, validate or direct-map, persist, Passive, route
-- [ ] `POST /tutor/ask`, `POST /prompts/verify`, `POST /prompts/generate`
-- [ ] `GET /teacher/students`, `POST /teacher/students/{id}/routing`, `GET /health`
-- [ ] P-11 endpoints
-- [ ] Headers per P-1.4; error shape `{ "error": { "code", "message" } }`; camelCase JSON
-- [ ] Student work persisted before any model call returns (C-24)
-- [ ] 10 s timeouts on adaptive calls
+Application layer built in `backend/api/` and `backend/store/` against the frozen seams;
+passes the seam-1 and seam-4 contract suites. The API Gateway stack + usage plan is Track A's
+CDK (`infra/`); the transport-agnostic router here is ready to drop behind it.
 
-**Tests:** handler tests with stubs and a response-shape contract test.
-**Demo:** one `curl` returns evidence, next checkpoint and the reason.
+- [ ] REST API with stage throttling and a usage plan — BLOCKED: CDK is Track A (`infra/`, Task 4). Router is stack-ready.
+- [x] Per-student call cap in the handler (`backend/api/http.js`, `perStudentCap`; RATE_LIMITED)
+- [x] `POST /steps/{id}/submit`: filter, validate or direct-map, persist, route (`backend/api/submit.js`). Passive hook left for Task 8a/8b (Track B/C seam); submit is wired to accept it.
+- [x] `POST /tutor/ask`, `POST /prompts/verify`, `POST /prompts/generate` (`backend/api/services.js`)
+- [x] `GET /teacher/students`, `POST /teacher/students/{id}/routing`, `GET /health` (`backend/api/services.js`, `http.js`)
+- [x] P-11 endpoints (routed in `backend/api/http.js`)
+- [x] Headers per P-1.4; error shape `{ "error": { "code", "message" } }`; camelCase JSON (`http.js`, `util.js`)
+- [x] Student work persisted before any model result is used (C-24) (`submit.js`; tested)
+- [~] 10 s timeouts on adaptive calls — the LIMITS.TIMEOUT_MS budget is passed in `opts.timeoutMs`; enforcement lives in Track C's `invoke` (model seam).
+
+**Tests:** handler tests with stubs and a response-shape contract test — DONE
+(`backend/api/http.test.js`, `services.contract.test.js`, `submit.test.js`,
+`backend/store/repository.contract.test.js`): 52 Track D tests, all green; store seam passes
+on both the JSON and DynamoDB adapters.
+**Demo:** one `curl` (local `node backend/api/server.js`, or the router directly) returns
+evidence, next checkpoint and the reason, and writes attempt/routing_decision/progress rows.
+Verified at IC2 with the stub model; the domain core (Track B) and bedrock model (Track C)
+drop in by injection with no handler change.
+
+> Track D note: `shared/core` (Track B) and the bedrock `ModelPort` (Track C) are consumed by
+> injection (`backend/api/ports.js`). Until they land, `buildApp` uses the stub model shim
+> (`model-stub.js`, canned from the contract fixtures) and tests use a core double. The
+> DynamoDB adapter takes an injected document client so it runs in CI with no AWS; the real
+> client and table names come from Track A's `DataStack` (Task 4).
 
 ### Task 8a: Passive features, rule baseline and store (MVP)
 Owner: ____ · Serves: C-10, C-27, P-5, P-6 · Architecture: 2.7, 2.9
