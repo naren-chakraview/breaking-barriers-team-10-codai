@@ -331,7 +331,9 @@ One wrapper, `invoke(task, prompt)`, is the only code that calls Bedrock.
 
 ### 2.5 Validator
 
-**Status:** Proposed. **Serves:** C-13 to C-17, P-19.
+**Status:** Built (LLM judge for project steps, C-14/C-16; multiple-choice direct map C-13 lives in the
+submit flow; the golden-set gate is `backend/eval`, Task 11). Live run pending a Bedrock smoke test.
+**Serves:** C-13 to C-17, P-19. **Code:** `backend/ai/validator.py`.
 
 - **Multiple choice** with `measures.evidenceLevels`: deterministic map from choice to level. No model
   call (C-13).
@@ -1167,3 +1169,5 @@ session on 2026-11-04 and are **Proposed** until the team reviews them.
 | 2026-11-04 | (Safety PR) | Built the content-safety module (`backend/ai/safety.py`, C-25/C-26) with a `BedrockModelPort` skeleton (seam 3), and the K-12 `infra/GuardrailStack` (synth-verified, 0 nag findings). Marked 2.3 Built. `invoke`/validator still pending. |
 | 2026-11-04 | (routing policy PR) | Issue #24 q2: changed C-19.3 from "largest gap" to **stay-on-current** (stay on the current checkpoint while available, else first in JSON order). Updated routing prose + diagram. Fixed the `distracted-detail` persona (evidence capped at 1 so steer-it does not test out). The q1 None-routing bug is fixed separately in #26. |
 | 2026-11-04 | (invoke PR) | Built the `invoke` wrapper (C-27): `backend/ai/invoke.py` + `BedrockModelPort.invoke` + `create_bedrock_port` factory. Task→tier model routing (verify≠codegen, P-7.2), `maxTokens`+10s timeout, pinned guardrail, error-envelope on failure (never raises), decision log with no student text. Marked 2.4 Built. Validator (C-14) still pending; live smoke test pending a Bedrock run. |
+| 2026-11-04 | (validator PR) | Built the LLM-judge validator (C-14/C-16): `backend/ai/validator.py` — rubric prompt (trusted) + student text (untrusted/guardContent), one repair retry, fallback on invalid JSON / out-of-range level / confidence<0.6 / model failure; wired `BedrockModelPort.validate_project`. Marked 2.5 Built. Its evidence levels feed the golden-set gate (Task 11). C-13 direct-map and C-15 not-scored live in the submit flow (Track D); live smoke test pending. |
+| 2026-11-04 | (golden-set PR) | Built the validator eval harness (Task 11, C-17): `backend/eval/` — exact/within-1/QWK metrics (hand-verified), golden-set runner, launch gate (≥15 submissions AND QWK≥0.70), CLI. Placeholder sample set wires the gate; real human ratings (Track G) and the validator `modelLevel` snapshot (C-14) still pending. The validator (2.5) landed in the validator PR above; its levels feed this gate. |

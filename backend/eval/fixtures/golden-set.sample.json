@@ -1,0 +1,25 @@
+{
+  "description": "PLACEHOLDER golden set for wiring the eval gate. These are NOT real human ratings — they are synthetic pairs that exercise the metrics and the CI gate. Track G replaces this with >=15 genuinely human-rated project submissions (C-17), and the modelLevel column is a snapshot from the validator on a pinned model + prompt version. Until then the gate runs against this file so the harness and CI job are proven; swap the file, not the code.",
+  "gate": 0.70,
+  "status": "placeholder",
+  "ratings": [
+    { "submissionId": "s-001", "skillId": "build", "humanLevel": 2, "modelLevel": 2 },
+    { "submissionId": "s-002", "skillId": "build", "humanLevel": 1, "modelLevel": 1 },
+    { "submissionId": "s-003", "skillId": "build", "humanLevel": 0, "modelLevel": 0 },
+    { "submissionId": "s-004", "skillId": "build", "humanLevel": 2, "modelLevel": 1 },
+    { "submissionId": "s-005", "skillId": "build", "humanLevel": 1, "modelLevel": 1 },
+    { "submissionId": "s-006", "skillId": "language", "humanLevel": 3, "modelLevel": 3 },
+    { "submissionId": "s-007", "skillId": "language", "humanLevel": 2, "modelLevel": 2 },
+    { "submissionId": "s-008", "skillId": "language", "humanLevel": 1, "modelLevel": 2 },
+    { "submissionId": "s-009", "skillId": "language", "humanLevel": 3, "modelLevel": 3 },
+    { "submissionId": "s-010", "skillId": "language", "humanLevel": 0, "modelLevel": 0 },
+    { "submissionId": "s-011", "skillId": "debug", "humanLevel": 2, "modelLevel": 2 },
+    { "submissionId": "s-012", "skillId": "debug", "humanLevel": 3, "modelLevel": 2 },
+    { "submissionId": "s-013", "skillId": "debug", "humanLevel": 1, "modelLevel": 1 },
+    { "submissionId": "s-014", "skillId": "debug", "humanLevel": 0, "modelLevel": 0 },
+    { "submissionId": "s-015", "skillId": "debug", "humanLevel": 2, "modelLevel": 3 },
+    { "submissionId": "s-016", "skillId": "build", "humanLevel": 2, "modelLevel": 2 },
+    { "submissionId": "s-017", "skillId": "language", "humanLevel": 2, "modelLevel": 2 },
+    { "submissionId": "s-018", "skillId": "debug", "humanLevel": 3, "modelLevel": 3 }
+  ]
+}

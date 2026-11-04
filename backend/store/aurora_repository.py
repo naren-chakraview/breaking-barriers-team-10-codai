@@ -22,11 +22,13 @@ from typing import Any, Mapping, Optional
 
 from .repository import DEFAULT_ANSWER_TIMEOUT_SECONDS
 
-# The DDL column names as written (camelCase). Postgres folds them to lowercase in result
-# sets, so the adapter receives 'studentid' and maps it back to 'studentId' using this
-# set. Every student-state column must be listed here; a missing entry means the adapter
-# returns a lowercase key, which would fail the contract schema.
-_CAMEL = {n.lower(): n for n in [
+# The DDL writes columns in PascalCase (StudentId); Postgres folds them to lowercase in
+# result sets, so the adapter receives 'studentid'. The contract records use lower-camelCase
+# ('studentId', records.schema.json), so we map each lowercase column back to lower-camelCase
+# (first letter lowered), NOT the PascalCase DDL spelling. Every student-state column must be
+# listed here; a missing entry means the adapter returns a lowercase key, which fails the
+# contract schema.
+_CAMEL = {n.lower(): n[0].lower() + n[1:] for n in [
     "StudentId", "DisplayName", "Synthetic",
     "EvidenceId", "SkillId", "Level", "SourceStepId", "CreatedAt",
     "AttemptId", "StepId", "InputText", "ProjectSnapshotRef", "EvidenceLevel",
