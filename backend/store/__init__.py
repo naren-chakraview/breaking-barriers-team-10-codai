@@ -1,12 +1,13 @@
-"""Store seam (seam 4): the repository interface and its adapters (ADR-016).
+"""Store seam (seam 4): the repository interface and its adapters (ADR-016, ADR-017).
 
-`JsonRepository` is the demo-mode adapter (STORE_MODE=json). The Aurora adapter
-(STORE_MODE=aurora) is not built yet. It is unblocked: Task 4.6 aligned `database/schema.sql`
-with the contract records (ADR-017), and the deployed cluster holds the schema and master data.
-The row-to-record mapping is in backend/store/README.md.
+`JsonRepository` is the demo-mode adapter (STORE_MODE=json). `AuroraRepository` is the
+deployed adapter over the RDS Data API (STORE_MODE=aurora), using string ids and skill slugs
+per ADR-017. Use `create_repository` from `factory.py` to pick the right one from the env.
 """
 
 from .repository import Repository
 from .json_repository import JsonRepository
+from .aurora_repository import AuroraRepository
+from .factory import create_repository
 
-__all__ = ["Repository", "JsonRepository"]
+__all__ = ["Repository", "JsonRepository", "AuroraRepository", "create_repository"]
