@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { LESSON, FIRST_LEVEL_ID, getLevel } from './courseData.js'
-import { routeNextLevel, buildNudge } from './engine.js'
+import { validateSubmission, routeNextLevel, buildNudge, describeRoute, computeConfidence, applyEstablished } from './engine.js'
+import { writeProgress } from './progressStore.js'
 import { buildProject } from './tools.js'
 import { useServices } from '../services/ServicesContext.jsx'
 import { adaptTree, adaptSubmit } from '../services/treeAdapter.js'
@@ -9,6 +10,8 @@ import SourceBadge from '../services/SourceBadge.jsx'
 import LessonTopBar from './LessonTopBar.jsx'
 import LessonPanel from './LessonPanel.jsx'
 import RequirementsBox from './RequirementsBox.jsx'
+import TaskCard from './TaskCard.jsx'
+import LearnCard from './LearnCard.jsx'
 import CodeWorkspace from './CodeWorkspace.jsx'
 import Preview from './Preview.jsx'
 import Tutor from './Tutor.jsx'
@@ -28,6 +31,12 @@ export default function WeblabLesson({ user, onExit, onViewSkillTree }) {
   const services = useServices()
   const [levelId, setLevelId] = useState(FIRST_LEVEL_ID)
   const level = getLevel(levelId)
+  // Teach-first: objectives whose Learn card the student has acknowledged. The
+  // current objective's lesson shows (gating the task) until "Got it" is pressed.
+  const [lessonSeen, setLessonSeen] = useState({})
+  const learning = level && !lessonSeen[level.objectiveId]
+  const markLessonSeen = () => setLessonSeen((m) => ({ ...m, [level.objectiveId]: true }))
+  const reviewLesson = () => setLessonSeen((m) => ({ ...m, [level.objectiveId]: false }))
 
   // Content + progress sourced from the services layer (seam 1). The editor
   // scaffolding (starter code, inline hints, build log) stays UI-local because
@@ -92,6 +101,20 @@ export default function WeblabLesson({ user, onExit, onViewSkillTree }) {
   const [mastery, setMastery] = useState(null)
   const [hintsUsed, setHintsUsed] = useState(0)
   const [history, setHistory] = useState([FIRST_LEVEL_ID])
+  // Per-step performance: hints and attempts on the CURRENT level, a running
+  // best mastery, and a full log of every step for the progress report.
+  const [levelHints, setLevelHints] = useState(0)
+  const [levelAttempts, setLevelAttempts] = useState(0)
+  const [bestMastery, setBestMastery] = useState(0)
+  const [stepLog, setStepLog] = useState([])
+  const levelStartRef = useRef(Date.now())
+  // Diagnostic placement + confidence probing (diagnostic-placement feature).
+  const [confidence, setConfidence] = useState({})   // objectiveId -> high|borderline|low
+  const [probeCount, setProbeCount] = useState({})    // objectiveId -> consecutive probes
+  const [established, setEstablished] = useState({})  // objectiveId -> highest tier reached
+  const [placements, setPlacements] = useState({})    // objectiveId -> { tier, reason }
+  const [shownIds, setShownIds] = useState([FIRST_LEVEL_ID])
+  const probeSeedRef = useRef(0)
   const [phase, setPhase] = useState('working') // working | validating | routing | complete
   const [banner, setBanner] = useState(null)
   const [nudge, setNudge] = useState(null)
@@ -114,6 +137,9 @@ export default function WeblabLesson({ user, onExit, onViewSkillTree }) {
     const t = setInterval(() => setSeconds((s) => s + 1), 1000)
     return () => clearInterval(t)
   }, [])
+
+  // Persist that the lesson has been started so the dashboard reflects real state.
+  useEffect(() => { writeProgress(user?.username, { started: true }) }, [user])
 
   const bannerTimer = useRef(null)
   const flash = useCallback((msg, ms = 4000) => {
@@ -152,6 +178,8 @@ export default function WeblabLesson({ user, onExit, onViewSkillTree }) {
   function loadLevel(next, reason) {
     setLevelId(next.id)
     setHistory((h) => [...h, next.id])
+    setShownIds((ids) => [...ids, next.id])
+    setEstablished((e) => ({ ...e, [next.objectiveId]: applyEstablished(next.tier, e[next.objectiveId]) }))
     // Fresh starter if the level ships one; otherwise carry the code forward.
     const startHtml = next.starter ? (next.starter.html ?? '') : html
     const startCss = next.starter ? (next.starter.css ?? '') : css
@@ -161,15 +189,13 @@ export default function WeblabLesson({ user, onExit, onViewSkillTree }) {
     }
     setLevelStart({ html: startHtml, css: startCss })
     setUndoStack([])
+    setLevelHints(0)
+    setLevelAttempts(0)
+    levelStartRef.current = Date.now()
     setPhase('working')
     setNudge(null)
-    const labels = {
-      support: "Let's try this a different way — here's some extra scaffolding.",
-      stretch: "Nice work! Here's a tougher take on the next skill.",
-      advance: 'Great — on to the next skill.',
-      retry: 'Give it another go. Check the hint if you need it.',
-    }
-    if (labels[reason]) flash(labels[reason])
+    const msg = describeRoute(reason)
+    if (msg) flash(msg, 5000)
   }
 
   // Run / Build: check both files, write a build log, refresh the preview on
@@ -192,43 +218,64 @@ export default function WeblabLesson({ user, onExit, onViewSkillTree }) {
     setOutOfDate(false)
     setPhase('validating')
 
-    // Send the submission through the services layer (seam 1) instead of the
-    // local engine. Project steps submit as kind 'prompt' with the current code.
-    let res
-    try {
-      const raw = await services.submitStep({
-        stepId: stepRef.stepId,
-        courseId: COURSE_ID,
-        checkpointId: stepRef.checkpointId,
-        kind: 'prompt',
-        text: `Submission for ${level.title}`,
-        project: { html, css, js: '' },
-      })
-      res = adaptSubmit(raw)
-    } catch (err) {
-      setPhase('working')
-      flash(err?.message || 'We could not check your work just now — your code is safe. Try again.', 6000)
-      return
-    }
+    const attempts = levelAttempts + 1
+    setLevelAttempts(attempts)
 
-    // masteryDisplay is display-only (C-11): show it verbatim, never decreasing.
-    if (typeof res.mastery === 'number') setMastery(res.mastery)
-    if (res.completed) setCompleted((c) => ({ ...c, [level.objectiveId]: true }))
-    setServiceStatus({ source: res.source, notice: res.notice, fallbackActive: res.outcome === 'fallback' })
+    // Grade against the local engine so content, grading, hints and routing all
+    // share one model (no split between the UI content and a separate service).
+    const signal = await validateSubmission(level, { html, css })
+    signal.hintsOnLevel = levelHints
+    signal.attempts = attempts
 
-    // A 'blocked' submission did not score: keep the student on this step.
-    if (res.outcome === 'blocked') {
-      setPhase('working')
-      return
-    }
-    // For 'fallback' we still continue along the standard path (next target).
-    if (res.next) setStepRef({ checkpointId: res.next.checkpointId, stepId: res.next.stepId })
+    setMastery(signal.score)
+    setBestMastery((m) => Math.max(m, signal.score)) // mastery never shown decreasing
+    if (signal.passing) setCompleted((c) => ({ ...c, [level.objectiveId]: true }))
+    if (signal.passing) setEstablished((e) => ({ ...e, [level.objectiveId]: applyEstablished(level.tier, e[level.objectiveId]) }))
+
+    // Persist real progress so the dashboard reflects what actually happened.
+    writeProgress(user?.username, {
+      bestMastery: Math.max(bestMastery, signal.score),
+      completed: signal.passing ? { [level.objectiveId]: true } : {},
+    })
+
+    // Confidence in this objective's level drives whether we probe to confirm.
+    const conf = computeConfidence(signal, level.tier)
+    setConfidence((c) => ({ ...c, [level.objectiveId]: conf }))
 
     setPhase('routing')
-    // The editor scaffolding is UI-local, so the local router still chooses which
-    // starter/hint level to show next; the service response drives grading above.
-    const signal = { objectiveId: level.objectiveId, passing: res.completed || typeof res.mastery === 'number', score: res.mastery ?? 0 }
-    const result = await routeNextLevel(level, signal, history)
+    probeSeedRef.current += 1
+    const ctx = {
+      confidence: conf,
+      probeCount: probeCount[level.objectiveId] || 0,
+      established,
+      shownIds,
+      seed: probeSeedRef.current,
+    }
+    const result = await routeNextLevel(level, signal, history, ctx)
+
+    // Track consecutive probes per objective so probing can't loop (cap in engine).
+    if (result.reason === 'probe') {
+      setProbeCount((pc) => ({ ...pc, [level.objectiveId]: (pc[level.objectiveId] || 0) + 1 }))
+    } else {
+      setProbeCount((pc) => ({ ...pc, [level.objectiveId]: 0 }))
+    }
+
+    // Record this step for the progress report: what skill, how hard, how it went.
+    const secondsOnStep = Math.max(1, Math.round((Date.now() - levelStartRef.current) / 1000))
+    setStepLog((log) => [...log, {
+      id: `${level.id}-${log.length}`,
+      levelId: level.id,
+      objectiveId: level.objectiveId,
+      title: level.title,
+      tier: level.tier,
+      score: signal.score,
+      passing: signal.passing,
+      hints: levelHints,
+      attempts,
+      seconds: secondsOnStep,
+      routeReason: result.reason,
+    }])
+
     if (result.reason === 'complete') {
       setPhase('complete')
       setBanner(null)
@@ -378,7 +425,7 @@ export default function WeblabLesson({ user, onExit, onViewSkillTree }) {
           <p className="subtitle">You completed all {totalObjectives} objectives in {LESSON.title}.</p>
           <div className="wl-complete-stats">
             <div><strong>{completedCount}/{totalObjectives}</strong><span>objectives</span></div>
-            <div><strong>{mastery ?? 0}</strong><span>mastery</span></div>
+            <div><strong>{bestMastery}</strong><span>mastery</span></div>
             <div><strong>{hintsUsed}</strong><span>hints used</span></div>
             <div><strong>{clock}</strong><span>time on task</span></div>
           </div>
@@ -428,8 +475,18 @@ export default function WeblabLesson({ user, onExit, onViewSkillTree }) {
         </div>
 
         <div className="wf-col wf-col--center">
-          <RequirementsBox onGenerate={generate} onAsk={askFromRequirements} />
-          <CodeWorkspace
+          {learning ? (
+            <LearnCard objectiveId={level.objectiveId} onStart={markLessonSeen} />
+          ) : (
+          <>
+            <TaskCard
+              level={level}
+              objectives={LESSON.objectives}
+              completed={completed}
+              onReviewLesson={reviewLesson}
+            />
+            <RequirementsBox onGenerate={generate} onAsk={askFromRequirements} />
+            <CodeWorkspace
             tab={tab}
             onTab={setTab}
             activeFile={activeFile}
@@ -455,6 +512,8 @@ export default function WeblabLesson({ user, onExit, onViewSkillTree }) {
             deployState={deployState}
             onShowLog={() => setTab('buildLog')}
           />
+          </>
+          )}
         </div>
 
         <div className="wf-col wf-col--right">
@@ -473,7 +532,7 @@ export default function WeblabLesson({ user, onExit, onViewSkillTree }) {
             code={{ html, css }}
             nudge={nudge}
             onDismissNudge={() => setNudge(null)}
-            onHintRevealed={() => setHintsUsed((n) => n + 1)}
+            onHintRevealed={() => { setHintsUsed((n) => n + 1); setLevelHints((n) => n + 1) }}
             onActiveStepTarget={setActiveStepTarget}
             incoming={incoming}
             onAsk={askTutorService}
@@ -487,9 +546,12 @@ export default function WeblabLesson({ user, onExit, onViewSkillTree }) {
         lesson={LESSON}
         completed={completed}
         mastery={mastery}
+        bestMastery={bestMastery}
         hintsUsed={hintsUsed}
         timeLabel={clock}
         levelsVisited={history.length}
+        stepLog={stepLog}
+        placements={placements}
       />
     </div>
   )

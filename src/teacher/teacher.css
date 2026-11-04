@@ -187,3 +187,37 @@
 }
 
 .tv-btn--wide { min-width: 150px; padding: 9px 14px; }
+
+/* ---------- Standards picker (CSTA High School Specialty) ---------- */
+.sp { width: min(720px, 100%); max-height: 90vh; display: flex; flex-direction: column; background: #fff; border-radius: 14px; box-shadow: 0 24px 60px rgba(0,0,0,0.35); overflow: hidden; }
+.sp-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; padding: 18px 20px; border-bottom: 1px solid var(--tv-line); }
+.sp-eyebrow { margin: 0; font-size: 11px; font-weight: 800; letter-spacing: 0.06em; text-transform: uppercase; color: var(--tv-blue); }
+.sp-title { margin: 3px 0 0; font-size: 19px; font-weight: 800; color: var(--tv-ink); }
+.sp-sub { margin: 4px 0 0; font-size: 13px; color: var(--tv-muted); }
+.sp-close { border: 1px solid var(--tv-line); background: #fff; border-radius: 8px; width: 32px; height: 32px; font-size: 14px; cursor: pointer; color: var(--tv-ink); }
+.sp-close:hover { background: var(--tv-soft); }
+.sp-body { overflow-y: auto; padding: 8px 20px; }
+.sp-area { padding: 14px 0; border-bottom: 1px solid var(--tv-line); }
+.sp-area:last-child { border-bottom: none; }
+.sp-area-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 8px; }
+.sp-area-toggle { display: inline-flex; align-items: center; gap: 10px; cursor: pointer; }
+.sp-area-label { font-size: 15px; font-weight: 800; color: var(--tv-ink); }
+.sp-area-count { font-size: 12px; font-weight: 700; color: var(--tv-muted); }
+.sp-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 2px; }
+.sp-item { display: flex; align-items: flex-start; gap: 10px; padding: 8px 10px; border-radius: 8px; cursor: pointer; }
+.sp-item:hover { background: var(--tv-soft); }
+.sp-item input { margin-top: 3px; flex: none; }
+.sp-item-text { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.sp-code { font: 700 11px ui-monospace, Consolas, monospace; color: var(--tv-blue); letter-spacing: 0.02em; }
+.sp-statement { font-size: 13px; line-height: 1.45; color: var(--tv-ink); }
+.sp-foot { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 14px 20px; border-top: 1px solid var(--tv-line); background: var(--tv-soft); }
+.sp-foot-count { font-size: 13px; font-weight: 700; color: var(--tv-ink); }
+.sp-foot-actions { display: flex; gap: 8px; }
+.sp :focus-visible { outline: 3px solid var(--tv-blue); outline-offset: 2px; border-radius: 6px; }
+
+.tv-detail-head-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+.tv-assigned { margin: 10px 0 0; }
+.tv-assigned-label { margin: 0 0 4px; font-size: 11px; font-weight: 800; letter-spacing: 0.05em; text-transform: uppercase; color: var(--tv-muted); }
+.tv-assigned-list { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 6px; }
+.tv-assigned-chip { font-size: 11px; font-weight: 700; padding: 3px 9px; border-radius: 999px; background: #eef2ff; color: #3730a3; }
+.tv-assigned-none { font-size: 12px; color: var(--tv-muted); font-style: italic; }

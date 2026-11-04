@@ -5,6 +5,7 @@ import { Icon, HeroArt } from './weblab/courseArt.jsx'
 import { BrandMark, BrandLogo } from './Brand.jsx'
 import { useServices } from './services/ServicesContext.jsx'
 import { adaptTree } from './services/treeAdapter.js'
+import { progressSummary } from './weblab/progressStore.js'
 import SourceBadge from './services/SourceBadge.jsx'
 
 const COURSE_ID = 'hoai2026-adaptive'
@@ -14,14 +15,11 @@ const COURSE_ID = 'hoai2026-adaptive'
 // path. Same visual language as the View course page. Progress is the shared
 // mock value (nothing is stored yet), so this page never claims it will resume.
 
-const COURSES = [
-  {
-    id: 'hour-of-ai-2026',
-    title: 'Hour of AI 2026 - Adaptive Weblab',
-    currentUnit: 'Unit 1 - Hour of AI 2026 - Adaptive Weblab',
-    progress: 15,
-  },
-]
+const COURSE = {
+  id: 'hour-of-ai-2026',
+  title: 'Hour of AI 2026 - Adaptive Weblab',
+  currentUnit: 'Unit 1 - Hour of AI 2026 - Adaptive Weblab',
+}
 
 // A lesson the student has not opened yet. It is featured in the hero so the
 // top card is always "start something new", while the course card below is
@@ -33,11 +31,10 @@ const NEW_LESSON = {
   minutes: 20,
   blurb: 'Learn how adding the right details makes an AI answer fit what you actually need.',
 }
-// Rule: a student has at most ONE lesson in progress. Starting a different
-// lesson replaces it (they start over), so Start lesson asks first.
-const inProgressCourse = COURSES.find((c) => c.progress > 0 && c.progress < 100) || null
+// Rule: a student has at most ONE lesson in progress. "In progress" is derived
+// from the student's REAL persisted progress (see progressSummary), computed in
+// the component, not a hard-coded constant.
 const STATE_LABEL = { done: 'Mastered', progress: 'In progress', todo: 'Not started' }
-const stateFor = (i, done) => (i < done ? 'done' : i === done ? 'progress' : 'todo')
 
 // "ms.r@school.edu" -> "ms.r"; empty -> "there" in the greeting, "ST" on the avatar
 const localPart = (username = '') => username.split('@')[0].trim()
@@ -111,7 +108,7 @@ export default function StudentDashboard({ user, onLogout, onContinueLesson, onV
   const services = useServices()
   const startLesson = onStartLesson || onContinueLesson
   const [confirming, setConfirming] = useState(false)
-  const requestStart = () => (inProgressCourse ? setConfirming(true) : startLesson())
+  const requestStart = () => (progressSummary(user?.username).inProgress ? setConfirming(true) : startLesson())
   const viewNewCourse = onViewNewCourse || onViewCourse
   const name = displayName(user?.username)
 
@@ -130,12 +127,13 @@ export default function StudentDashboard({ user, onLogout, onContinueLesson, onV
     return () => { alive = false }
   }, [services])
 
+  // Real progress for THIS user, persisted by the lesson (single source of truth).
   const total = LESSON.objectives.length
-  const course = COURSES[0]
-  const pct = Math.max(0, Math.min(100, adapted ? adapted.progressPercent : course.progress))
-  const exact = (pct / 100) * total
-  const done = Math.min(total, Math.floor(exact))
-  const finished = done >= total
+  const summary = progressSummary(user?.username)
+  const pct = summary.pct
+  const done = summary.done
+  const finished = summary.finished
+  const inProgress = summary.inProgress
 
   return (
     <div className="sd">
@@ -166,7 +164,7 @@ export default function StudentDashboard({ user, onLogout, onContinueLesson, onV
               <p className="sd-pill"><Icon name="star" size={13} />New lesson · {NEW_LESSON.unit}</p>
               <h1 id="sd-hi" className="sd-hi">Hi, {name}</h1>
               <p className="sd-lede">
-                Ready for something new? Up next: {NEW_LESSON.title}, about {NEW_LESSON.minutes} minutes. {NEW_LESSON.blurb}{inProgressCourse ? ' Starting it replaces the lesson you have in progress.' : ''}
+                Ready for something new? Up next: {NEW_LESSON.title}, about {NEW_LESSON.minutes} minutes. {NEW_LESSON.blurb}{inProgress ? ' Starting it replaces the lesson you have in progress.' : ''}
               </p>
               <div className="sd-actions">
                 <button type="button" className="sd-cta" onClick={requestStart}>
@@ -184,24 +182,24 @@ export default function StudentDashboard({ user, onLogout, onContinueLesson, onV
 
           {/* ---------------- At a glance ---------------- */}
           {/* ---------------- My courses ---------------- */}
-          {(inProgressCourse || COURSES.some((c) => c.progress >= 100)) && (
+          {(inProgress || finished) && (
           <section aria-labelledby="sd-courses">
             <header className="sd-sec-head">
               <p className="sd-kicker">MY COURSES</p>
               <h2 id="sd-courses" className="sd-sec-title">Your lesson in progress</h2>
             </header>
 
-            {COURSES.filter((c) => c === inProgressCourse || c.progress >= 100).map((c) => (
-              <article key={c.id} className="sd-course" aria-labelledby={`sd-course-${c.id}`}>
+            {(
+              <article key={COURSE.id} className="sd-course" aria-labelledby={`sd-course-${COURSE.id}`}>
                 <div className="sd-course-art" aria-hidden="true">
                   <span className="sd-unit">Unit 1</span>
                   <HeroArt />
                 </div>
                 <div className="sd-course-body">
-                  <h3 id={`sd-course-${c.id}`} className="sd-course-title">{c.title}</h3>
-                  <p className="sd-course-sub">You are currently working on {c.currentUnit}.</p>
+                  <h3 id={`sd-course-${COURSE.id}`} className="sd-course-title">{COURSE.title}</h3>
+                  <p className="sd-course-sub">You are currently working on {COURSE.currentUnit}.</p>
 
-                  <ul className="sd-stats" aria-label={`${c.title}: your progress at a glance`}>
+                  <ul className="sd-stats" aria-label={`${COURSE.title}: your progress at a glance`}>
                     <li className="sd-stat">
                       <div className="sd-ring" role="progressbar" aria-valuemin={0} aria-valuemax={100} aria-valuenow={pct} aria-label="Course progress">
                         <Ring pct={pct} />
@@ -228,7 +226,10 @@ export default function StudentDashboard({ user, onLogout, onContinueLesson, onV
                   </ul>
                   <ol className="sd-path" aria-label="Objectives in this course">
                     {LESSON.objectives.map((o, i) => {
-                      const state = stateFor(i, done)
+                      const isDone = !!summary.completed[o.id]
+                      // the first not-yet-done objective is the current one
+                      const firstTodoIdx = LESSON.objectives.findIndex((x) => !summary.completed[x.id])
+                      const state = isDone ? 'done' : (i === firstTodoIdx && inProgress ? 'progress' : 'todo')
                       return (
                         <li key={o.id} className={`sd-step sd-step--${state}`}>
                           <span className="sd-node" aria-hidden="true">
@@ -251,14 +252,14 @@ export default function StudentDashboard({ user, onLogout, onContinueLesson, onV
                   </div>
                 </div>
               </article>
-            ))}
+            )}
           </section>
           )}
         </div>
       </main>
-      {confirming && inProgressCourse && (
+      {confirming && (
         <ConfirmStart
-          current={inProgressCourse}
+          current={{ title: COURSE.title, progress: pct }}
           next={NEW_LESSON.title}
           onCancel={() => setConfirming(false)}
           onConfirm={() => { setConfirming(false); startLesson() }}

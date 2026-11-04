@@ -220,3 +220,98 @@
   .wfl .wf-lesson > .wf-btn { width: calc(100% - 28px); }
   .wfl .wf-outcomes { grid-template-columns: repeat(3, minmax(0, 1fr)); }
 }
+
+/* ---------- Live preview: click-to-expand + fullscreen overlay ---------- */
+.wfl .wf-preview-head-actions { display: flex; align-items: center; gap: 8px; }
+.wfl .wf-expand-btn { white-space: nowrap; }
+/* The rendered frame is wrapped in a button so the whole preview is clickable. */
+.wfl .wf-browser-openbtn { all: unset; display: block; position: relative; width: 100%; height: 100%; cursor: zoom-in; }
+.wfl .wf-browser-openbtn .wf-browser-frame { pointer-events: none; } /* clicks go to the button, not the iframe */
+.wfl .wf-browser-openhint {
+  position: absolute; right: 8px; bottom: 8px; padding: 4px 10px; border-radius: 999px;
+  background: rgba(15, 23, 42, 0.78); color: #fff; font-size: 11px; font-weight: 700;
+  opacity: 0; transform: translateY(4px); transition: opacity 0.15s ease, transform 0.15s ease; pointer-events: none;
+}
+.wfl .wf-browser-openbtn:hover .wf-browser-openhint,
+.wfl .wf-browser-openbtn:focus-visible .wf-browser-openhint { opacity: 1; transform: translateY(0); }
+.wfl .wf-browser-openbtn:focus-visible { outline: 3px solid #1d4ed8; outline-offset: -3px; }
+
+.wfl .wf-preview-overlay {
+  position: fixed; inset: 0; z-index: 70; display: grid; place-items: center; padding: 24px;
+  background: rgba(10, 14, 28, 0.66); backdrop-filter: blur(3px);
+}
+.wfl .wf-preview-modal {
+  width: min(1200px, 96vw); height: min(860px, 92vh); display: flex; flex-direction: column;
+  background: #fff; border-radius: 14px; overflow: hidden; box-shadow: 0 32px 70px -20px rgba(0, 0, 0, 0.7);
+}
+.wfl .wf-preview-modal-bar {
+  display: flex; align-items: center; gap: 12px; padding: 10px 14px;
+  background: linear-gradient(180deg, #f6f7f9, #eceff3); border-bottom: 1px solid #d9dee6;
+}
+.wfl .wf-preview-modal-bar .wf-browser-url { flex: 1; }
+.wfl .wf-preview-modal-body { flex: 1; min-height: 0; background: #fff; }
+.wfl .wf-preview-modal-body .wf-browser-frame { width: 100%; height: 100%; border: none; display: block; }
+.wfl .wf-preview-modal-body.wf-browser-body--phone { display: flex; justify-content: center; padding: 20px 0; background: radial-gradient(circle at 50% 0%, #e3e9f5, #f1f4fa); }
+.wfl .wf-preview-modal-body.wf-browser-body--phone .wf-browser-frame { width: 390px; max-width: 92vw; border: 10px solid #1f2937; border-radius: 30px; box-shadow: 0 18px 32px -14px rgba(15, 23, 42, 0.6); }
+
+@media (prefers-reduced-motion: reduce) {
+  .wfl .wf-browser-openhint { transition: none; }
+}
+
+/* ---------- "Your task" card (prominent lesson instructions) ---------- */
+.wfl .wf-task {
+  position: relative; border-radius: 16px; padding: 18px 20px;
+  background: linear-gradient(135deg, #eff4ff 0%, #f5f0ff 100%);
+  border: 1px solid #c7d2fe; border-left: 6px solid #4f46e5;
+  box-shadow: 0 10px 26px -18px rgba(79, 70, 229, 0.55);
+}
+.wfl .wf-task-head { margin-bottom: 8px; }
+.wfl .wf-task-eyebrow { display: inline-flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.wfl .wf-task-step { font-size: 11px; font-weight: 800; letter-spacing: 0.06em; text-transform: uppercase; color: #4338ca; background: #e0e7ff; padding: 3px 10px; border-radius: 999px; }
+.wfl .wf-task-obj { font-size: 12px; font-weight: 700; color: #374151; }
+.wfl .wf-task-tier { font-size: 11px; font-weight: 800; padding: 3px 10px; border-radius: 999px; }
+.wfl .wf-task-tier--support { background: #fef3c7; color: #92400e; }
+.wfl .wf-task-tier--core { background: #dbeafe; color: #1e40af; }
+.wfl .wf-task-tier--stretch { background: #dcfce7; color: #166534; }
+.wfl .wf-task-title { margin: 0 0 8px; font-size: 19px; font-weight: 800; line-height: 1.3; color: #111827; display: flex; align-items: baseline; gap: 8px; }
+.wfl .wf-task-icon { font-size: 18px; }
+.wfl .wf-task-body { margin: 0; font-size: 15px; line-height: 1.6; color: #1f2937; }
+.wfl .wf-task-example { margin: 12px 0 0; border-radius: 10px; overflow: hidden; border: 1px solid #d8def0; background: #0f172a; }
+.wfl .wf-task-example-label { display: block; padding: 5px 12px; font-size: 11px; font-weight: 800; letter-spacing: 0.05em; text-transform: uppercase; color: #cbd5e1; background: #1e293b; }
+.wfl .wf-task-example pre { margin: 0; padding: 10px 12px; font: 13px/1.6 ui-monospace, "SF Mono", Consolas, monospace; color: #e5e7eb; white-space: pre-wrap; word-break: break-word; }
+.wfl .wf-task-hintline { margin: 12px 0 0; font-size: 13px; line-height: 1.5; color: #4b5563; }
+.wfl .wf-task-hintline strong { color: #4338ca; font-weight: 700; white-space: nowrap; }
+
+/* The left-panel "What you'll learn now" is now a secondary reference; dim its
+   heading slightly so the center task card reads as the primary instruction. */
+.wfl .wf-col--left .wf-learn { opacity: 0.95; }
+
+@media (prefers-reduced-motion: reduce) { .wfl .wf-task { box-shadow: none; } }
+
+/* ---------- "Learn this first" teach-first card ---------- */
+.wfl .wf-learn2 {
+  border-radius: 16px; padding: 20px 22px;
+  background: #ffffff; border: 1px solid #dbe7ff; border-top: 5px solid #2563eb;
+  box-shadow: 0 14px 30px -20px rgba(37, 99, 235, 0.5);
+}
+.wfl .wf-learn2-eyebrow { display: inline-flex; align-items: center; gap: 6px; font-size: 11px; font-weight: 800; letter-spacing: 0.06em; text-transform: uppercase; color: #1d4ed8; background: #e0e7ff; padding: 4px 11px; border-radius: 999px; }
+.wfl .wf-learn2-title { margin: 10px 0 0; font-size: 20px; font-weight: 800; color: #111827; }
+.wfl .wf-learn2-intro { margin: 10px 0 0; font-size: 15px; line-height: 1.6; color: #1f2937; }
+.wfl .wf-learn2-points { margin: 14px 0 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 10px; }
+.wfl .wf-learn2-points li { display: flex; gap: 10px; font-size: 14.5px; line-height: 1.55; color: #1f2937; }
+.wfl .wf-learn2-num { flex: none; width: 22px; height: 22px; border-radius: 50%; background: #2563eb; color: #fff; font-size: 12px; font-weight: 800; display: grid; place-items: center; margin-top: 1px; }
+.wfl .wf-learn2-example { margin: 16px 0 0; border-radius: 10px; overflow: hidden; border: 1px solid #1e293b; }
+.wfl .wf-learn2-example-label { display: block; padding: 6px 12px; font-size: 11px; font-weight: 800; letter-spacing: 0.05em; text-transform: uppercase; color: #cbd5e1; background: #1e293b; }
+.wfl .wf-learn2-example pre { margin: 0; padding: 12px; font: 13px/1.6 ui-monospace, "SF Mono", Consolas, monospace; color: #e5e7eb; background: #0f172a; white-space: pre-wrap; word-break: break-word; }
+.wfl .wf-learn2-example-cap { margin: 0; padding: 10px 12px; font-size: 13px; line-height: 1.5; color: #374151; background: #f8fafc; border-top: 1px solid #e5e7eb; }
+.wfl .wf-learn2-terms { margin: 16px 0 0; }
+.wfl .wf-learn2-terms-label { margin: 0 0 6px; font-size: 12px; font-weight: 800; color: #374151; }
+.wfl .wf-learn2-terms dl { margin: 0; display: grid; grid-template-columns: max-content 1fr; gap: 6px 14px; }
+.wfl .wf-learn2-term { display: contents; }
+.wfl .wf-learn2-term dt { font-weight: 800; color: #1d4ed8; font-size: 13px; }
+.wfl .wf-learn2-term dd { margin: 0; font-size: 13px; line-height: 1.5; color: #374151; }
+.wfl .wf-learn2-actions { margin: 20px 0 0; }
+.wfl .wf-learn2-actions .wf-btn { font-size: 15px; padding: 11px 20px; }
+
+.wfl .wf-task-review { margin: 12px 0 0; border: none; background: transparent; color: #1d4ed8; font: inherit; font-size: 13px; font-weight: 700; cursor: pointer; padding: 0; }
+.wfl .wf-task-review:hover { text-decoration: underline; }

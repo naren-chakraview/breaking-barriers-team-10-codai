@@ -22,6 +22,15 @@ export const LESSON = {
     {
       id: 'obj-structure', code: 'HTML.1', title: 'Structure a page with HTML', minutes: 10,
       canDo: 'build a page with a heading and a paragraph using HTML tags.',
+      lesson: {
+        intro: "A web page is built from HTML tags \u2014 labels in angle brackets that tell the browser what each piece of content is. Before you write any, here is how they work.",
+        points: [
+          "A tag comes in a pair: an opening tag like <h1> and a closing tag like </h1>. Whatever you type between them is the content.",
+          "<h1> makes a big heading (usually the page title). <p> makes a paragraph of normal text.",
+          "The slash is what makes a tag a closing tag: <p> opens, </p> closes. Forgetting the closing tag is the most common beginner mistake.",
+        ],
+        example: { code: "<h1>Alex</h1>\n<p>I like soccer.</p>", caption: "A heading with a name, then a paragraph. On the page you'd see 'Alex' large and bold, with 'I like soccer.' below it." },
+      },
       terms: [
         { term: 'tag', meaning: 'A label in angle brackets, like <h1>, that tells the browser what something is.' },
         { term: 'heading', meaning: 'The big title of a page, written with <h1>.' },
@@ -32,6 +41,15 @@ export const LESSON = {
     {
       id: 'obj-style', code: 'CSS.1', title: 'Style a page with CSS', minutes: 10,
       canDo: 'change the colors on my page with CSS rules.',
+      lesson: {
+        intro: "HTML sets up WHAT is on the page; CSS controls how it LOOKS. You write style rules that target parts of the page and change things like color.",
+        points: [
+          "A CSS rule looks like: selector { property: value; }. The selector picks what to style (like body or h1).",
+          "Inside the curly braces { } you list changes, one per line, each ending in a semicolon ;",
+          "background sets the color behind an element; color sets its text color. Values can be names (navy) or hex codes (#4f46e5).",
+        ],
+        example: { code: "body { background: #f0f9ff; }\nh1 { color: navy; }", caption: "The first rule colors the whole page a light blue; the second makes every <h1> heading navy." },
+      },
       terms: [
         { term: 'CSS rule', meaning: 'A style instruction: a selector, then settings inside { } curly braces.' },
         { term: 'selector', meaning: 'Says what to style, like body or h1.' },
@@ -42,6 +60,15 @@ export const LESSON = {
     {
       id: 'obj-layout', code: 'CSS.2', title: 'Lay out content so it reads well', minutes: 10,
       canDo: 'center my content and keep lines short enough to read comfortably.',
+      lesson: {
+        intro: "Layout is about making a page comfortable to read. Long lines of text that stretch edge-to-edge are hard to follow, so you cap the width and center the content.",
+        points: [
+          "max-width sets the widest an element may grow \u2014 e.g. max-width: 600px; keeps lines a readable length.",
+          "margin is the space OUTSIDE an element. margin: 0 auto; centers a width-capped block by splitting the leftover space evenly on both sides.",
+          "padding is the space INSIDE an element, between its edge and its content \u2014 it keeps text from touching the edges.",
+        ],
+        example: { code: "body {\n  max-width: 600px;\n  margin: 0 auto;\n  padding: 32px;\n}", caption: "Caps the body at 600px, centers it, and adds breathing room \u2014 turning a full-width wall of text into a tidy centered column." },
+      },
       terms: [
         { term: 'max-width', meaning: 'The widest an element is allowed to be.' },
         { term: 'margin', meaning: 'Space outside an element. margin: 0 auto; centers it.' },
@@ -52,6 +79,15 @@ export const LESSON = {
     {
       id: 'obj-polish', code: 'WEB.1', title: 'Polish and make it your own', minutes: 15,
       canDo: 'add my own element, like a list or a quote, and make it match my page.',
+      lesson: {
+        intro: "Now you make the page yours by adding your own content. A few more HTML elements let you add lists and quotes, and a little CSS makes them match.",
+        points: [
+          "A bulleted list uses <ul> (unordered list) wrapping one <li> (list item) per bullet.",
+          "A <blockquote> sets a quote apart from the text around it.",
+          "You can style any new element with a CSS rule, the same way you colored your heading earlier.",
+        ],
+        example: { code: "<ul>\n  <li>Reading</li>\n  <li>Soccer</li>\n</ul>\n<blockquote>Stay curious.</blockquote>", caption: "A two-item bulleted list, then a set-apart quote. Add a CSS rule like ul { color: #4f46e5; } to style it." },
+      },
       terms: [
         { term: 'element', meaning: 'Any building block of a page, like a heading, list or quote.' },
         { term: 'list', meaning: 'A set of bullets made with <ul>.' },
@@ -237,10 +273,194 @@ export const LEVELS = [
       ],
     },
   },
+  // --- structure (stretch) ---
+  {
+    id: 'lvl-structure-stretch',
+    objectiveId: 'obj-structure',
+    tier: 'stretch',
+    title: 'Structure with sections',
+    instructions:
+      "You've got headings and paragraphs — go further. Group your content into a <header> with your <h1>, then a <section> with a sub-heading <h2> and a paragraph. Semantic tags make a page easier to read and style.",
+    starter: null,
+    rubric: { html: ['<h1', '<h2', '<p'] },
+    targets: {
+      code: { file: 'index.html', match: '<h1', line: 1, comment: { title: 'Wrap it in a header', body: 'Put your <h1> inside a <header>, then add a <section> below with an <h2> and a <p>.', code: '<header>\n  <h1>Alex</h1>\n</header>\n<section>\n  <h2>About me</h2>\n  <p>I like soccer.</p>\n</section>' } },
+      web: { selector: 'body', comment: { title: 'Same look, better structure', body: 'Sections do not change the look yet, but they make styling and layout far easier next.' } },
+    },
+    hint: {
+      summary: 'What are semantic sections?',
+      steps: [
+        'Semantic tags describe what a chunk of the page IS. A <header> holds the top of the page; a <section> groups related content. They behave like a <div> but read better.',
+        'Wrap your existing <h1> in a <header>:  <header><h1>Alex</h1></header>',
+        'Below it, add a <section> with its own sub-heading and paragraph:  <section><h2>About me</h2><p>I like soccer.</p></section>  Then press Run.',
+      ],
+      stepTargets: [
+        { code: { file: 'index.html', match: '<h1', line: 1, comment: { title: 'Step 1 — the idea', body: 'A <header> groups the top of the page; a <section> groups related content.' } } },
+        { code: { file: 'index.html', match: '<h1', line: 1, comment: { title: 'Step 2 — add a header', body: 'Wrap your heading in a <header>.', code: '<header>\n  <h1>Alex</h1>\n</header>' } } },
+        { code: { file: 'index.html', match: '<p', line: 2, comment: { title: 'Step 3 — add a section', body: 'Group a sub-heading and paragraph in a <section>.', code: '<section>\n  <h2>About me</h2>\n  <p>I like soccer.</p>\n</section>' } }, web: { selector: 'body', comment: { title: 'Run it', body: 'Structure changes, look stays — that is the point.' } } },
+      ],
+    },
+  },
+  // --- style (support) ---
+  {
+    id: 'lvl-style-support',
+    objectiveId: 'obj-style',
+    tier: 'support',
+    title: 'Fill in the blanks: colors',
+    instructions:
+      "Let's do colors one line at a time. The CSS has two TODO lines — replace each TODO with a color, then press Run.",
+    starter: {
+      html: '<h1>My page</h1>\n<p>Welcome!</p>\n',
+      css: 'body {\n  font-family: system-ui, sans-serif;\n  padding: 24px;\n  background: TODO; /* a page color, e.g. #f0f9ff */\n}\n\nh1 {\n  color: TODO; /* a heading color, e.g. navy */\n}\n',
+    },
+    rubric: { css: ['background', 'color'] },
+    targets: {
+      code: { file: 'styles.css', match: 'background: TODO', line: 4, comment: { title: 'Replace the first TODO', body: 'Type a page color over "TODO". Keep the semicolon.', code: 'background: #f0f9ff;' } },
+      web: { selector: 'body', comment: { title: 'Your page color', body: 'After you edit and Run, the whole page changes color.' } },
+    },
+    hint: {
+      summary: 'Where do the colors go?',
+      steps: [
+        'Line 4 reads  background: TODO;  — only the word TODO is a placeholder. Replace it with a color like  #f0f9ff  (keep the semicolon).',
+        'The h1 rule has  color: TODO;  — replace that TODO with a heading color like  navy.',
+        'Press Run and watch both colors appear. Color names (navy, teal) and hex codes (#4f46e5) both work.',
+      ],
+      stepTargets: [
+        { code: { file: 'styles.css', match: 'background: TODO', line: 4, comment: { title: 'Step 1 — page color', body: 'Replace the first TODO with a page color.', code: 'background: #f0f9ff;' } } },
+        { code: { file: 'styles.css', match: 'color: TODO', line: 8, comment: { title: 'Step 2 — heading color', body: 'Replace the second TODO with a heading color.', code: 'color: navy;' } } },
+        { code: { file: 'styles.css', match: 'color: TODO', line: 8, comment: { title: 'Step 3 — Run it', body: 'Press Run to see both colors.', code: 'color: navy;' } }, web: { selector: 'h1', comment: { title: 'Heading color', body: 'Run to see it here.' } } },
+      ],
+    },
+  },
+  // --- layout (support) ---
+  {
+    id: 'lvl-layout-support',
+    objectiveId: 'obj-layout',
+    tier: 'support',
+    title: 'Fill in the blanks: center it',
+    instructions:
+      "One line at a time. The body rule has two TODOs — a max-width and a margin. Replace each, then Run.",
+    starter: {
+      html: '<h1>My page</h1>\n<p>Welcome to my site. This line is long enough to show why a max-width helps readability.</p>\n',
+      css: 'body {\n  font-family: system-ui, sans-serif;\n  max-width: TODO; /* e.g. 600px */\n  margin: TODO; /* e.g. 0 auto */\n  padding: 32px;\n}\n',
+    },
+    rubric: { css: ['max-width', 'margin'] },
+    targets: {
+      code: { file: 'styles.css', match: 'max-width: TODO', line: 3, comment: { title: 'Replace the first TODO', body: 'Set how wide the content can get.', code: 'max-width: 600px;' } },
+      web: { selector: 'body', comment: { title: 'Watch it narrow', body: 'After you edit and Run, the column stops stretching full width.' } },
+    },
+    hint: {
+      summary: 'Which line does what?',
+      steps: [
+        'Line 3 is  max-width: TODO;  — replace TODO with  600px.  This caps how wide the text gets.',
+        'Line 4 is  margin: TODO;  — replace TODO with  0 auto.  The "auto" centers the block.',
+        'Press Run. The content becomes a centered, comfortable column.',
+      ],
+      stepTargets: [
+        { code: { file: 'styles.css', match: 'max-width: TODO', line: 3, comment: { title: 'Step 1 — the width', body: 'Replace the first TODO.', code: 'max-width: 600px;' } } },
+        { code: { file: 'styles.css', match: 'margin: TODO', line: 4, comment: { title: 'Step 2 — center it', body: 'Replace the second TODO.', code: 'margin: 0 auto;' } } },
+        { code: { file: 'styles.css', match: 'margin: TODO', line: 4, comment: { title: 'Step 3 — Run it', body: 'Press Run to see the centered column.' }, }, web: { selector: 'body', comment: { title: 'Centered', body: 'Run to see it.' } } },
+      ],
+    },
+  },
+  // --- layout (stretch) ---
+  {
+    id: 'lvl-layout-stretch',
+    objectiveId: 'obj-layout',
+    tier: 'stretch',
+    title: 'Layout with rhythm',
+    instructions:
+      "You can center — now add vertical rhythm. Center the body with max-width and margin, then give your headings and paragraphs consistent spacing with margin so the page breathes.",
+    starter: null,
+    rubric: { css: ['max-width', 'margin'] },
+    targets: {
+      code: { file: 'styles.css', match: 'body {', line: 1, comment: { title: 'Center, then space', body: 'Center the body, then add margins to h1/h2/p for rhythm.', code: 'max-width: 640px;\nmargin: 0 auto;' } },
+      web: { selector: 'body', comment: { title: 'Even spacing', body: 'Consistent margins make a page feel designed, not cramped.' } },
+    },
+    hint: {
+      summary: 'What is vertical rhythm?',
+      steps: [
+        'First center as before:  max-width: 640px; margin: 0 auto;  in the body rule.',
+        'Rhythm means consistent gaps between blocks. Add a bottom margin to paragraphs:  p { margin: 0 0 16px; }',
+        'Give headings a little more room above them:  h2 { margin-top: 28px; }  Then Run and notice the even spacing.',
+      ],
+      stepTargets: [
+        { code: { file: 'styles.css', match: 'body {', line: 1, comment: { title: 'Step 1 — center', body: 'Center the body first.', code: 'max-width: 640px;\nmargin: 0 auto;' } } },
+        { code: { file: 'styles.css', match: 'body {', line: 1, comment: { title: 'Step 2 — paragraph rhythm', body: 'Add a consistent bottom margin to paragraphs.', code: 'p { margin: 0 0 16px; }' } } },
+        { code: { file: 'styles.css', match: 'body {', line: 1, comment: { title: 'Step 3 — heading space', body: 'Give headings room above.', code: 'h2 { margin-top: 28px; }' } }, web: { selector: 'body', comment: { title: 'Rhythm', body: 'Run to see the even spacing.' } } },
+      ],
+    },
+  },
+  // --- polish (support) ---
+  {
+    id: 'lvl-polish-support',
+    objectiveId: 'obj-polish',
+    tier: 'support',
+    title: 'Fill in the blanks: add a list',
+    instructions:
+      "Add one element with the skeleton provided. Replace the TODO items with your own, then Run.",
+    starter: {
+      html: '<h1>My page</h1>\n<p>Welcome!</p>\n<ul>\n  <li>TODO: something you like</li>\n  <li>TODO: another thing</li>\n</ul>\n',
+      css: 'body {\n  font-family: system-ui, sans-serif;\n  padding: 24px;\n}\n',
+    },
+    rubric: { html: ['<ul', '<li'] },
+    targets: {
+      code: { file: 'index.html', match: 'TODO: something', line: 4, comment: { title: 'Replace the TODO', body: 'Type your own bullet over the TODO. Keep the <li> tags.', code: '<li>Reading</li>' } },
+      web: { selector: 'ul', comment: { title: 'Your list', body: 'After you edit and Run, your bullets show here.' } },
+    },
+    hint: {
+      summary: 'Where do I type?',
+      steps: [
+        'The list is already here. Each <li> is one bullet. Replace the words after "TODO:" with your own — keep the <li> and </li> tags.',
+        'Do the same for the second <li> on the next line.',
+        'Press Run to see your bulleted list appear.',
+      ],
+      stepTargets: [
+        { code: { file: 'index.html', match: 'TODO: something', line: 4, comment: { title: 'Step 1 — first bullet', body: 'Replace the first TODO.', code: '<li>Reading</li>' } } },
+        { code: { file: 'index.html', match: 'TODO: another', line: 5, comment: { title: 'Step 2 — second bullet', body: 'Replace the second TODO.', code: '<li>Soccer</li>' } } },
+        { code: { file: 'index.html', match: 'TODO: another', line: 5, comment: { title: 'Step 3 — Run it', body: 'Press Run to see your list.' }, }, web: { selector: 'ul', comment: { title: 'Your list', body: 'Run to see it.' } } },
+      ],
+    },
+  },
+  // --- polish (stretch) ---
+  {
+    id: 'lvl-polish-stretch',
+    objectiveId: 'obj-polish',
+    tier: 'stretch',
+    title: 'Make it unmistakably yours',
+    instructions:
+      "You added an element — now make the page feel finished. Add two distinct elements (e.g. a list AND a blockquote) and give at least one a styled touch with CSS.",
+    starter: null,
+    rubric: { html: ['<ul', '<li', '<blockquote'] },
+    targets: {
+      code: { file: 'index.html', match: '</p>', line: 2, comment: { title: 'Add two elements', body: 'Add both a list and a quote below your paragraph.', code: '<ul>\n  <li>Reading</li>\n  <li>Soccer</li>\n</ul>\n<blockquote>Stay curious.</blockquote>' } },
+      web: { selector: 'body', comment: { title: 'A finished feel', body: 'Two elements plus a styled touch make the page feel complete.' } },
+    },
+    hint: {
+      summary: 'How do I make it feel finished?',
+      steps: [
+        'Add a bulleted list below your paragraph:  <ul><li>Reading</li><li>Soccer</li></ul>',
+        'Add a quote too, for variety:  <blockquote>Stay curious.</blockquote>',
+        'Style at least one so it stands out — e.g.  blockquote { border-left: 4px solid #4f46e5; padding-left: 12px; color: #374151; }  Then Run.',
+      ],
+      stepTargets: [
+        { code: { file: 'index.html', match: '</p>', line: 2, comment: { title: 'Step 1 — a list', body: 'Add a bulleted list.', code: '<ul>\n  <li>Reading</li>\n  <li>Soccer</li>\n</ul>' } } },
+        { code: { file: 'index.html', match: '</p>', line: 2, comment: { title: 'Step 2 — a quote', body: 'Add a blockquote too.', code: '<blockquote>Stay curious.</blockquote>' } } },
+        { code: { file: 'styles.css', match: 'body {', line: 1, comment: { title: 'Step 3 — style one', body: 'Give the quote a styled touch.', code: 'blockquote { border-left: 4px solid #4f46e5; padding-left: 12px; }' } }, web: { selector: 'body', comment: { title: 'Finished', body: 'Run to see your finished page.' } } },
+      ],
+    },
+  },
 ]
 
 export function getLevel(levelId) {
-  return LEVELS.find((l) => l.id === levelId) || null
+  const canonical = LEVELS.find((l) => l.id === levelId)
+  if (canonical) return canonical
+  // Also resolve probe/diagnostic variant levels defined in PROBES.
+  for (const variants of Object.values(PROBES)) {
+    const v = variants.find((l) => l.id === levelId)
+    if (v) return v
+  }
+  return null
 }
 
 export function getObjective(objectiveId) {
@@ -248,3 +468,164 @@ export function getObjective(objectiveId) {
 }
 
 export const FIRST_LEVEL_ID = 'lvl-structure-core'
+
+// ---------------------------------------------------------------------------
+// Probe pools (diagnostic-placement feature). Each canonical level above is the
+// first member of its objective+tier pool; PROBES adds 1-2 interchangeable
+// variants that REUSE the canonical rubric (same grading) but change the surface
+// task (title / instructions / starter). Used by the diagnostic and by
+// confidence re-check probes so a re-check never repeats the exact task. The
+// original 12 LEVELS are untouched.
+// ---------------------------------------------------------------------------
+
+const rubricOf = (id) => (getLevel(id) || {}).rubric
+
+export const PROBES = {
+  // --- structure ---
+  'obj-structure:core': [
+    {
+      id: 'lvl-structure-core-v2', objectiveId: 'obj-structure', tier: 'core',
+      title: 'Introduce a project', instructions:
+        'Add an <h1> with the name of a project you like and a <p> saying what it does. Then press Run.',
+      starter: { html: '<!-- Add an <h1> and a <p> below -->\n', css: 'body {\n  font-family: system-ui, sans-serif;\n  padding: 24px;\n}\n' },
+      rubric: rubricOf('lvl-structure-core'),
+      targets: { code: { file: 'index.html', match: '<!-- Add an', line: 1, comment: { title: 'Add a heading', body: 'An <h1> is the page title. Add it, then a <p> below.', code: '<h1>My Project</h1>' } }, web: { selector: 'body', comment: { title: 'Your page', body: 'Run to see it.' } } },
+      hint: { summary: 'How do I add a heading and paragraph?', steps: [
+        'A heading is a paired tag: <h1> ... </h1>. Put the project name between them.',
+        'Type it on the first line: <h1>My Project</h1>',
+        'Then a paragraph below: <p>It helps people learn.</p> and press Run.',
+      ], stepTargets: [
+        { code: { file: 'index.html', match: '<!-- Add an', line: 1, comment: { title: 'Step 1', body: 'Write a heading pair.', code: '<h1></h1>' } } },
+        { code: { file: 'index.html', match: '<!-- Add an', line: 1, comment: { title: 'Step 2', body: 'Name the project between the tags.', code: '<h1>My Project</h1>' } } },
+        { code: { file: 'index.html', match: '<!-- Add an', line: 1, comment: { title: 'Step 3', body: 'Add a paragraph below, then Run.', code: '<p>It helps people learn.</p>' } }, web: { selector: 'body', comment: { title: 'Run it', body: 'See both appear.' } } },
+      ] },
+    },
+  ],
+  'obj-structure:support': [
+    {
+      id: 'lvl-structure-support-v2', objectiveId: 'obj-structure', tier: 'support',
+      title: 'Fill in the blanks: a title and a line', instructions:
+        'The skeleton is started. Replace each TODO with your own words, keeping the tags, then press Run.',
+      starter: { html: '<h1>TODO: a title</h1>\n<p>TODO: one sentence</p>\n', css: 'body {\n  font-family: system-ui, sans-serif;\n  padding: 24px;\n}\n' },
+      rubric: rubricOf('lvl-structure-support'),
+      targets: { code: { file: 'index.html', match: 'TODO: a title', line: 1, comment: { title: 'Replace the TODO', body: 'Type a title over the TODO. Keep the <h1> tags.', code: '<h1>My Page</h1>' } }, web: { selector: 'h1', comment: { title: 'Your title', body: 'Run to see it.' } } },
+      hint: { summary: 'Where do I type?', steps: [
+        'Line 1 has TODO between <h1> and </h1>. Only the words are placeholder — the tags stay.',
+        'Type your own title over "TODO: a title".',
+        'Do the same on line 2 for the paragraph, then Run.',
+      ], stepTargets: [
+        { code: { file: 'index.html', match: 'TODO: a title', line: 1, comment: { title: 'Step 1', body: 'Find the TODO on line 1.' } } },
+        { code: { file: 'index.html', match: 'TODO: a title', line: 1, comment: { title: 'Step 2', body: 'Type your title. Keep the tags.', code: '<h1>My Page</h1>' } } },
+        { code: { file: 'index.html', match: 'TODO: one sentence', line: 2, comment: { title: 'Step 3', body: 'Now the paragraph, then Run.', code: '<p>Welcome!</p>' } }, web: { selector: 'h1', comment: { title: 'Your title', body: 'Run to see it.' } } },
+      ] },
+    },
+  ],
+  // --- style ---
+  'obj-style:core': [
+    {
+      id: 'lvl-style-core-v2', objectiveId: 'obj-style', tier: 'core',
+      title: 'Set a mood with color', instructions:
+        'In the CSS, give the body a background color and your <h1> a text color. Try a warm or cool pair. Then Run.',
+      starter: null, rubric: rubricOf('lvl-style-core'),
+      targets: { code: { file: 'styles.css', match: 'body {', line: 1, comment: { title: 'Color the page', body: 'Add a background inside the body rule.', code: 'background: #fff7ed;' } }, web: { selector: 'h1', comment: { title: 'Heading color', body: 'Add an h1 rule.', code: 'h1 { color: #9a3412; }' } } },
+      hint: { summary: 'How do I change colors?', steps: [
+        'A CSS rule is selector { property: value; }. The body rule is already there.',
+        'Add a background inside the body braces: background: #fff7ed;',
+        'Add a new rule for the heading color: h1 { color: #9a3412; } then Run.',
+      ], stepTargets: [
+        { code: { file: 'styles.css', match: 'body {', line: 1, comment: { title: 'Step 1', body: 'The body rule is here.' } } },
+        { code: { file: 'styles.css', match: 'body {', line: 1, comment: { title: 'Step 2', body: 'Add a background line.', code: 'background: #fff7ed;' } } },
+        { code: { file: 'styles.css', match: 'font-family', line: 2, comment: { title: 'Step 3', body: 'Add a heading color rule.', code: 'h1 { color: #9a3412; }' } }, web: { selector: 'h1', comment: { title: 'Heading color', body: 'Run to see it.' } } },
+      ] },
+    },
+  ],
+  'obj-style:support': [
+    {
+      id: 'lvl-style-support-v2', objectiveId: 'obj-style', tier: 'support',
+      title: 'Fill in the blanks: two colors', instructions:
+        'Two TODO colors in the CSS — replace each with a color, then Run.',
+      starter: { html: '<h1>My page</h1>\n<p>Welcome!</p>\n', css: 'body {\n  font-family: system-ui, sans-serif;\n  padding: 24px;\n  background: TODO; /* a page color */\n}\n\nh1 {\n  color: TODO; /* a heading color */\n}\n' },
+      rubric: rubricOf('lvl-style-support'),
+      targets: { code: { file: 'styles.css', match: 'background: TODO', line: 4, comment: { title: 'First TODO', body: 'Type a page color.', code: 'background: #ecfeff;' } }, web: { selector: 'body', comment: { title: 'Page color', body: 'Run to see it.' } } },
+      hint: { summary: 'Where do the colors go?', steps: [
+        'Line 4: background: TODO; — replace TODO with a color like #ecfeff.',
+        'The h1 rule has color: TODO; — replace it with a color like teal.',
+        'Press Run to see both.',
+      ], stepTargets: [
+        { code: { file: 'styles.css', match: 'background: TODO', line: 4, comment: { title: 'Step 1', body: 'Page color.', code: 'background: #ecfeff;' } } },
+        { code: { file: 'styles.css', match: 'color: TODO', line: 8, comment: { title: 'Step 2', body: 'Heading color.', code: 'color: teal;' } } },
+        { code: { file: 'styles.css', match: 'color: TODO', line: 8, comment: { title: 'Step 3', body: 'Run it.' }, }, web: { selector: 'h1', comment: { title: 'Heading', body: 'Run to see it.' } } },
+      ] },
+    },
+  ],
+  // --- layout ---
+  'obj-layout:core': [
+    {
+      id: 'lvl-layout-core-v2', objectiveId: 'obj-layout', tier: 'core',
+      title: 'Center a reading column', instructions:
+        'In the CSS, cap the body width and center it so lines are easy to read. Then Run.',
+      starter: null, rubric: rubricOf('lvl-layout-core'),
+      targets: { code: { file: 'styles.css', match: 'body {', line: 1, comment: { title: 'Center it', body: 'Add max-width and margin: 0 auto.', code: 'max-width: 640px;\nmargin: 0 auto;' } }, web: { selector: 'body', comment: { title: 'Centered', body: 'Run to see it.' } } },
+      hint: { summary: 'How do I center?', steps: [
+        'Cap the width in the body rule: max-width: 640px;',
+        'Center it with margin: 0 auto;',
+        'Add padding: 32px; for breathing room, then Run.',
+      ], stepTargets: [
+        { code: { file: 'styles.css', match: 'body {', line: 1, comment: { title: 'Step 1', body: 'Cap the width.', code: 'max-width: 640px;' } } },
+        { code: { file: 'styles.css', match: 'body {', line: 1, comment: { title: 'Step 2', body: 'Center it.', code: 'margin: 0 auto;' } } },
+        { code: { file: 'styles.css', match: 'body {', line: 1, comment: { title: 'Step 3', body: 'Add padding, then Run.', code: 'padding: 32px;' } }, web: { selector: 'body', comment: { title: 'Centered', body: 'Run to see it.' } } },
+      ] },
+    },
+  ],
+  'obj-layout:support': [
+    {
+      id: 'lvl-layout-support-v2', objectiveId: 'obj-layout', tier: 'support',
+      title: 'Fill in the blanks: a tidy column', instructions:
+        'Two TODOs in the body rule — a max-width and a margin. Replace each, then Run.',
+      starter: { html: '<h1>My page</h1>\n<p>A longer line of text that shows why limiting the width makes reading easier for everyone.</p>\n', css: 'body {\n  font-family: system-ui, sans-serif;\n  max-width: TODO; /* e.g. 600px */\n  margin: TODO; /* e.g. 0 auto */\n  padding: 32px;\n}\n' },
+      rubric: rubricOf('lvl-layout-support'),
+      targets: { code: { file: 'styles.css', match: 'max-width: TODO', line: 3, comment: { title: 'First TODO', body: 'How wide the content can get.', code: 'max-width: 600px;' } }, web: { selector: 'body', comment: { title: 'Narrower', body: 'Run to see it.' } } },
+      hint: { summary: 'Which line does what?', steps: [
+        'Line 3: max-width: TODO; — replace with 600px.',
+        'Line 4: margin: TODO; — replace with 0 auto to center.',
+        'Press Run.',
+      ], stepTargets: [
+        { code: { file: 'styles.css', match: 'max-width: TODO', line: 3, comment: { title: 'Step 1', body: 'Width.', code: 'max-width: 600px;' } } },
+        { code: { file: 'styles.css', match: 'margin: TODO', line: 4, comment: { title: 'Step 2', body: 'Center it.', code: 'margin: 0 auto;' } } },
+        { code: { file: 'styles.css', match: 'margin: TODO', line: 4, comment: { title: 'Step 3', body: 'Run it.' }, }, web: { selector: 'body', comment: { title: 'Centered', body: 'Run.' } } },
+      ] },
+    },
+  ],
+  // --- polish ---
+  'obj-polish:core': [
+    {
+      id: 'lvl-polish-core-v2', objectiveId: 'obj-polish', tier: 'core',
+      title: 'Add a finishing element', instructions:
+        'Add one more element below your paragraph — a list of favorites or a quote — then Run.',
+      starter: null, rubric: rubricOf('lvl-polish-core'),
+      targets: { code: { file: 'index.html', match: '</p>', line: 2, comment: { title: 'Add an element', body: 'Add a list below your paragraph.', code: '<ul>\n  <li>Music</li>\n  <li>Hiking</li>\n</ul>' } }, web: { selector: 'body', comment: { title: 'It grows', body: 'Run to see it.' } } },
+      hint: { summary: 'Ideas for a finishing touch', steps: [
+        'Add a bulleted list below your paragraph: <ul><li>Music</li><li>Hiking</li></ul>',
+        'Or a quote instead: <blockquote>Keep building.</blockquote>',
+        'Give it a little style, e.g. ul { color: #4f46e5; }, then Run.',
+      ], stepTargets: [
+        { code: { file: 'index.html', match: '</p>', line: 2, comment: { title: 'Step 1', body: 'Add a list.', code: '<ul>\n  <li>Music</li>\n  <li>Hiking</li>\n</ul>' } } },
+        { code: { file: 'index.html', match: '</p>', line: 2, comment: { title: 'Step 2', body: 'Or a quote.', code: '<blockquote>Keep building.</blockquote>' } } },
+        { code: { file: 'styles.css', match: 'body {', line: 1, comment: { title: 'Step 3', body: 'Style it, then Run.', code: 'ul { color: #4f46e5; }' } }, web: { selector: 'body', comment: { title: 'Finished', body: 'Run to see it.' } } },
+      ] },
+    },
+  ],
+}
+
+export function poolKey(objectiveId, tier) {
+  return `${objectiveId}:${tier}`
+}
+
+// Full pool for an objective+tier: the canonical LEVELS member(s) first, then any
+// PROBES variants. Length is 2-3 where a pool is defined, else just the canonical.
+export function getPool(objectiveId, tier) {
+  const canonical = LEVELS.filter((l) => l.objectiveId === objectiveId && l.tier === tier)
+  const variants = PROBES[poolKey(objectiveId, tier)] || []
+  return [...canonical, ...variants]
+}
+
