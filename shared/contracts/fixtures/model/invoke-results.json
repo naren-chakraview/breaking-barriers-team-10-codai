@@ -1,0 +1,42 @@
+{
+  "description": "Canned invoke() results per task for MODEL_MODE=stub. Each must validate against model.schema.json#/$defs/InvokeResult. source is always 'stub' here; a live call returns 'bedrock'.",
+  "verify_ok": {
+    "ok": true, "task": "verify", "source": "stub", "modelId": "stub-fast", "promptVersion": "verify@stub",
+    "text": "{\"verdict\":\"ok\"}", "latencyMs": 12, "usage": { "inputTokens": 120, "outputTokens": 8 },
+    "guardrail": { "version": "stub-1", "action": "none" }, "correlationId": "corr-verify-ok1"
+  },
+  "verify_needs_narrowing": {
+    "ok": true, "task": "verify", "source": "stub", "modelId": "stub-fast", "promptVersion": "verify@stub",
+    "text": "{\"verdict\":\"needs_narrowing\",\"guidance\":\"Ask for one change at a time. Start with the heading text, then the button color.\"}",
+    "latencyMs": 14, "usage": { "inputTokens": 130, "outputTokens": 26 },
+    "guardrail": { "version": "stub-1", "action": "none" }, "correlationId": "corr-verify-narrow1"
+  },
+  "codegen_ok": {
+    "ok": true, "task": "codegen", "source": "stub", "modelId": "stub-strong", "promptVersion": "codegen@stub",
+    "text": "<h1>Robotics Club</h1><button class=\"signup\">Sign up</button>", "latencyMs": 40,
+    "usage": { "inputTokens": 200, "outputTokens": 60 }, "guardrail": { "version": "stub-1", "action": "none" },
+    "correlationId": "corr-codegen-ok1"
+  },
+  "validate_ok": {
+    "ok": true, "task": "validate", "source": "stub", "modelId": "stub-fast", "promptVersion": "validate@stub",
+    "text": "{\"skillId\":\"build\",\"evidenceLevel\":2,\"conditionMet\":true,\"confidence\":0.88,\"evidence\":\"Prompt named a goal and one change; project matched.\"}",
+    "latencyMs": 22, "usage": { "inputTokens": 300, "outputTokens": 40 },
+    "guardrail": { "version": "stub-1", "action": "none" }, "correlationId": "corr-validate-ok1"
+  },
+  "tutor_ok": {
+    "ok": true, "task": "tutor", "source": "stub", "modelId": "stub-strong", "promptVersion": "tutor@stub",
+    "text": "What is the one thing you most want a visitor to do first? Name it, then we will make that part clear.",
+    "latencyMs": 35, "usage": { "inputTokens": 180, "outputTokens": 30 },
+    "guardrail": { "version": "stub-1", "action": "none" }, "correlationId": "corr-tutor-ok1"
+  },
+  "timeout_error": {
+    "ok": false, "task": "codegen",
+    "error": { "code": "TIMEOUT", "message": "Model call exceeded 10000 ms" },
+    "correlationId": "corr-timeout1"
+  },
+  "upstream_error": {
+    "ok": false, "task": "validate",
+    "error": { "code": "UPSTREAM_ERROR", "message": "ThrottlingException from the model provider" },
+    "correlationId": "corr-upstream1"
+  }
+}
