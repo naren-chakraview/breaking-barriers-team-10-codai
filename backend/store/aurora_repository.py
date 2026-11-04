@@ -47,8 +47,16 @@ def _now() -> str:
 
 
 def _to_camel(col: str) -> str:
-    """Map a lowercase result-set column back to its camelCase record key."""
-    return _CAMEL.get(col, col)
+    """Map a lowercase result-set column back to its camelCase record key.
+
+    `_CAMEL` holds the DDL names in PascalCase (as written in schema.sql). The contract
+    records use camelCase with a lowercase first letter (studentId, attemptId), so lower the
+    first character of the mapped name. Unknown columns pass through unchanged.
+    """
+    name = _CAMEL.get(col)
+    if name is None:
+        return col
+    return name[0].lower() + name[1:]
 
 
 def _param(name: str, value: Any) -> dict[str, Any]:
@@ -119,7 +127,7 @@ class AuroraRepository:
             for col, field in zip(cols, record):
                 val = _field_value(field)
                 # JSONB columns come back as strings; parse them.
-                if col in ("TeacherInput", "EvidenceRefs") and isinstance(val, str):
+                if col in ("teacherInput", "evidenceRefs") and isinstance(val, str):
                     try:
                         val = json.loads(val)
                     except (json.JSONDecodeError, TypeError):
@@ -152,7 +160,7 @@ class AuroraRepository:
     def append_evidence(self, row: Mapping[str, Any]) -> dict[str, Any]:
         self._execute(
             "INSERT INTO STUDENT_SKILL_EVIDENCE (StudentId, SkillId, Level, SourceStepId, CreatedAt) "
-            "VALUES (:sid, :skill, :level, :step, :ts)",
+            "VALUES (:sid, :skill, :level, :step, :ts::timestamptz)",
             [
                 _param("sid", row["studentId"]),
                 _param("skill", row["skillId"]),
@@ -169,7 +177,7 @@ class AuroraRepository:
             "WHERE StudentId = :sid GROUP BY SkillId",
             [_param("sid", student_id)],
         )
-        return {r["SkillId"]: int(r["Level"]) for r in self._rows(resp)}
+        return {r["skillId"]: int(r["level"]) for r in self._rows(resp)}
 
     # ---- progress ----
     def get_progress(self, student_id: str) -> dict[str, str]:
@@ -177,12 +185,12 @@ class AuroraRepository:
             "SELECT CheckpointId, Status FROM CHECKPOINT_PROGRESS WHERE StudentId = :sid",
             [_param("sid", student_id)],
         )
-        return {r["CheckpointId"]: r["Status"] for r in self._rows(resp)}
+        return {r["checkpointId"]: r["status"] for r in self._rows(resp)}
 
     def upsert_progress(self, row: Mapping[str, Any]) -> dict[str, Any]:
         self._execute(
             "INSERT INTO CHECKPOINT_PROGRESS (StudentId, CheckpointId, Status, UpdatedAt) "
-            "VALUES (:sid, :cid, :status, :ts) "
+            "VALUES (:sid, :cid, :status, :ts::timestamptz) "
             "ON CONFLICT (StudentId, CheckpointId) DO UPDATE SET Status = EXCLUDED.Status, "
             "UpdatedAt = EXCLUDED.UpdatedAt",
             [
@@ -199,7 +207,7 @@ class AuroraRepository:
         self._execute(
             "INSERT INTO STEP_ATTEMPT (AttemptId, StudentId, StepId, InputText, "
             "ProjectSnapshotRef, EvidenceLevel, Confidence, CreatedAt) "
-            "VALUES (:aid, :sid, :step, :text, :snap, :level, :conf, :ts)",
+            "VALUES (:aid, :sid, :step, :text, :snap, :level, :conf, :ts::timestamptz)",
             [
                 _param("aid", attempt["attemptId"]),
                 _param("sid", attempt["studentId"]),
@@ -225,7 +233,7 @@ class AuroraRepository:
     def write_hint_event(self, hint: Mapping[str, Any]) -> dict[str, Any]:
         self._execute(
             "INSERT INTO HINT_EVENT (HintId, StudentId, StepId, Style, Angle, CreatedAt) "
-            "VALUES (:hid, :sid, :step, :style, :angle, :ts)",
+            "VALUES (:hid, :sid, :step, :style, :angle, :ts::timestamptz)",
             [
                 _param("hid", hint["hintId"]),
                 _param("sid", hint["studentId"]),
@@ -249,7 +257,7 @@ class AuroraRepository:
         self._execute(
             "INSERT INTO ROUTING_DECISION (DecisionId, StudentId, ProposedCheckpointId, "
             "TeacherInput, AppliedCheckpointId, Reason, CreatedAt) "
-            "VALUES (:did, :sid, :proposed, :ti, :applied, :reason, :ts)",
+            "VALUES (:did, :sid, :proposed, :ti, :applied, :reason, :ts::timestamptz)",
             [
                 _param("did", decision["decisionId"]),
                 _param("sid", decision["studentId"]),
@@ -274,7 +282,7 @@ class AuroraRepository:
     def write_fallback_event(self, event: Mapping[str, Any]) -> dict[str, Any]:
         self._execute(
             "INSERT INTO FALLBACK_EVENT (StudentId, StepId, Component, Error, CreatedAt) "
-            "VALUES (:sid, :step, :comp, :err, :ts)",
+            "VALUES (:sid, :step, :comp, :err, :ts::timestamptz)",
             [
                 _param("sid", event["studentId"]),
                 _param("step", event.get("stepId")),
@@ -297,7 +305,7 @@ class AuroraRepository:
         self._execute(
             "INSERT INTO PASSIVE_SIGNAL (SignalId, StudentId, Signal, HintStyle, AngleToTry, "
             "Reason, EvidenceRefs, Confidence, FeaturesHash, ModelId, PromptVersion, CreatedAt) "
-            "VALUES (:sid2, :sid, :signal, :style, :angle, :reason, :refs, :conf, :hash, :model, :pv, :ts)",
+            "VALUES (:sid2, :sid, :signal, :style, :angle, :reason, :refs, :conf, :hash, :model, :pv, :ts::timestamptz)",
             [
                 _param("sid2", signal["signalId"]),
                 _param("sid", signal["studentId"]),
@@ -336,7 +344,7 @@ class AuroraRepository:
     def write_remediation_flag(self, flag: Mapping[str, Any]) -> dict[str, Any]:
         self._execute(
             "INSERT INTO REMEDIATION_FLAG (StudentId, SkillId, Reason, Severity, CreatedAt, ResolvedAt) "
-            "VALUES (:sid, :skill, :reason, :sev, :ts, :resolved)",
+            "VALUES (:sid, :skill, :reason, :sev, :ts::timestamptz, :resolved::timestamptz)",
             [
                 _param("sid", flag["studentId"]),
                 _param("skill", flag["skillId"]),
@@ -365,16 +373,16 @@ class AuroraRepository:
         if not rows:
             return {"mode": "auto"}
         r = rows[0]
-        out: dict[str, Any] = {"mode": r["Mode"]}
-        if r.get("CheckpointId"):
-            out["checkpointId"] = r["CheckpointId"]
+        out: dict[str, Any] = {"mode": r["mode"]}
+        if r.get("checkpointId"):
+            out["checkpointId"] = r["checkpointId"]
         return out
 
     def set_teacher_input(self, student_id: str, teacher_input: Mapping[str, Any]) -> dict[str, Any]:
         updated = _now()
         self._execute(
             "INSERT INTO TEACHER_INPUT (StudentId, Mode, CheckpointId, UpdatedAt) "
-            "VALUES (:sid, :mode, :cid, :ts) "
+            "VALUES (:sid, :mode, :cid, :ts::timestamptz) "
             "ON CONFLICT (StudentId) DO UPDATE SET Mode = EXCLUDED.Mode, "
             "CheckpointId = EXCLUDED.CheckpointId, UpdatedAt = EXCLUDED.UpdatedAt",
             [
