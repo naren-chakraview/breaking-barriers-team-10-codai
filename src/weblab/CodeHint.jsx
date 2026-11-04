@@ -20,7 +20,9 @@ function targetLineIndex(code, target) {
 export default function CodeHint({ code, target, scrollTop = 0 }) {
   if (!target) return null
   const c = target.comment
-  const label = c && typeof c === 'object' ? c.title || 'Edit here' : 'Edit here'
+  // Short pointer only ("Step 2" / "Edit here"); the docked card has the detail.
+  const stepMatch = c && typeof c === 'object' && c.title ? c.title.match(/^Step \d+/) : null
+  const label = stepMatch ? stepMatch[0] : 'Edit here'
 
   const idx = targetLineIndex(code, target)
   const top = PAD_TOP + idx * LINE_HEIGHT - scrollTop + LINE_HEIGHT / 2

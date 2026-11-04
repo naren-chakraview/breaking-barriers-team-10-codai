@@ -43,9 +43,9 @@ export const LEVELS = [
     hint: {
       summary: 'Not sure how to add a heading?',
       steps: [
-        'An HTML tag has an opening and closing part, like <h1>...</h1>.',
-        'Put your name between them: <h1>Alex</h1>.',
-        'Add a paragraph the same way with <p> tags: <p>I like soccer.</p>.',
+        'HTML is built from tags that come in pairs. A heading uses an opening <h1> and a closing </h1>. Type an empty pair first: <h1></h1>',
+        'Now put your name between the tags so it shows as the title: <h1>Alex</h1>. Whatever goes between the tags appears on the page.',
+        'On the next line, add a paragraph the same way — <p> opens it, </p> closes it: <p>I like soccer.</p>. Then press Run to see both appear.',
       ],
       stepTargets: [
         { code: { file: 'index.html', match: '<!-- Add an', line: 1, comment: { title: 'Step 1 — write a tag', body: 'Tags come in pairs: an opening <h1> and a closing </h1>. Type them on this line.', code: '<h1></h1>' } } },
@@ -74,9 +74,9 @@ export const LEVELS = [
     hint: {
       summary: 'Where do I type?',
       steps: [
-        'Find the text that says TODO inside the <h1> tags.',
-        'Delete "TODO: your name" and type your own name in its place.',
-        'Do the same for the <p> paragraph, then press Run.',
+        'Look at line 1. The words “TODO: your name” sit between <h1> and </h1>. Only the words in the middle are placeholder — the tags stay.',
+        'Select just “TODO: your name” and type your own name over it, so it reads like <h1>Alex</h1>. Keep both tags exactly as they are.',
+        'Do the same on line 2 for the paragraph — replace the TODO with a sentence — then press Run to see your page.',
       ],
       stepTargets: [
         { code: { file: 'index.html', match: 'TODO: your name', line: 1, comment: { title: 'Step 1 — find the TODO', body: 'Look at line 1 — the words "TODO: your name" sit inside the <h1> tags.' } } },
@@ -102,9 +102,9 @@ export const LEVELS = [
     hint: {
       summary: 'How do I change colors?',
       steps: [
-        'CSS rules look like: selector { property: value; }.',
-        'Set the page background: body { background: #f0f9ff; }.',
-        'Color your heading text: h1 { color: navy; }.',
+        'CSS styles your page. A rule looks like  selector { property: value; }  — the selector picks what to style, and each line inside the braces ends with a semicolon.',
+        'The body rule is already here. Inside its braces, add a background color line:  background: #f0f9ff;  — this colors the whole page.',
+        'Now add a brand-new rule below it to color your heading:  h1 { color: navy; }  Then press Run and watch the colors change.',
       ],
       stepTargets: [
         { code: { file: 'styles.css', match: 'body {', line: 1, comment: { title: 'Step 1 — how CSS looks', body: 'A rule is selector { property: value; }. The body rule is already here.' } } },
@@ -130,9 +130,9 @@ export const LEVELS = [
     hint: {
       summary: 'What makes colors readable?',
       steps: [
-        'High contrast means dark text on a light background (or vice versa).',
-        'Pick a light body background and a dark h1 color.',
-        'Add one accent, e.g. a colored border on the paragraph.',
+        'Readable pages use high contrast — dark text on a light background, or the reverse. Low contrast (e.g. grey on white) is hard to read.',
+        'In the body rule, set a light background and a dark text color, for example  background: #ffffff;  and  color: #1f2937;',
+        'Add one splash of accent color so the page feels designed — e.g. a colored left border on the paragraph:  p { border-left: 4px solid #4f46e5; padding-left: 8px; }',
       ],
       stepTargets: [
         { code: { file: 'styles.css', match: 'body {', line: 1, comment: { title: 'Step 1 — contrast', body: 'Readable means dark text on a light background (or the reverse).' } } },
@@ -158,9 +158,9 @@ export const LEVELS = [
     hint: {
       summary: 'How do I center things?',
       steps: [
-        'Give the body a max-width so lines are not too long: max-width: 600px;.',
-        'Center it horizontally with: margin: 0 auto;.',
-        'Add breathing room with padding, e.g. padding: 32px;.',
+        'Very wide lines of text are hard to read. In the body rule, cap the width:  max-width: 600px;  so each line stays a comfortable length.',
+        'A max-width alone sits on the left. Center it by adding  margin: 0 auto;  — “auto” splits the leftover space evenly on both sides.',
+        'Finally, add some breathing room so text isn’t cramped against the edges:  padding: 32px;  Then press Run to see it centered.',
       ],
       stepTargets: [
         { code: { file: 'styles.css', match: 'body {', line: 1, comment: { title: 'Step 1 — cap the width', body: 'Add a max-width so text lines are not too wide.', code: 'max-width: 600px;' } } },
@@ -186,9 +186,9 @@ export const LEVELS = [
     hint: {
       summary: 'Ideas for a finishing touch',
       steps: [
-        'A bulleted list: <ul><li>Reading</li><li>Soccer</li></ul>.',
-        'A quote: <blockquote>Stay curious.</blockquote>.',
-        'Style your new element with a CSS rule to match the page.',
+        'Pick one element to add below your paragraph. A bulleted list uses <ul> with <li> items inside — one <li> per bullet:  <ul><li>Reading</li><li>Soccer</li></ul>',
+        'Prefer a quote instead? Wrap a line in <blockquote>:  <blockquote>Stay curious.</blockquote>  Use whichever feels like “you”.',
+        'Give your new element a little style so it matches the page — e.g.  ul { color: #4f46e5; }  — then press Run to see your finished page.',
       ],
       stepTargets: [
         { code: { file: 'index.html', match: '</p>', line: 2, comment: { title: 'Step 1 — a list', body: 'Below your paragraph, add a bulleted list.', code: '<ul>\n  <li>Reading</li>\n  <li>Soccer</li>\n</ul>' } } },

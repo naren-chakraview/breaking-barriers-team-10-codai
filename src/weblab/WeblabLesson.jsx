@@ -1,49 +1,65 @@
-import { useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { LESSON, FIRST_LEVEL_ID, getLevel } from './courseData.js'
 import { validateSubmission, routeNextLevel, buildNudge } from './engine.js'
+import { buildProject, generateFromRequirements } from './tools.js'
+import LessonTopBar from './LessonTopBar.jsx'
+import LessonPanel from './LessonPanel.jsx'
+import RequirementsBox from './RequirementsBox.jsx'
+import CodeWorkspace from './CodeWorkspace.jsx'
 import Preview from './Preview.jsx'
 import Tutor from './Tutor.jsx'
-import CodeHint from './CodeHint.jsx'
-import CodeHintCard from './CodeHintCard.jsx'
+import ProgressReport from './ProgressReport.jsx'
 
-// Adaptive Web Lab, styled to match the CodeAI studio layout:
-//  top bar  — CODE∆I logo, skill-tree / project pills, user menu
-//  left     — AI TUTOR (chat, scaffolded hints, adaptive tracking)
-//  center   — WORKSPACE (Code/Preview/Split toggles, Files, tabs, editor)
-//  right    — browser-style live preview
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms))
+
+// Adaptive Web Lab laid out per wireframe-design.md:
+//   top bar  — project, lesson progress, Save / Deploy
+//   left     — lesson + objectives + "My outcomes"
+//   center   — requirements box, then Code / Files / Build log + status strip
+//   right    — live preview, then the AI Tutor
 export default function WeblabLesson({ user, onExit, onViewSkillTree }) {
   const [levelId, setLevelId] = useState(FIRST_LEVEL_ID)
   const level = getLevel(levelId)
 
+  // Code buffers (carried forward across levels) and editor view state.
   const [html, setHtml] = useState(level.starter?.html ?? '')
   const [css, setCss] = useState(level.starter?.css ?? '')
   const [activeFile, setActiveFile] = useState('index.html')
-  const [workspaceView, setWorkspaceView] = useState('split') // code | preview | split
+  const [tab, setTab] = useState('code') // code | files | buildLog
+  const [editorScrollTop, setEditorScrollTop] = useState(0)
 
+  // Preview + build.
   const [rendered, setRendered] = useState({ html: '', css: '' })
+  const [hasOutput, setHasOutput] = useState(false)
   const [outOfDate, setOutOfDate] = useState(false)
+  const [device, setDevice] = useState('web')
+  const [build, setBuild] = useState({ status: 'idle', log: [] })
 
+  // Save / deploy (mock — nothing is persisted).
+  const [saveState, setSaveState] = useState({ status: 'saved' })
+  const [deployState, setDeployState] = useState('idle') // idle | deploying | deployed
+
+  // Outcomes + adaptive flow.
   const [completed, setCompleted] = useState({})
   const [mastery, setMastery] = useState(null)
   const [hintsUsed, setHintsUsed] = useState(0)
   const [history, setHistory] = useState([FIRST_LEVEL_ID])
-
   const [phase, setPhase] = useState('working') // working | validating | routing | complete
   const [banner, setBanner] = useState(null)
   const [nudge, setNudge] = useState(null)
-  const [menuOpen, setMenuOpen] = useState(false)
+
+  // Guidance: manual "show me where", the revealed hint step, undo/reset.
   const [showWhere, setShowWhere] = useState(false)
-  // Target of the hint step the student is currently viewing (from the
-  // tutor). When set, the inline arrow/comment auto-follows the hint step.
   const [activeStepTarget, setActiveStepTarget] = useState(null)
-  const [editorScrollTop, setEditorScrollTop] = useState(0)
-  // Undo history (snapshots of {html, css}) and the code the current level
-  // started from, so the student can step back or clear their changes.
   const [undoStack, setUndoStack] = useState([])
   const [levelStart, setLevelStart] = useState({
     html: level.starter?.html ?? '',
     css: level.starter?.css ?? '',
   })
+
+  // Messages to the tutor from other cards, and the progress report modal.
+  const [incoming, setIncoming] = useState(null)
+  const [reportOpen, setReportOpen] = useState(false)
 
   const [seconds, setSeconds] = useState(0)
   useEffect(() => {
@@ -51,27 +67,44 @@ export default function WeblabLesson({ user, onExit, onViewSkillTree }) {
     return () => clearInterval(t)
   }, [])
 
+  const bannerTimer = useRef(null)
+  const flash = useCallback((msg, ms = 4000) => {
+    setBanner(msg)
+    clearTimeout(bannerTimer.current)
+    bannerTimer.current = setTimeout(() => setBanner(null), ms)
+  }, [])
+  useEffect(() => () => clearTimeout(bannerTimer.current), [])
+
+  // Proactive nudge after a stretch of inactivity (typing resets the timer).
   const idleRef = useRef(null)
   useEffect(() => {
     clearTimeout(idleRef.current)
-    if (phase !== 'working' || nudge) return
-    idleRef.current = setTimeout(() => setNudge(buildNudge(level)), 18000)
+    if (phase !== 'working' || nudge) return undefined
+    idleRef.current = setTimeout(() => setNudge(buildNudge(level, { html, css })), 18000)
     return () => clearTimeout(idleRef.current)
-  }, [levelId, phase, nudge, level])
+  }, [levelId, phase, nudge, level, html, css])
 
-  // When the active hint step points at a specific file, switch the editor to
-  // that file so the inline arrow is visible on the right tab.
+  // Autosave indicator: edits mark "dirty", then settle to "saved".
+  useEffect(() => {
+    if (saveState.status !== 'dirty') return undefined
+    const t = setTimeout(() => setSaveState({ status: 'saved' }), 1200)
+    return () => clearTimeout(t)
+  }, [saveState])
+
+  // A hint step that points at a file switches the editor to Code + that file.
   useEffect(() => {
     const f = activeStepTarget?.code?.file
-    if (f && f !== activeFile) setActiveFile(f)
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    if (!f) return
+    setTab('code')
+    setActiveFile(f)
   }, [activeStepTarget])
+
+  const markDirty = () => setSaveState({ status: 'dirty' })
 
   function loadLevel(next, reason) {
     setLevelId(next.id)
     setHistory((h) => [...h, next.id])
-    // Determine the code this level starts from: fresh starter if provided,
-    // otherwise the code carried forward from the previous level.
+    // Fresh starter if the level ships one; otherwise carry the code forward.
     const startHtml = next.starter ? (next.starter.html ?? '') : html
     const startCss = next.starter ? (next.starter.css ?? '') : css
     if (next.starter) {
@@ -88,17 +121,26 @@ export default function WeblabLesson({ user, onExit, onViewSkillTree }) {
       advance: 'Great — on to the next skill.',
       retry: 'Give it another go. Check the hint if you need it.',
     }
-    setBanner(labels[reason] ?? null)
-    setTimeout(() => setBanner(null), 4000)
+    if (labels[reason]) flash(labels[reason])
   }
 
-  function run() {
-    setRendered({ html, css })
-    setOutOfDate(false)
+  // Run / Build: check both files, write a build log, refresh the preview on
+  // success. On failure the preview keeps its last good render.
+  async function run() {
+    if (build.status === 'building') return
+    setBuild({ status: 'building', log: ['Starting build…'] })
+    const result = await buildProject({ html, css })
+    setBuild({ status: result.ok ? 'passed' : 'failed', log: result.log })
+    if (result.ok) {
+      setRendered({ html, css })
+      setHasOutput(true)
+      setOutOfDate(false)
+    }
   }
 
   async function submit() {
     setRendered({ html, css })
+    setHasOutput(true)
     setOutOfDate(false)
     setPhase('validating')
     const signal = await validateSubmission(level, { html, css })
@@ -114,20 +156,15 @@ export default function WeblabLesson({ user, onExit, onViewSkillTree }) {
     loadLevel(result.level, result.reason)
   }
 
-  const completedCount = Object.keys(completed).length
-  const totalObjectives = LESSON.objectives.length
-  const timeStr = `${String(Math.floor(seconds / 60)).padStart(2, '0')}:${String(seconds % 60).padStart(2, '0')}`
-  const busy = phase === 'validating' || phase === 'routing'
-
+  // Edits, undo and reset.
   const activeCode = activeFile === 'styles.css' ? css : html
-  const setActiveCode = (val) => {
-    // Snapshot current buffers for undo (cap history to keep memory bounded).
+  function onEdit(val) {
     setUndoStack((st) => [...st.slice(-49), { html, css }])
     if (activeFile === 'styles.css') setCss(val)
     else setHtml(val)
     setOutOfDate(true)
+    markDirty()
   }
-
   function undo() {
     setUndoStack((st) => {
       if (st.length === 0) return st
@@ -135,29 +172,66 @@ export default function WeblabLesson({ user, onExit, onViewSkillTree }) {
       setHtml(prev.html)
       setCss(prev.css)
       setOutOfDate(true)
+      markDirty()
       return st.slice(0, -1)
     })
   }
-
   function resetLevel() {
     setHtml(levelStart.html)
     setCss(levelStart.css)
     setUndoStack([])
     setOutOfDate(true)
+    markDirty()
   }
-
   const canUndo = undoStack.length > 0
   const isDirty = html !== levelStart.html || css !== levelStart.css
-  const lineCount = activeCode.split('\n').length
-  // The active hint step's target (if the student is viewing a hint) takes
-  // priority and auto-shows; otherwise the manual "Show me where" toggle shows
-  // the level's default target.
+
+  // Requirements box: draft code from plain language (undoable).
+  async function generate(text) {
+    if (isDirty && !window.confirm('Generate will replace the code in your editor. You can Undo it afterwards. Continue?')) {
+      return { cancelled: true }
+    }
+    const out = await generateFromRequirements(text)
+    setUndoStack((st) => [...st.slice(-49), { html, css }])
+    setHtml(out.html)
+    setCss(out.css)
+    setOutOfDate(true)
+    markDirty()
+    setTab('code')
+    setActiveFile('index.html')
+    setIncoming({ id: Date.now(), kind: 'say', text: out.summary })
+    return { cancelled: false }
+  }
+  const askFromRequirements = (text) => setIncoming({ id: Date.now(), kind: 'ask', text })
+
+  // Save + Deploy (mock).
+  function save() { setSaveState({ status: 'saved' }); flash('Saved.', 2000) }
+  async function deploy() {
+    if (deployState === 'deploying') return
+    if (build.status !== 'passed') {
+      flash('Press ▶ Run / Build and get a passing build before you deploy.')
+      return
+    }
+    setDeployState('deploying')
+    await sleep(1400)
+    setDeployState('deployed')
+    flash(`Deployed! Your site is live at ${url}`, 6000)
+  }
+
+  const slug = (user?.username || 'you').split('@')[0].toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'you'
+  const url = `codeai.dev/u/${slug}/my-site`
+
+  // Inline guidance: the revealed hint step wins; otherwise the manual toggle.
   const stepCode = activeStepTarget?.code || null
   const stepWeb = activeStepTarget?.web || null
-  const codeTarget = stepCode
+  const codeTarget = tab !== 'code' ? null : stepCode
     ? (stepCode.file === activeFile ? stepCode : null)
     : (showWhere && level.targets?.code?.file === activeFile ? level.targets.code : null)
   const webHighlight = stepWeb || (showWhere ? level.targets?.web : null)
+
+  const completedCount = Object.keys(completed).length
+  const totalObjectives = LESSON.objectives.length
+  const clock = `${String(Math.floor(seconds / 60)).padStart(2, '0')}:${String(seconds % 60).padStart(2, '0')}`
 
   if (phase === 'complete') {
     return (
@@ -170,7 +244,7 @@ export default function WeblabLesson({ user, onExit, onViewSkillTree }) {
             <div><strong>{completedCount}/{totalObjectives}</strong><span>objectives</span></div>
             <div><strong>{mastery ?? 0}</strong><span>mastery</span></div>
             <div><strong>{hintsUsed}</strong><span>hints used</span></div>
-            <div><strong>{timeStr}</strong><span>time on task</span></div>
+            <div><strong>{clock}</strong><span>time on task</span></div>
           </div>
           <button type="button" className="btn btn--primary" onClick={onExit}>Back to dashboard</button>
         </div>
@@ -179,140 +253,97 @@ export default function WeblabLesson({ user, onExit, onViewSkillTree }) {
   }
 
   return (
-    <div className="ca">
-      <header className="ca-topbar">
-        <div className="ca-logo">CODE<span className="ca-logo-tri">∆</span>I</div>
-        <div className="ca-topbar-center">
-          <button type="button" className="ca-pill" onClick={onViewSkillTree}>⛏ View skill tree</button>
-          <button type="button" className="ca-pill ca-pill--project">My Project ☁</button>
+    <div className="wf">
+      <LessonTopBar
+        user={user}
+        completedCount={completedCount}
+        total={totalObjectives}
+        onExit={onExit}
+        onViewSkillTree={onViewSkillTree}
+        saveStatus={saveState.status}
+        onSave={save}
+        deployState={deployState}
+        onDeploy={deploy}
+      />
+
+      {banner && <div className="wf-banner" role="status">{banner}</div>}
+
+      <main className="wf-grid">
+        <div className="wf-col wf-col--left">
+          <LessonPanel
+            lesson={LESSON}
+            level={level}
+            completed={completed}
+            mastery={mastery}
+            hintsUsed={hintsUsed}
+            seconds={seconds}
+            onOpenReport={() => setReportOpen(true)}
+          />
         </div>
-        <div className="ca-topbar-right">
-          <div className="ca-user" onClick={() => setMenuOpen((o) => !o)}>
-            {user?.username || 'Student'} ▾
-            {menuOpen && (
-              <div className="ca-user-menu">
-                <button type="button" onClick={onExit}>Exit to dashboard</button>
-              </div>
-            )}
-          </div>
-          <button type="button" className="ca-icon" aria-label="Help">?</button>
-          <button type="button" className="ca-icon" aria-label="Menu">☰</button>
+
+        <div className="wf-col wf-col--center">
+          <RequirementsBox onGenerate={generate} onAsk={askFromRequirements} />
+          <CodeWorkspace
+            tab={tab}
+            onTab={setTab}
+            activeFile={activeFile}
+            onActiveFile={setActiveFile}
+            files={{ 'index.html': html, 'styles.css': css }}
+            activeCode={activeCode}
+            onChange={onEdit}
+            scrollTop={editorScrollTop}
+            onScroll={setEditorScrollTop}
+            codeTarget={codeTarget}
+            showWhere={showWhere}
+            onToggleWhere={() => setShowWhere((v) => !v)}
+            canUndo={canUndo}
+            onUndo={undo}
+            isDirty={isDirty}
+            onReset={resetLevel}
+            phase={phase}
+            onRun={run}
+            onSubmit={submit}
+            build={build}
+            url={url}
+            saveStatus={saveState.status}
+            deployState={deployState}
+            onShowLog={() => setTab('buildLog')}
+          />
         </div>
-      </header>
 
-      {banner && <div className="ca-banner" role="status">{banner}</div>}
+        <div className="wf-col wf-col--right">
+          <Preview
+            html={rendered.html}
+            css={rendered.css}
+            device={device}
+            onDeviceChange={setDevice}
+            outOfDate={outOfDate}
+            hasOutput={hasOutput}
+            highlight={hasOutput ? webHighlight : null}
+            url={url}
+          />
+          <Tutor
+            level={level}
+            code={{ html, css }}
+            nudge={nudge}
+            onDismissNudge={() => setNudge(null)}
+            onHintRevealed={() => setHintsUsed((n) => n + 1)}
+            onActiveStepTarget={setActiveStepTarget}
+            incoming={incoming}
+          />
+        </div>
+      </main>
 
-      <div className="ca-columns">
-        <Tutor
-          level={level}
-          objectives={LESSON.objectives}
-          completed={completed}
-          mastery={mastery}
-          hintsUsed={hintsUsed}
-          timeStr={timeStr}
-          nudge={nudge}
-          onDismissNudge={() => setNudge(null)}
-          onHintRevealed={() => setHintsUsed((n) => n + 1)}
-          onBackToMap={onExit}
-          onActiveStepTarget={setActiveStepTarget}
-        />
-
-        <main className="ca-workspace">
-          <div className="ca-ws-head">
-            <div className="ca-ws-toggles" role="group" aria-label="Workspace view">
-              <button type="button" className={`ca-ws-toggle ${workspaceView === 'code' ? 'is-active' : ''}`} onClick={() => setWorkspaceView('code')}>&lt;/&gt; Code</button>
-              <button type="button" className={`ca-ws-toggle ${workspaceView === 'preview' ? 'is-active' : ''}`} onClick={() => setWorkspaceView('preview')}>◉ Preview</button>
-              <button type="button" className={`ca-ws-toggle ${workspaceView === 'split' ? 'is-active' : ''}`} onClick={() => setWorkspaceView('split')}>▣ Split View</button>
-            </div>
-            <span className="ca-ws-label">WORKSPACE</span>
-          </div>
-
-          <div className={`ca-ws-body ca-ws-body--${workspaceView}`}>
-            {workspaceView !== 'preview' && (
-              <div className="ca-editor-wrap">
-                <aside className="ca-files">
-                  <div className="ca-files-head">
-                    <span>Files</span>
-                    <span className="ca-files-ctl">+ ⇤</span>
-                  </div>
-                  <ul className="ca-files-list">
-                    {['index.html', 'styles.css'].map((f) => (
-                      <li key={f}>
-                        <button type="button" className={`ca-file ${activeFile === f ? 'is-active' : ''}`} onClick={() => setActiveFile(f)}>📄 {f}</button>
-                      </li>
-                    ))}
-                  </ul>
-                </aside>
-
-                <div className="ca-editor">
-                  <div className="ca-tabs">
-                    {['index.html', 'styles.css'].map((f) => (
-                      <button key={f} type="button" className={`ca-tab ${activeFile === f ? 'is-active' : ''}`} onClick={() => setActiveFile(f)}>
-                        {f} <span className="ca-tab-x">×</span>
-                      </button>
-                    ))}
-                  </div>
-                  <div className="ca-code">
-                    <div className="ca-gutter" aria-hidden="true">
-                      {Array.from({ length: lineCount }, (_, i) => <div key={i}>{i + 1}</div>)}
-                    </div>
-                    <textarea
-                      className="ca-code-area"
-                      aria-label={`${activeFile} editor`}
-                      spellCheck={false}
-                      value={activeCode}
-                      onChange={(e) => setActiveCode(e.target.value)}
-                      onScroll={(e) => setEditorScrollTop(e.target.scrollTop)}
-                    />
-                    {codeTarget && (
-                      <CodeHint code={activeCode} target={codeTarget} scrollTop={editorScrollTop} />
-                    )}
-                  </div>
-                  {codeTarget && <CodeHintCard target={codeTarget} />}
-                  <div className="ca-runbar">
-                    <button type="button" className="ca-btn ca-btn--outline ca-btn--sm" onClick={run} disabled={busy}>▸ Run</button>
-                    <button type="button" className="ca-btn ca-btn--primary ca-btn--sm" onClick={submit} disabled={busy}>
-                      {phase === 'validating' ? 'Checking…' : phase === 'routing' ? 'Finding next step…' : 'Submit & continue'}
-                    </button>
-                    <button
-                      type="button"
-                      className={`ca-btn ca-btn--sm ${showWhere ? 'ca-btn--primary' : 'ca-btn--outline'}`}
-                      onClick={() => setShowWhere((v) => !v)}
-                      aria-pressed={showWhere}
-                    >
-                      {showWhere ? '✓ Showing where' : '📍 Show me where'}
-                    </button>
-                    <span className="ca-runbar-sep" aria-hidden="true" />
-                    <button
-                      type="button"
-                      className="ca-btn ca-btn--ghost ca-btn--sm"
-                      onClick={undo}
-                      disabled={!canUndo || busy}
-                      title="Step back one change"
-                    >
-                      ↶ Undo
-                    </button>
-                    <button
-                      type="button"
-                      className="ca-btn ca-btn--ghost ca-btn--sm"
-                      onClick={() => { if (window.confirm('Clear your changes and start this step from the beginning?')) resetLevel() }}
-                      disabled={!isDirty || busy}
-                      title="Clear your changes and restore the starting code"
-                    >
-                      ⟲ Reset
-                    </button>
-                    {busy && <span className="ca-run-status">{phase === 'validating' ? 'AI is checking your work…' : 'Choosing your next step…'}</span>}
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {workspaceView !== 'code' && (
-              <Preview html={rendered.html} css={rendered.css} onRun={run} outOfDate={outOfDate} highlight={webHighlight} />
-            )}
-          </div>
-        </main>
-      </div>
+      <ProgressReport
+        open={reportOpen}
+        onClose={() => setReportOpen(false)}
+        lesson={LESSON}
+        completed={completed}
+        mastery={mastery}
+        hintsUsed={hintsUsed}
+        timeLabel={clock}
+        levelsVisited={history.length}
+      />
     </div>
   )
 }
