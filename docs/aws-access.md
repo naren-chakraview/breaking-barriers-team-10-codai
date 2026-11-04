@@ -58,6 +58,32 @@ aws cloudformation describe-stacks --stack-name CodeAI-DataStack \
 - **Model ids and the Guardrail id** come from SSM parameters under `SSM_PREFIX` (architecture 2.14),
   not from env values.
 
+### 3.1 One shared Aurora cluster — do not deploy your own
+
+There is exactly one Aurora cluster for the whole team: the one in `CodeAI-DataStack` (deployed
+2026-11-04). Everyone points the backend at that same cluster. **Do not run
+`cdk deploy CodeAI-DataStack` yourself** — only the infra owner deploys it (section 5), and a second
+deploy of the same stack clobbers the first.
+
+To run the backend against the shared cluster, read the ARNs from the stack outputs (command above)
+and put them in your gitignored `.env.local` — never a literal ARN in the repo (ADR-013):
+
+```bash
+# in .env.local
+STORE_MODE=aurora
+AURORA_CLUSTER_ARN=<ClusterArn from CodeAI-DataStack outputs / SSM /codeai/data/cluster-arn>
+AURORA_SECRET_ARN=<SecretArn / SSM /codeai/data/secret-arn>
+AURORA_DATABASE_NAME=codeai
+```
+
+The deployed API Lambda already has these wired (the `ApiStack` sets them and attaches the Data API
+IAM policy), so nothing extra is needed for the deployed path.
+
+**It is shared state.** Everyone's reads and writes land in the same tables, so expect other people's
+rows. For isolated local work prefer `STORE_MODE=json` (no AWS); use `aurora` only when you need the
+real store. Do **not** run the live contract test (`test_aurora_live.py`) against the shared cluster
+casually — it writes synthetic rows (`stu-x`, `teacher-1`).
+
 ## 4. Bootstrap: once for the whole team
 
 **Done on 2026-11-04** (`CDKToolkit` exists in `us-west-2`). Nobody needs to run it again. For the
