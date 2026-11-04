@@ -7,7 +7,8 @@ import { ContractError } from './errors.js'
 export const MODE_VALUES = Object.freeze({
   VITE_SERVICE_MODE: ['mock', 'http'],
   MODEL_MODE: ['stub', 'bedrock'],
-  STORE_MODE: ['json', 'dynamodb'],
+  // 'aurora' is the deployed store (ADR-016); 'json' is the demo-mode adapter and the default.
+  STORE_MODE: ['json', 'aurora'],
 })
 
 export const MODE_DEFAULTS = Object.freeze({
@@ -20,7 +21,7 @@ export const MODE_DEFAULTS = Object.freeze({
  * Read the three switches from an env-like object and fail loudly on a typo.
  * A silent fallback to a default here would hide a misconfigured deploy.
  * @param {Record<string, string | undefined>} [env]
- * @returns {{ serviceMode: 'mock'|'http', modelMode: 'stub'|'bedrock', storeMode: 'json'|'dynamodb' }}
+ * @returns {{ serviceMode: 'mock'|'http', modelMode: 'stub'|'bedrock', storeMode: 'json'|'aurora' }}
  */
 export function resolveModes(env = {}) {
   const pick = (name) => {

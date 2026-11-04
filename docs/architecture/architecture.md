@@ -1020,6 +1020,10 @@ session on 2026-11-04 and are **Proposed** until the team reviews them.
   budget.
 - **Alternatives:** WAF. Real authentication.
 - **Consequences:** A bounded worst case at low cost. Real authentication stays in the full roadmap.
+- **Aurora note (ADR-016):** Aurora is the most expensive item in the account, so the demo default is
+  `STORE_MODE=json` and the Aurora cluster is scale-to-zero. Deploy it when needed and tear it down
+  after the demo. If a live demo must hit Aurora, the 0.5-ACU floor avoids the resume delay at the cost
+  of always-on spend; set a teardown reminder either way.
 
 ### ADR-013: Configuration in SSM Parameter Store, secrets in Secrets Manager, nothing in the repo
 - **Status:** Proposed. **Date:** 2026-11-04.
@@ -1054,6 +1058,44 @@ session on 2026-11-04 and are **Proposed** until the team reviews them.
   a fallback if AWS access never works. The cost is discipline: contract changes need a coordinated PR,
   and stubs must be kept honest by running the same contract tests against them.
 
+### ADR-015: Python for the backend domain core and store; front end stays JavaScript
+- **Status:** Proposed. **Date:** 2026-11-04.
+- **Context:** The customer technical document lists Python as a permitted language and Rails as the
+  production framework; the customer confirmed Python is acceptable in place of Rails. Amending the
+  backend-language half of ADR-010 (which assumed JS Lambdas).
+- **Decision:** The backend domain core (`shared/core/`) and the store adapters (`backend/store/`) are
+  Python. The front end stays React 18 + Vite + JavaScript (C-30 unchanged). CDK stays TypeScript
+  (ADR-010 for infra is unaffected). The merged contract **schemas** in `shared/contracts/schemas/` are
+  language-neutral JSON Schema and remain the single source of truth; Python validates against them with
+  `jsonschema`, the JS side with Ajv. The front-end mock keeps a JS implementation of the domain core.
+- **Alternatives:** Keep the whole backend in JS (less aligned with the customer stack). Rewrite the
+  merged JS contract layer in Python (throws away working, tested code).
+- **Consequences:** Two implementations of `route()` and the feature extractor exist — Python for the
+  backend, JS for the front-end mock — but both are validated against one set of schemas and fixtures,
+  so they cannot drift in shape. CI gains a Python job (pytest) alongside the JS job. This supersedes the
+  Lambda-language part of ADR-010; ADR-010's CDK-in-TypeScript decision stands.
+
+### ADR-016: Aurora as the system of record
+- **Status:** Proposed. **Date:** 2026-11-04.
+- **Context:** The customer technical document states "Aurora is the system of record" (Aurora-compatible
+  SQL, accessed from the application tier). This outranks the earlier DynamoDB default, because the
+  customer technical document sits high in the C-1 precedence order. The account has a $500 cap and the
+  design favours scale-to-zero.
+- **Decision:** Student state lives in **Aurora Serverless v2 (PostgreSQL), scale-to-zero, accessed via
+  the RDS Data API**. The C-8 tables map to SQL tables (they were always snake_case). The store seam is
+  unchanged: the repository interface already abstracts storage, so only the adapter changes
+  (`aurora-repository`), and `STORE_MODE` gains `aurora` while `json` stays the demo default. The Data
+  API means no connection pooling, no VPC access for Lambdas, and no DB password in anyone's hands (IAM
+  plus a Secrets Manager secret).
+- **Alternatives:** DynamoDB on-demand (cheaper at rest, but not the customer's system of record).
+  Aurora Serverless v2 with a 0.5-ACU floor (no resume delay, but always-on cost). Provisioned Aurora
+  (always-on, least aligned with sustainability).
+- **Consequences:** Honors the customer preference and keeps the relational model. The tradeoff is a
+  resume delay on the first query after idle, which can touch the 10 s adaptive budget (C-22) in a demo
+  that sits idle; if a live demo must hit Aurora, switch to the 0.5-ACU floor and set a teardown
+  reminder. Aurora is the most expensive item in the account, so the demo default stays `STORE_MODE=json`
+  and Aurora is the deployed, proven path. Spend protection in ADR-012 gains an Aurora note.
+
 ### ADR template
 
 ```
@@ -1075,3 +1117,4 @@ session on 2026-11-04 and are **Proposed** until the team reviews them.
 | 2026-11-04 | #11 | Redacted the AWS account id. Added 2.14 Configuration and secrets, ADR-013, and Task 4.5. |
 | 2026-11-04 | #11 | Added 11 diagrams (safety, validator, routing, checkpoint status, fallback, Passive pipeline, personas, help ladder, stacks and CI/CD, demo scenes, secrets). Fixed a syntax error in the system context diagram. All 15 diagrams parse. |
 | 2026-11-04 | #11 | Added 1.8 Seams, contracts and modes, ADR-014, and Task 0.5, to support parallel work by component with integration checkpoints. |
+| 2026-11-04 | (domain core PR) | Added ADR-015 (Python backend) and ADR-016 (Aurora system of record). Noted C-30 governs the front end only. Aurora note on ADR-012. The 2.9 Database and 2.11 IaC rewrites and the data-model diagram come in the Aurora data PR. |
