@@ -23,6 +23,17 @@ for them.
 
 ## What's here
 
+- [`docs/customer/vision-document.md`](./docs/customer/vision-document.md) and
+  [`docs/customer/technical-document.md`](./docs/customer/technical-document.md) —
+  CodeAI's original vision and technical environment documents for the adaptive
+  learning engine MVP, as shared with hackathon teams.
+- [`docs/platform/requirements.md`](./docs/platform/requirements.md) — the platform
+  requirements (source of truth), with functional and Well-Architected
+  non-functional requirements.
+- [`docs/platform/sequence-diagrams.md`](./docs/platform/sequence-diagrams.md) —
+  agent interaction and intervention flows for those requirements.
+- [`docs/constraints/implementation-constraints.md`](./docs/constraints/implementation-constraints.md) —
+  binding implementation rules (`C-1` to `C-38`) for building against those requirements.
 - [`wireframe-design.md`](./wireframe-design.md) — the wireframe design for the
   learning interface, including the full layout and a component reference.
 - [`teacher-view-design.md`](./teacher-view-design.md) — the teacher's view of a
