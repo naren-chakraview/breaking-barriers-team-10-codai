@@ -81,7 +81,7 @@ dependency in the whole plan (C-17), and they need no code.
 | A | Preflight done, CI green, DataStack synths | DataStack deployed (or JSON store chosen), config helpers | Guardrail and SSM parameters deployed, model IAM | Observability stack and alarms | Deploy pipeline (stretch), docs current |
 | B | `route`, evidence, tree loader, Passive features and rules, all tested | Fallback logic used by the API | Support | Persona regression tests | Fixes only |
 | C | Schemas, validator logic, safety module and `invoke` wrapper against stubs | Prompts v1, golden-set runner | Real Bedrock calls, Guardrail wired in, verify, generate and validate | Passive reasoner with cache, tutor | Kappa gate on `main` |
-| D | Handler skeleton on stubs | Submit orchestration, JSON and DynamoDB adapters, contract tests green | Real `invoke` wired in, throttling and per-student cap | Teacher endpoints | `GET /health`, hardening |
+| D | Handler skeleton on stubs | Submit orchestration, JSON and Aurora adapters, contract tests green | Real `invoke` wired in, throttling and per-student cap | Teacher endpoints | `GET /health`, hardening |
 | E | Tree, workspace and preview on mock services | HTTP service implementations and the mode switch | Prompt flow with real responses and hints | "Why" panels | Polish |
 | F | Roster with rule-based chips and persona fixtures on mocks | Replay control | Hold and assign over HTTP | Live chips and the redirect nudge | Demo director and recording |
 | G | Ratings started, red-team strings | 8 or more ratings | 15 or more ratings | Persona scripts | Voiceover script |
@@ -136,9 +136,9 @@ never stalls the others.
 - [ ] One `curl` to `POST /steps/{id}/submit` returns evidence, next checkpoint and the reason, with
   `MODEL_MODE=stub`
 - [ ] `step_attempt`, `routing_decision` and `fallback_event` rows are written through the store
-- [ ] The store contract suite passes on the JSON adapter, and on DynamoDB if Task 0 allowed a deploy
+- [ ] The store contract suite passes on the JSON adapter, and on Aurora if Task 0 allowed a deploy
 - [ ] The UI can flip `VITE_SERVICE_MODE=http` for the non-model calls
-- Fallback if missed: stay on the JSON adapter and run the API locally. Revisit DynamoDB after IC3.
+- Fallback if missed: stay on the JSON adapter and run the API locally. Revisit Aurora after IC3.
 
 **IC3: Real models and safety** · Target: ~65% · Clock time: ____ · Integrator: ____
 - [ ] `MODEL_MODE=bedrock` runs one real prompt through verify, generate and validate
@@ -303,19 +303,20 @@ Owner: ____ · Serves: C-1, C-36
 Owner: ____ · Serves: C-5, C-6, C-9 to C-12, C-18 to C-20 · Discrepancy items 7, 9 · Architecture: 2.6
 
 - [ ] `shared/` module (plain JS ESM with JSDoc types)
-- [ ] Tree loader and validator for `database/sample-skilltree.json`
-- [ ] Monotonic evidence per skill (max observed, never decreases)
-- [ ] Display-only 0 to 100 score (`round(100 × level / max)`)
-- [ ] `route(tree, progress, evidence, teacherInput)` returns `{ checkpointId, reason }`
-- [ ] Available = not completed and every `requires` is completed or tested out
-- [ ] Skippable test-out after `intro` (`steer-it`, `use-the-lingo`, `give-context`)
-- [ ] Largest skill gap wins, ties go to JSON order
-- [ ] Teacher `hold` and `assign` (assign only if available)
-- [ ] Returned ids verified to exist in the tree (C-20)
-- [ ] Default target 1 when a checkpoint has no `targetEvidenceLevels` (C-12)
+- [x] Tree loader and validator for `database/sample-skilltree.json` (`shared/core/tree.py`)
+- [x] Monotonic evidence per skill (max observed, never decreases)
+- [x] Display-only 0 to 100 score (`round(100 × level / max)`)
+- [x] `route(tree, progress, evidence, teacherInput)` returns `{ checkpointId, reason }`
+- [x] Available = not completed and every `requires` is completed or tested out
+- [x] Skippable test-out after `intro` (`steer-it`, `use-the-lingo`, `give-context`)
+- [x] Largest skill gap wins, ties go to JSON order
+- [x] Teacher `hold` and `assign` (assign only if available; unavailable -> proposal, C-19 open q)
+- [x] Returned ids verified to exist in the tree (C-20)
+- [x] Default target 1 when a checkpoint has no `targetEvidenceLevels` (C-12)
+- Note: built in **Python** (ADR-015); the front-end mock keeps the JS implementation.
 
 **Tests:** table-driven, one case per C-19 rule, plus the id-exists check.
-**Demo:** `npm test` prints routing decisions with reasons.
+**Demo:** `pytest shared/core` -> 33 passing. (Done in PR #14.)
 
 ### Task 3: Validator contract and eval harness (MVP)
 Owner: ____ · Serves: C-13 to C-17, P-19 · Discrepancy items 8, 16 · Architecture: 2.5
@@ -338,18 +339,24 @@ Track: C builds the schema, judge and metrics. Track G does the human ratings.
 fallback paths. **Demo:** the eval prints three agreement numbers on fixtures.
 
 ### Task 4: CDK app and DataStack (MVP)
-Owner: ____ · Serves: C-8, C-38, P-13 · Discrepancy item 3 · Architecture: 2.9, 2.11 · Blocked by: Task 0
+Owner: ____ · Serves: C-8, C-38, P-13 · Discrepancy item 3 · Architecture: 2.9, 2.11 · ADR-016
 
-- [ ] CDK app skeleton (TypeScript), stacks by concern
-- [ ] `DataStack`: the C-8 tables plus `passive_signal`, on-demand, KMS, point-in-time recovery
-- [ ] JSON-file adapter for demo mode with the same shapes
-- [ ] cdk-nag and `cdk synth` in CI
-- [ ] `database/data-model.mmd` gains the student-state tables
+- [x] CDK app skeleton (TypeScript) in `infra/`, stacks by concern
+- [x] `DataStack`: Aurora Serverless v2 (PostgreSQL, scale-to-zero, Data API) + KMS; C-8 schema as SQL
+  (`infra/schema.sql`) including `passive_signal`, `hint_event`, `teacher_input`
+- [x] JSON-file adapter for demo mode with the same shapes (`backend/store/json_repository.py`)
+- [x] Aurora adapter over the Data API (`backend/store/aurora_repository.py`)
+- [x] cdk-nag runs on synth (0 findings; suppressions carry written reasons)
+- [x] `database/data-model.mmd` gains the student-state tables (discrepancy item 3)
+- [x] `cdk synth` verified locally (template produced, scale-to-zero + Data API + KMS confirmed)
 - [ ] `cdk bootstrap` for `us-west-2` (**needs explicit confirmation first; creates IAM roles**)
-- [ ] First deploy of `DataStack` (if Task 0 allows)
+- [ ] First deploy of `DataStack` (not done this session; code-and-synth only)
+- [ ] CDK assertion tests (`infra` test script present; assertions still to write)
+- [ ] Run the store contract suite against a live cluster after deploy
 
-**Tests:** CDK assertion tests for tables and encryption. **Demo:** synth passes in CI; deploy if
-permitted.
+**Tests:** `pytest backend/store` -> JSON adapter passes the contract suite; Aurora adapter SQL/param
+mapping tested with a fake Data API client. **Demo:** `cdk synth` produces the template; deploy when
+confirmed. (Done in the Aurora data PR; bootstrap/deploy pending your go-ahead.)
 
 ### Task 4.5: Configuration and secrets (MVP)
 Owner: ____ · Serves: P-13.4, C-26, C-38 · ADR-013 · Architecture: 2.14 · Blocked by: Task 4

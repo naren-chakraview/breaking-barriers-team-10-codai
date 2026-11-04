@@ -81,7 +81,7 @@ flowchart LR
     INV --> BR[("Amazon Bedrock<br/>Haiku 4.5, Sonnet 4.5<br/>Guardrail")]
     API --> ROUTE["route pure function"]
     API --> PAS["Passive"]
-    API --> DDB[("DynamoDB, KMS")]
+    API --> DDB[("Aurora Serverless v2<br/>PostgreSQL, Data API, KMS")]
     API --> OBS["CloudWatch logs, metrics,<br/>X-Ray and OTEL, alarms"]
   end
   TREE[("sample-skilltree.json<br/>bundled with the API")] --> API
@@ -147,7 +147,7 @@ instead (section 2.6, C-22).
 | CDK not bootstrapped in `us-west-2` (`CDKToolkit` absent) | Verified |
 | `us.` Haiku 4.5 and Sonnet 4.5 inference profiles are listed | Verified (listed only) |
 | Model invocation actually allowed | **Unverified** (smoke test pending) |
-| Role can create IAM roles, Lambda, DynamoDB, Guardrail, CloudFormation stacks | **Unverified** (IAM simulation pending) |
+| Role can create IAM roles, Lambda, Aurora/RDS, Guardrail, CloudFormation, SSM, Secrets Manager, KMS | Verified allowed (2026-11-04 IAM simulation) |
 | Who is notified when the budget trips | **Unverified** |
 
 ### 1.8 Seams, contracts and modes
@@ -165,7 +165,7 @@ several people build different components at the same time (see the parallel wor
 | 1 | Services API | UI and backend | The eight `src/services/` functions and the C-29 HTTP shapes, including the error shape | Mock services (today's `engine.js`) | The same response-shape tests run against the mock and the HTTP handlers |
 | 2 | Domain core | Backend and mock, and `shared/core` | `route`, `applyEvidence`, `extractFeatures`, `ruleSignal`, tree loader | None needed: it is pure and is built first. Until it lands, consumers use a stub that returns the first available checkpoint | Table-driven tests, one case per C-19 rule |
 | 3 | Model access | Backend and AI components | `invoke(task, prompt, opts)`, `screenInput`, `screenOutput`, `validateProject`, `reasonPassive`, plus the JSON Schemas for the validator output (C-16) and the Passive signal | `invoke` returns canned outputs by task from fixtures: valid, invalid JSON, low confidence, blocked | Every stub and real output is checked against its schema |
-| 4 | Store | Backend and data | A repository interface: `getProgress`, `upsertProgress`, `appendEvidence`, `saveAttempt`, `getHistory`, `writeRoutingDecision`, `writeFallbackEvent`, `writePassiveSignal`, `listStudents`, `getTeacherConfig` | JSON-file adapter (demo mode, C-8) | One suite runs against both the JSON and the DynamoDB adapter |
+| 4 | Store | Backend and data | A repository interface: `getProgress`, `upsertProgress`, `appendEvidence`, `saveAttempt`, `getHistory`, `writeRoutingDecision`, `writeFallbackEvent`, `writePassiveSignal`, `listStudents`, `getTeacherConfig` | JSON-file adapter (demo mode, C-8) | One suite runs against both the JSON and the Aurora adapter |
 | 5 | Config and secrets | Every Lambda and AWS | `getConfig(name)`, `getSecret(name)` (2.14) | Environment variables or a local JSON file | Missing-value and cache tests |
 
 **Modes.** Three switches choose stub or real, so a half-finished component never blocks a demo:
@@ -563,8 +563,11 @@ copied into JS (C-6). The relational reference model is `database/data-model.mmd
 (`SKILL_TREE`, `SKILL`, `SKILL_EVIDENCE_LEVEL`, `CHECKPOINT`, `CHECKPOINT_REQUIRES`,
 `CHECKPOINT_TARGET`, `STEP`, `MEASURE`). IDs are the JSON string slugs (C-5).
 
-**Student state** (snake_case, C-8) lives in DynamoDB, or a JSON file in demo mode. The shapes are the
-contract either way.
+**Student state** (snake_case, C-8) lives in **Aurora Serverless v2 (PostgreSQL)**, or a JSON file in
+demo mode (ADR-016). Aurora is the customer's system of record. The shapes are the contract either way:
+the repository interface (seam 4) abstracts the store, so `STORE_MODE=json` (demo default) and
+`STORE_MODE=aurora` (deployed) are the same code behind different adapters. The SQL schema is
+`infra/schema.sql`; the adapters are in `backend/store/` (Python, ADR-015).
 
 ```mermaid
 erDiagram
@@ -658,11 +661,18 @@ erDiagram
 | `passive_signal` | **New.** Added by this design (see "Edits to constraints" below). |
 | `teacher_config` | `answer_timeout_seconds` defaults to 180. |
 
-**DynamoDB layout (proposed):** partition key `student_id` on every student table, with a sort key of
-the form `<kind>#<id>#<timestamp>` so a student's history is one query. A sparse GSI on open
-`remediation_flag` rows by severity feeds the teacher roster. `passive_signal` has a lookup on
-`features_hash` for the cache. On-demand billing, KMS encryption, point-in-time recovery. The tables are
-small, so a single-table design is not needed.
+**Aurora layout (ADR-016, built in `infra/DataStack`):** one PostgreSQL table per entity, matching the
+C-8 snake_case columns one to one (`infra/schema.sql`). Indexes: `step_attempt` and the event tables by
+`(student_id, created_at)` for a student's history; a partial index on open `remediation_flag` rows for
+the teacher roster; `passive_signal` on `(student_id, features_hash, prompt_version)` for the cache.
+The cluster is **Aurora Serverless v2, scale-to-zero** (min 0 ACU, auto-pause 5 min, max 2 ACU),
+reached via the **RDS Data API** so Lambdas need no VPC attachment, no connection pool, and no DB
+password (IAM + a KMS-encrypted Secrets Manager secret). Storage is KMS-encrypted. The schema is
+applied by a migration the backend runs on first deploy, not by CDK, so schema changes do not force a
+stack update. Tradeoff: a resume delay on the first query after idle (see ADR-016).
+
+**DynamoDB (superseded):** earlier drafts proposed DynamoDB on-demand. ADR-016 replaced it with Aurora
+to match the customer's stated system of record; `STORE_MODE` dropped `dynamodb` for `aurora`.
 
 **Edits to constraints** this design depends on, made explicitly in the PR that first needs them:
 - C-8: add the `passive_signal` table, and add `passive` to `fallback_event.component`.
@@ -698,12 +708,15 @@ small, so a single-table design is not needed.
   environment, never the repo), stacks by concern:
   `DataStack`, `AgentsSafetyStack` (Guardrail plus pinned version, model Lambdas, IAM), `ApiStack`,
   `ObservabilityStack`, and later `WebStack` and `PipelineStack` (ADR-007).
-- Lambda handlers are plain JS ESM. Shared logic (routing, scoring, schemas) lives in `shared/` and is
-  imported by the backend and the front-end mock.
-- cdk-nag runs on synth. Runtime roles are separate per function and least-privilege.
-- **CI (GitHub Actions, no AWS credentials needed):** lint, unit tests, front-end build, `cdk synth`,
-  cdk-nag. Persona regression tests run against the rule baseline. The golden-set kappa gate runs on
-  `main` only, to limit model spend.
+- The backend (domain core and store adapters) is Python (ADR-015); the infra/CDK is TypeScript
+  (ADR-010). The pure domain logic lives in `shared/core/` (Python) and is validated against the same
+  `shared/contracts/` schemas the front-end mock uses.
+- `DataStack` provisions Aurora Serverless v2 (scale-to-zero, Data API) and the KMS key (ADR-016).
+  cdk-nag runs on synth, with each suppression carrying a written reason. Runtime roles are separate per
+  function and least-privilege; Lambdas reach Aurora via `grantDataApiAccess`, not a VPC path.
+- **CI (GitHub Actions, no AWS credentials needed):** JS job (lint, Vitest, front-end build, `cdk synth`,
+  cdk-nag) and a Python job (`pytest` for `shared/core` and `backend/store`). Persona regression tests
+  run against the rule baseline. The golden-set kappa gate runs on `main` only, to limit model spend.
 - **CD:** deploy through CDK Pipelines with a manual approval is a stretch. The fallback is a GitHub
   Actions deploy using an OIDC role. Rollback is redeploying the previous commit.
 - Workflow follows CONTRIBUTING.md: short branches, one review, squash merge. Feature freeze at
@@ -714,7 +727,7 @@ small, so a single-table design is not needed.
 ```mermaid
 flowchart LR
   subgraph Stacks["CDK stacks"]
-    D["DataStack<br/>tables, KMS"] --> AS["AgentsSafetyStack<br/>Guardrail, model Lambdas, IAM"]
+    D["DataStack<br/>Aurora, KMS"] --> AS["AgentsSafetyStack<br/>Guardrail, model Lambdas, IAM"]
     D --> API["ApiStack<br/>REST API, handlers"]
     AS --> API
     D --> OBS["ObservabilityStack<br/>dashboard, alarms"]
@@ -796,7 +809,7 @@ Anything that varies by environment or that we may need to change lives in AWS.
 | API base URL | Public config | `VITE_API_BASE_URL` in the front end | Anything `VITE_` is public by design (C-26) |
 | Demo API key (usage plan) | Identifier, **not a secret** | API Gateway | It ships in the browser. Treat it as public. Protection comes from throttling and the per-student cap (ADR-012) |
 | JWT signing key, third-party tokens | Secret | Secrets Manager | Only needed with real authentication (FULL, Task 19) |
-| Password hashes | Data | DynamoDB, salted one-way hash (P-13.4) | Not a secrets-store item |
+| Password hashes | Data | Aurora, salted one-way hash (P-13.4) | Not a secrets-store item |
 | GitHub connection for CDK Pipelines | Managed | AWS CodeConnections | Authorized by hand in the console |
 
 ```mermaid
@@ -1118,3 +1131,4 @@ session on 2026-11-04 and are **Proposed** until the team reviews them.
 | 2026-11-04 | #11 | Added 11 diagrams (safety, validator, routing, checkpoint status, fallback, Passive pipeline, personas, help ladder, stacks and CI/CD, demo scenes, secrets). Fixed a syntax error in the system context diagram. All 15 diagrams parse. |
 | 2026-11-04 | #11 | Added 1.8 Seams, contracts and modes, ADR-014, and Task 0.5, to support parallel work by component with integration checkpoints. |
 | 2026-11-04 | (domain core PR) | Added ADR-015 (Python backend) and ADR-016 (Aurora system of record). Noted C-30 governs the front end only. Aurora note on ADR-012. The 2.9 Database and 2.11 IaC rewrites and the data-model diagram come in the Aurora data PR. |
+| 2026-11-04 | (Aurora data PR) | Rewrote 2.9 Database and 2.11 IaC for Aurora + Python; replaced DynamoDB references with Aurora; marked Task 0 IAM/model checks verified; updated database/data-model.mmd with the C-8 student-state tables (discrepancy item 3). Added the `infra/` CDK DataStack (synth-verified, 0 nag findings) and the `backend/store/` adapters. |

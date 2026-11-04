@@ -74,3 +74,106 @@ erDiagram
         varchar question_name
         json evidence_map
     }
+
+    %% ---- Student-state tables (C-8). Physical store: Aurora PostgreSQL (ADR-016),
+    %% or a JSON file in demo mode. snake_case columns; see infra/schema.sql. ----
+    STUDENT ||--o{ STUDENT_SKILL_EVIDENCE : has
+    STUDENT ||--o{ STEP_ATTEMPT : makes
+    STUDENT ||--o{ CHECKPOINT_PROGRESS : has
+    STUDENT ||--o{ REMEDIATION_FLAG : "may have"
+    STUDENT ||--o{ ROUTING_DECISION : "routed by"
+    STUDENT ||--o{ FALLBACK_EVENT : "may trigger"
+    STUDENT ||--o{ PASSIVE_SIGNAL : "assessed by"
+    STUDENT ||--o{ HINT_EVENT : "shown"
+    STUDENT ||--|| TEACHER_INPUT : "has"
+    SKILL ||--o{ STUDENT_SKILL_EVIDENCE : "measured as"
+    STEP ||--o{ STEP_ATTEMPT : "attempted as"
+    CHECKPOINT ||--o{ CHECKPOINT_PROGRESS : "tracked as"
+
+    STUDENT {
+        varchar student_id PK
+        varchar display_name
+        boolean synthetic
+    }
+    STUDENT_SKILL_EVIDENCE {
+        bigint id PK
+        varchar student_id FK
+        varchar skill_id FK
+        int level
+        varchar source_step_id
+        timestamptz created_at
+    }
+    STEP_ATTEMPT {
+        varchar attempt_id PK
+        varchar student_id FK
+        varchar step_id FK
+        text input_text
+        varchar project_snapshot_ref
+        int evidence_level
+        float confidence
+        timestamptz created_at
+    }
+    CHECKPOINT_PROGRESS {
+        varchar student_id FK
+        varchar checkpoint_id FK
+        varchar status
+        timestamptz updated_at
+    }
+    REMEDIATION_FLAG {
+        bigint id PK
+        varchar student_id FK
+        varchar skill_id FK
+        text reason
+        varchar severity
+        timestamptz created_at
+        timestamptz resolved_at
+    }
+    ROUTING_DECISION {
+        varchar decision_id PK
+        varchar student_id FK
+        varchar proposed_checkpoint_id
+        json teacher_input
+        varchar applied_checkpoint_id
+        text reason
+        timestamptz created_at
+    }
+    FALLBACK_EVENT {
+        bigint id PK
+        varchar student_id FK
+        varchar step_id
+        varchar component
+        text error
+        timestamptz created_at
+    }
+    PASSIVE_SIGNAL {
+        varchar signal_id PK
+        varchar student_id FK
+        varchar signal
+        varchar hint_style
+        varchar angle_to_try
+        text reason
+        json evidence_refs
+        float confidence
+        varchar features_hash
+        varchar model_id
+        varchar prompt_version
+        timestamptz created_at
+    }
+    HINT_EVENT {
+        varchar hint_id PK
+        varchar student_id FK
+        varchar step_id
+        varchar style
+        varchar angle
+        timestamptz created_at
+    }
+    TEACHER_INPUT {
+        varchar student_id PK
+        varchar mode
+        varchar checkpoint_id
+        timestamptz updated_at
+    }
+    TEACHER_CONFIG {
+        varchar teacher_id PK
+        int answer_timeout_seconds
+    }
