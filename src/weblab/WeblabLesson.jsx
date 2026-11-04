@@ -1,7 +1,10 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { LESSON, FIRST_LEVEL_ID, getLevel } from './courseData.js'
-import { validateSubmission, routeNextLevel, buildNudge } from './engine.js'
-import { buildProject, generateFromRequirements } from './tools.js'
+import { routeNextLevel, buildNudge } from './engine.js'
+import { buildProject } from './tools.js'
+import { useServices } from '../services/ServicesContext.jsx'
+import { adaptTree, adaptSubmit } from '../services/treeAdapter.js'
+import SourceBadge from '../services/SourceBadge.jsx'
 import LessonTopBar from './LessonTopBar.jsx'
 import LessonPanel from './LessonPanel.jsx'
 import RequirementsBox from './RequirementsBox.jsx'
@@ -18,9 +21,42 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms))
 //   left     — lesson + objectives + "My outcomes"
 //   center   — requirements box, then Code / Files / Build log + status strip
 //   right    — live preview, then the AI Tutor
+const COURSE_ID = 'hoai2026-adaptive'
+
 export default function WeblabLesson({ user, onExit, onViewSkillTree }) {
+  const services = useServices()
   const [levelId, setLevelId] = useState(FIRST_LEVEL_ID)
   const level = getLevel(levelId)
+
+  // Content + progress sourced from the services layer (seam 1). The editor
+  // scaffolding (starter code, inline hints, build log) stays UI-local because
+  // seam 1 has no equivalent for it; the graded actions below go through services.
+  const [tree, setTree] = useState(null)          // adapted TreeResponse
+  const [loadingTree, setLoadingTree] = useState(true)
+  const [loadError, setLoadError] = useState(null)
+  // The seam-1 step the current editor level maps to. Seeded from getTree.current,
+  // then advanced by each submitStep response's `next`.
+  const [stepRef, setStepRef] = useState({ checkpointId: 'steer-it', stepId: 'steer-it-project' })
+  // Latest source/notice/fallback to surface in the badge.
+  const [serviceStatus, setServiceStatus] = useState({ source: null, notice: null, fallbackActive: false })
+
+  useEffect(() => {
+    let alive = true
+    setLoadingTree(true)
+    services
+      .getTree({ courseId: COURSE_ID })
+      .then((res) => {
+        if (!alive) return
+        const adapted = adaptTree(res)
+        setTree(adapted)
+        if (adapted.current) setStepRef(adapted.current)
+        setServiceStatus({ source: adapted.source, notice: null, fallbackActive: adapted.fallbackActive })
+        setLoadError(null)
+      })
+      .catch((err) => { if (alive) setLoadError(err?.message || 'Could not load the lesson.') })
+      .finally(() => { if (alive) setLoadingTree(false) })
+    return () => { alive = false }
+  }, [services])
 
   // Code buffers (carried forward across levels) and editor view state.
   const [html, setHtml] = useState(level.starter?.html ?? '')
@@ -144,10 +180,43 @@ export default function WeblabLesson({ user, onExit, onViewSkillTree }) {
     setHasOutput(true)
     setOutOfDate(false)
     setPhase('validating')
-    const signal = await validateSubmission(level, { html, css })
-    setMastery(signal.score)
-    if (signal.passing) setCompleted((c) => ({ ...c, [level.objectiveId]: true }))
+
+    // Send the submission through the services layer (seam 1) instead of the
+    // local engine. Project steps submit as kind 'prompt' with the current code.
+    let res
+    try {
+      const raw = await services.submitStep({
+        stepId: stepRef.stepId,
+        courseId: COURSE_ID,
+        checkpointId: stepRef.checkpointId,
+        kind: 'prompt',
+        text: `Submission for ${level.title}`,
+        project: { html, css, js: '' },
+      })
+      res = adaptSubmit(raw)
+    } catch (err) {
+      setPhase('working')
+      flash(err?.message || 'We could not check your work just now — your code is safe. Try again.', 6000)
+      return
+    }
+
+    // masteryDisplay is display-only (C-11): show it verbatim, never decreasing.
+    if (typeof res.mastery === 'number') setMastery(res.mastery)
+    if (res.completed) setCompleted((c) => ({ ...c, [level.objectiveId]: true }))
+    setServiceStatus({ source: res.source, notice: res.notice, fallbackActive: res.outcome === 'fallback' })
+
+    // A 'blocked' submission did not score: keep the student on this step.
+    if (res.outcome === 'blocked') {
+      setPhase('working')
+      return
+    }
+    // For 'fallback' we still continue along the standard path (next target).
+    if (res.next) setStepRef({ checkpointId: res.next.checkpointId, stepId: res.next.stepId })
+
     setPhase('routing')
+    // The editor scaffolding is UI-local, so the local router still chooses which
+    // starter/hint level to show next; the service response drives grading above.
+    const signal = { objectiveId: level.objectiveId, passing: res.completed || typeof res.mastery === 'number', score: res.mastery ?? 0 }
     const result = await routeNextLevel(level, signal, history)
     if (result.reason === 'complete') {
       setPhase('complete')
@@ -187,23 +256,78 @@ export default function WeblabLesson({ user, onExit, onViewSkillTree }) {
   const canUndo = undoStack.length > 0
   const isDirty = html !== levelStart.html || css !== levelStart.css
 
-  // Requirements box: draft code from plain language (undoable).
+  // Requirements box: draft code from plain language (undoable). Routed through the
+  // services layer: verify the prompt first (P-7.1), then generate (P-7.2) only if
+  // the verifier says it is clear enough.
   async function generate(text) {
     if (isDirty && !window.confirm('Generate will replace the code in your editor. You can Undo it afterwards. Continue?')) {
       return { cancelled: true }
     }
-    const out = await generateFromRequirements(text)
+    let verify
+    try {
+      verify = await services.verifyPrompt({
+        courseId: COURSE_ID,
+        checkpointId: stepRef.checkpointId,
+        stepId: stepRef.stepId,
+        prompt: text,
+      })
+    } catch (err) {
+      setIncoming({ id: Date.now(), kind: 'say', text: err?.message || 'The verifier is unavailable right now. Try again shortly.' })
+      return { cancelled: true }
+    }
+    setServiceStatus((s) => ({ ...s, source: verify.source, notice: verify.notice }))
+    if (verify.verdict === 'needs_narrowing') {
+      // Do NOT generate: show the narrowing guidance in the tutor and stop.
+      setIncoming({ id: Date.now(), kind: 'say', text: verify.guidance })
+      return { cancelled: true }
+    }
+
+    let gen
+    try {
+      gen = await services.generate({
+        courseId: COURSE_ID,
+        checkpointId: stepRef.checkpointId,
+        stepId: stepRef.stepId,
+        prompt: text,
+        project: { html, css, js: '' },
+      })
+    } catch (err) {
+      setIncoming({ id: Date.now(), kind: 'say', text: err?.message || 'Code generation is unavailable right now. Your text is still here.' })
+      return { cancelled: true }
+    }
+    setServiceStatus((s) => ({ ...s, source: gen.source, notice: gen.notice }))
+    if (!gen.project) {
+      setIncoming({ id: Date.now(), kind: 'say', text: gen.explanation || 'No code was generated this time.' })
+      return { cancelled: true }
+    }
     setUndoStack((st) => [...st.slice(-49), { html, css }])
-    setHtml(out.html)
-    setCss(out.css)
+    setHtml(gen.project.html ?? '')
+    setCss(gen.project.css ?? '')
     setOutOfDate(true)
     markDirty()
     setTab('code')
     setActiveFile('index.html')
-    setIncoming({ id: Date.now(), kind: 'say', text: out.summary })
+    setIncoming({ id: Date.now(), kind: 'say', text: gen.explanation })
     return { cancelled: false }
   }
   const askFromRequirements = (text) => setIncoming({ id: Date.now(), kind: 'ask', text })
+
+  // Tutor question routed through the services layer (seam 1). Returns the reply
+  // text; a local hint still accompanies it so the step-by-step guidance works.
+  const askTutorService = useCallback(async (question) => {
+    try {
+      const res = await services.askTutor({
+        courseId: COURSE_ID,
+        checkpointId: stepRef.checkpointId,
+        stepId: stepRef.stepId,
+        question,
+      })
+      setServiceStatus((s) => ({ ...s, source: res.source, notice: res.notice ?? s.notice }))
+      return { reply: res.answer, hint: level.hint }
+    } catch (err) {
+      return { reply: err?.message || 'The tutor is unavailable right now. Try again shortly.', hint: null }
+    }
+  }, [services, stepRef, level.hint])
 
   // Save + Deploy (mock).
   function save() { setSaveState({ status: 'saved' }); flash('Saved.', 2000) }
@@ -269,6 +393,16 @@ export default function WeblabLesson({ user, onExit, onViewSkillTree }) {
 
       {banner && <div className="wf-banner" role="status">{banner}</div>}
 
+      <div className="wf-banner-wrap" aria-live="polite">
+        {loadingTree && <div className="wf-banner" role="status">Loading your lesson…</div>}
+        {loadError && <div className="wf-banner" role="alert">{loadError}</div>}
+        <SourceBadge
+          source={serviceStatus.source}
+          notice={serviceStatus.notice}
+          fallbackActive={serviceStatus.fallbackActive}
+        />
+      </div>
+
       <main className="wf-grid">
         <div className="wf-col wf-col--left">
           <LessonPanel
@@ -331,6 +465,7 @@ export default function WeblabLesson({ user, onExit, onViewSkillTree }) {
             onHintRevealed={() => setHintsUsed((n) => n + 1)}
             onActiveStepTarget={setActiveStepTarget}
             incoming={incoming}
+            onAsk={askTutorService}
           />
         </div>
       </main>

@@ -19,6 +19,7 @@ export default function Tutor({
   onHintRevealed,
   onActiveStepTarget,
   incoming,
+  onAsk,
 }) {
   const [messages, setMessages] = useState([INTRO])
   const [input, setInput] = useState('')
@@ -65,7 +66,9 @@ export default function Tutor({
     if (!q || thinking) return
     setMessages((m) => [...m, { role: 'student', text: q }])
     setThinking(true)
-    const res = await askTutor(level, q, code)
+    // Route through the services layer when a handler is provided (lesson flow);
+    // otherwise fall back to the local engine (standalone use).
+    const res = onAsk ? await onAsk(q, code) : await askTutor(level, q, code)
     setThinking(false)
     setMessages((m) => [...m, { role: 'tutor', text: res.reply }])
     if (res.hint) startHint(res.hint)
