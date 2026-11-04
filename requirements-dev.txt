@@ -2,4 +2,5 @@
 # Pinned exact for reproducible CI. Install in a venv:
 #   python -m venv .venv && . .venv/bin/activate && pip install -r requirements-dev.txt
 jsonschema==4.23.0
+referencing==0.36.2
 pytest==8.3.4
