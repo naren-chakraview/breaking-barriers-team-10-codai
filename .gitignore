@@ -25,3 +25,6 @@ __pycache__/
 .pytest_cache/
 .cdk.staging/
 cdk.out/
+
+# CDK lookup cache: holds the AWS account id, which stays out of the repo (ADR-013)
+infra/cdk.context.json

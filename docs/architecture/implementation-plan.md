@@ -348,13 +348,14 @@ Owner: ____ · Serves: C-8, C-38, P-13 · Discrepancy item 3 · Architecture: 2.
 - [x] `database/data-model.mmd` carries the student-state tables (discrepancy item 3; data track's
   version is authoritative after PR #13, my duplicate block removed)
 - [x] `cdk synth` verified locally (template produced, scale-to-zero + Data API + KMS confirmed)
-- [ ] Schema of record is `database/schema.sql` (PR #13, data track), applied by a migration runner
-  (still to build)
+- [ ] Schema of record is `database/schema.sql` (PR #13, data track), loaded with `database/seed.sql` by
+  the `DbLoader` custom resource in `DataStack` (built and synth-verified; untested until the first deploy)
 - [ ] **Aurora store adapter — DEFERRED** until Task 4.6 (schema reconciliation) is done.
   `database/schema.sql` uses INTEGER student ids and a different teacher-input model than the contract
   records (see `backend/store/README.md`).
-- [ ] `cdk bootstrap` for `us-west-2` (**needs explicit confirmation first; creates IAM roles**)
-- [ ] First deploy of `DataStack` (not done this session; code-and-synth only)
+- [x] `cdk bootstrap` for `us-west-2` (run 2026-11-04 with the user's go-ahead)
+- [x] First deploy of `DataStack` (2026-11-04): Aurora PostgreSQL 16.13, schema and master data loaded and
+  checked through the Data API
 - [ ] CDK assertion tests (`infra` test script present; assertions still to write)
 
 **Tests:** `pytest backend/store` -> JSON adapter passes the contract suite. **Demo:** `cdk synth`
@@ -396,19 +397,23 @@ built, because the adapter maps one to the other. Pick a resolution per row, upd
 record it in an ADR. Until then the backend runs on `JsonRepository` (STORE_MODE=json), which satisfies
 the whole contract with no AWS.
 
-| Mismatch | `database/schema.sql` | Contract record | Decide |
+| Mismatch | `database/schema.sql` | Contract record | Decision (ADR-017) |
 |---|---|---|---|
-| Student id type | `StudentId` INTEGER, FK to `STUDENT_PROFILE` | `studentId` string (`stu-quick`) | One type. If INTEGER wins, the API/services map slugs to ids at the edge; if string wins, the schema changes |
-| Column case | lowercase (Postgres folds unquoted ids) | camelCase records | Confirm the adapter maps lowercase result columns to camelCase |
-| Teacher input | `ROUTING_DECISION.TeacherInput` enum + `TeacherId` FK | a `teacher_input` record + JSON on the decision | One model for hold/assign persistence |
-| `synthetic` flag | not present | `student.synthetic` (demo personas) | Add a column, or carry it outside the DB |
-| Evidence range | `Level` 0..4 (competence scale) | 0..max per skill (build 2, language 3, debug 3) | Confirm the mapping; display-only 0-100 is separate (C-11) |
-| Proposed tables | `HINT_EVENT`, `PASSIVE_SIGNAL` present; no `TEACHER_INPUT` | `hint_event`, `passive_signal`, `teacher_input` | Confirm the C-8 edit covers the final set |
+| Student id type | `StudentId` INTEGER, FK to `STUDENT_PROFILE` | `studentId` string (`stu-quick`) | **String wins.** `StudentId` and `TeacherId` are TEXT everywhere. No id mapping at the edge |
+| Column case | lowercase (Postgres folds unquoted ids) | camelCase records | **Keep unquoted names.** Every column is the record key in lower case, so the adapter maps with `key.lower()`. Renamed `Name` to `DisplayName`, `HintEventId` to `HintId`, `HintStyle` to `Style` on `HINT_EVENT` |
+| Teacher input | `ROUTING_DECISION.TeacherInput` enum + `TeacherId` FK | a `teacher_input` record + JSON on the decision | **Contract wins.** New `TEACHER_INPUT` table holds the standing hold or assign. `ROUTING_DECISION.TeacherInput` is a JSONB snapshot `{mode, checkpointId}`. `ROUTING_DECISION.TeacherId` removed |
+| `synthetic` flag | not present | `student.synthetic` (demo personas) | **Column added:** `STUDENT_PROFILE.Synthetic` BOOLEAN, default false |
+| Evidence range | `Level` 0..4 (competence scale) | 0..max per skill (build 2, language 3, debug 3) | **0..3 in the student tables**, per-skill maximum checked at runtime (C-9). The 0..4 competence scale stays only on the master-data `STUDENT` table |
+| Proposed tables | `HINT_EVENT`, `PASSIVE_SIGNAL` present; no `TEACHER_INPUT` | `hint_event`, `passive_signal`, `teacher_input` | **All three, plus `student`**, added to C-8 |
+| Skill id (not in the original list) | `SkillId` INTEGER on evidence and flags | `skillId` slug (`build`) | **Slug wins.** `SKILLS.Slug` added; student tables reference `SKILLS (Slug)` |
 
 - [ ] One decision per row above, agreed by the data track and the store-adapter owner
-- [ ] Update the losing side (schema, contracts, or both) in one coordinated PR
-- [ ] Make the C-8 edit for any agreed new tables/columns (ties in with Task 8a)
-- [ ] Write an ADR recording the student-id decision (it has the widest blast radius)
+  (decisions proposed in ADR-017 by the data track; needs the store-adapter owner's sign-off on the PR)
+- [x] Update the losing side (schema, contracts, or both) in one coordinated PR. The schema lost every
+  row; the contracts are unchanged. Every seeded row validates against `records.schema.json` after the
+  `key.lower()` mapping (checked on PostgreSQL 16, not on Aurora)
+- [x] Make the C-8 edit for any agreed new tables/columns (ties in with Task 8a)
+- [x] Write an ADR recording the student-id decision (it has the widest blast radius): ADR-017
 - [ ] Then build the Aurora adapter against the agreed shape and run the store contract suite against a
   live cluster (unblocks Task 4's deferred item)
 
@@ -677,3 +682,4 @@ are done inside these tasks. Tick them there as well.
 | 2026-11-04 | #11 | Redacted the AWS account id. Added Task 4.5 (config and secrets), secret-scanning items in Task 1, and SSM/Secrets Manager checks in Task 0. |
 | 2026-11-04 | #11 | Replaced the sequential dependency graph with a parallel work plan: seven tracks, six integration checkpoints (IC0 to IC5) and Task 0.5 (contracts and stubs). |
 | 2026-11-04 | #16 | Added Task 4.6 (reconcile the store schema with the contracts), which blocks the Aurora adapter after the PR #13 schema merge. MVP task count 18 -> 19. |
+| 2026-11-04 | (Task 4.6 PR) | Resolved the Task 4.6 mismatches in favour of the contracts (ADR-017): string student ids, skill slugs, `TEACHER_INPUT`, `Synthetic`, 0..3 evidence. Schema, seed and data model updated; C-8 edited. |

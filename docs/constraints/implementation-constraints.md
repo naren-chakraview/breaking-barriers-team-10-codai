@@ -68,10 +68,16 @@ the services in C-28.
 | `checkpoint_progress` | student_id, checkpoint_id, status (`locked`, `available`, `current`, `completed`, `tested_out`), updated_at |
 | `remediation_flag` | student_id, skill_id, reason, severity, created_at, resolved_at |
 | `routing_decision` | decision_id, student_id, proposed_checkpoint_id, teacher_input, applied_checkpoint_id, reason, created_at |
-| `fallback_event` | student_id, step_id, component (`validation`, `routing`, `generation`, `safety`), error, created_at |
+| `fallback_event` | student_id, step_id, component (`validation`, `routing`, `generation`, `safety`, `passive`), error, created_at |
 | `teacher_config` | teacher_id, answer_timeout_seconds (DEFAULT 180) |
+| `student` | student_id, display_name, synthetic (added by Task 4.6; `STUDENT_PROFILE` in SQL) |
+| `passive_signal` | signal_id, student_id, signal, hint_style, angle_to_try, reason, evidence_refs, confidence, features_hash, model_id, prompt_version, created_at (added by Task 4.6) |
+| `hint_event` | hint_id, student_id, step_id, style, angle, created_at (added by Task 4.6) |
+| `teacher_input` | student_id, mode (`auto`, `hold`, `assign`), checkpoint_id, updated_at (added by Task 4.6) |
 
-Storage: DynamoDB or a JSON file in demo mode; the shapes above are the contract either way.
+Storage: Aurora PostgreSQL (`database/schema.sql`, ADR-016) or a JSON file in demo mode; the shapes
+above are the contract either way. Student and teacher ids are strings and skill ids are slugs
+(ADR-017). In SQL each column is the record key in lower case (`student_id` here is `studentid` there).
 
 ---
 

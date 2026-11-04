@@ -3,7 +3,7 @@
 This is the one place that chooses real vs stub for each seam, so the handlers stay oblivious
 to which is live:
 
-  STORE_MODE : json | aurora   -> backend/store (aurora deferred)
+  STORE_MODE : json | aurora   -> backend/store (aurora adapter not built yet; schema reconciled, ADR-017)
   MODEL_MODE : stub | bedrock  -> StubModel here; bedrock is injected by Track C
 
 The domain core (shared/core, Track B) is imported directly — it is a merged dependency.

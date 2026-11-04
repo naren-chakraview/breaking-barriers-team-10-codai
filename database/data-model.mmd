@@ -31,6 +31,8 @@ erDiagram
     STEP ||--o{ STUDENT_SKILL_EVIDENCE : "source of"
 
     %% Transactional state (architecture 2.9). Master data above, student state below.
+    %% Shapes match shared/contracts/schemas/records.schema.json (Task 4.6, ADR-017):
+    %% string student ids, skills referenced by slug, column = record key in lower case.
     STUDENT_PROFILE ||--o{ STUDENT_SKILL_EVIDENCE : "has"
     SKILLS ||--o{ STUDENT_SKILL_EVIDENCE : "measured as"
     STUDENT_PROFILE ||--o{ STEP_ATTEMPT : "makes"
@@ -42,7 +44,8 @@ erDiagram
     STUDENT_PROFILE ||--o{ PASSIVE_SIGNAL : "is assessed by"
     STUDENT_PROFILE ||--o{ HINT_EVENT : "receives"
     TEACHER ||--|| TEACHER_CONFIG : "sets"
-    TEACHER ||--o{ ROUTING_DECISION : "may override"
+    STUDENT_PROFILE ||--o| TEACHER_INPUT : "is held or assigned by"
+    CHECKPOINT ||--o{ TEACHER_INPUT : "assigned in"
 
     COURSE {
         int CourseId PK
@@ -51,6 +54,7 @@ erDiagram
     SKILLS {
         int SkillId PK
         int CourseId FK
+        varchar Slug UK "stable string id, e.g. build"
         varchar Title
         text Description
         text LessonObjective
@@ -135,11 +139,12 @@ erDiagram
         text Descriptor
     }
     STUDENT_PROFILE {
-        int StudentId PK
-        varchar Name
+        varchar StudentId PK "string id, e.g. stu-quick"
+        varchar DisplayName
+        boolean Synthetic "true for demo personas"
     }
     STUDENT {
-        int StudentId FK
+        varchar StudentId FK
         int SkillId FK
         int CompetenceLevel FK
         int McqScore
@@ -147,47 +152,47 @@ erDiagram
         datetime UpdatedAt
     }
     STUDENT_ENROLLED_COURSES {
-        int StudentId FK
+        varchar StudentId FK
         int CourseId FK
     }
 
     TEACHER {
-        int TeacherId PK
-        varchar Name
+        varchar TeacherId PK
+        varchar DisplayName
     }
     TEACHER_CONFIG {
-        int TeacherId PK, FK
+        varchar TeacherId PK, FK
         int AnswerTimeoutSeconds "default 180"
     }
     STUDENT_SKILL_EVIDENCE {
-        int EvidenceId PK
-        int StudentId FK
-        int SkillId FK
-        int Level "append-only, skill level is the max observed"
+        int EvidenceId PK "internal"
+        varchar StudentId FK
+        varchar SkillId FK "SKILLS.Slug"
+        int Level "0 to 3, append-only, skill level is the max observed"
         varchar SourceStepId FK "step slug"
         datetime CreatedAt
     }
     STEP_ATTEMPT {
         varchar AttemptId PK
-        int StudentId FK
+        varchar StudentId FK
         varchar StepId FK "step slug"
         text InputText "restricted and encrypted"
         varchar ProjectSnapshotRef
-        int EvidenceLevel
+        int EvidenceLevel "0 to 3"
         float Confidence "0 to 1"
         varchar PromptVersion "prompt hash"
         datetime CreatedAt
     }
     CHECKPOINT_PROGRESS {
-        int StudentId FK
+        varchar StudentId FK
         varchar CheckpointId FK "checkpoint slug"
         varchar Status "locked, available, current, completed or tested_out"
         datetime UpdatedAt
     }
     REMEDIATION_FLAG {
-        int FlagId PK
-        int StudentId FK
-        int SkillId FK
+        int FlagId PK "internal"
+        varchar StudentId FK
+        varchar SkillId FK "SKILLS.Slug"
         varchar Reason
         varchar Severity "normal or high"
         datetime CreatedAt
@@ -195,17 +200,16 @@ erDiagram
     }
     ROUTING_DECISION {
         varchar DecisionId PK
-        int StudentId FK
-        int TeacherId FK "set when a teacher held or assigned"
+        varchar StudentId FK
         varchar ProposedCheckpointId FK
-        varchar TeacherInput "auto, hold or assign"
+        json TeacherInput "snapshot of mode and checkpointId"
         varchar AppliedCheckpointId FK
         text Reason
         datetime CreatedAt
     }
     FALLBACK_EVENT {
-        int FallbackEventId PK
-        int StudentId FK
+        int FallbackEventId PK "internal"
+        varchar StudentId FK
         varchar StepId FK "step slug"
         varchar Component "validation, routing, generation, safety or passive"
         text Error
@@ -213,7 +217,7 @@ erDiagram
     }
     PASSIVE_SIGNAL {
         varchar SignalId PK
-        int StudentId FK
+        varchar StudentId FK
         varchar Signal "speed_up, slow_down, redirect, reengage or steady"
         varchar HintStyle "guiding_question, example, analogy or step_by_step"
         varchar AngleToTry
@@ -221,15 +225,21 @@ erDiagram
         text EvidenceRefs "JSON array"
         float Confidence "0 to 1"
         varchar FeaturesHash "cache lookup key"
-        varchar ModelId "null when rule-based"
+        varchar ModelId "rules when rule-based"
         varchar PromptVersion
         datetime CreatedAt
     }
     HINT_EVENT {
-        int HintEventId PK
-        int StudentId FK
+        varchar HintId PK
+        varchar StudentId FK
         varchar StepId FK "step slug"
-        varchar HintStyle
+        varchar Style "guiding_question, example, analogy or step_by_step"
         varchar Angle "explanation angle used"
         datetime CreatedAt
+    }
+    TEACHER_INPUT {
+        varchar StudentId PK, FK
+        varchar Mode "auto, hold or assign"
+        varchar CheckpointId FK "required for assign"
+        datetime UpdatedAt
     }
