@@ -1,0 +1,56 @@
+{
+  "_comment": "Demo seed for the local JSON store (STORE_PATH). Mirrors the four personas in shared/contracts/fixtures/services/responses.json so the live backend (VITE_SERVICE_MODE=http) serves the same roster the mock stub does. Demo-only synthetic data (C-33).",
+  "students": [
+    { "studentId": "stu-quick", "displayName": "Quick Quinn", "synthetic": true },
+    { "studentId": "stu-slow", "displayName": "Steady Sam", "synthetic": true },
+    { "studentId": "stu-detail", "displayName": "Detail Dana", "synthetic": true },
+    { "studentId": "stu-away", "displayName": "Drifting Drew", "synthetic": true }
+  ],
+  "evidence": [
+    { "studentId": "stu-quick", "skillId": "build", "level": 2, "sourceStepId": "steer-it-project", "createdAt": "2026-11-04T10:03:00Z" },
+    { "studentId": "stu-quick", "skillId": "language", "level": 2, "sourceStepId": "use-the-lingo-project", "createdAt": "2026-11-04T10:05:00Z" },
+    { "studentId": "stu-quick", "skillId": "debug", "level": 2, "sourceStepId": "give-context-project", "createdAt": "2026-11-04T10:07:00Z" },
+
+    { "studentId": "stu-slow", "skillId": "build", "level": 1, "sourceStepId": "steer-it-project", "createdAt": "2026-11-04T09:20:00Z" },
+    { "studentId": "stu-slow", "skillId": "language", "level": 1, "sourceStepId": "use-the-lingo-project", "createdAt": "2026-11-04T09:22:00Z" },
+
+    { "studentId": "stu-detail", "skillId": "build", "level": 2, "sourceStepId": "steer-it-project", "createdAt": "2026-11-04T13:20:00Z" },
+    { "studentId": "stu-detail", "skillId": "language", "level": 1, "sourceStepId": "use-the-lingo-project", "createdAt": "2026-11-04T13:22:00Z" },
+    { "studentId": "stu-detail", "skillId": "debug", "level": 1, "sourceStepId": "give-context-project", "createdAt": "2026-11-04T13:24:00Z" }
+  ],
+  "progress": [
+    { "studentId": "stu-quick", "checkpointId": "intro", "status": "completed" },
+    { "studentId": "stu-quick", "checkpointId": "steer-it", "status": "tested_out" },
+    { "studentId": "stu-quick", "checkpointId": "use-the-lingo", "status": "tested_out" },
+    { "studentId": "stu-quick", "checkpointId": "keep-or-redirect", "status": "current" },
+
+    { "studentId": "stu-slow", "checkpointId": "intro", "status": "completed" },
+    { "studentId": "stu-slow", "checkpointId": "steer-it", "status": "current" },
+
+    { "studentId": "stu-detail", "checkpointId": "intro", "status": "completed" },
+    { "studentId": "stu-detail", "checkpointId": "steer-it", "status": "current" },
+
+    { "studentId": "stu-away", "checkpointId": "intro", "status": "completed" },
+    { "studentId": "stu-away", "checkpointId": "steer-it", "status": "current" }
+  ],
+  "flags": [
+    { "studentId": "stu-slow", "skillId": "build", "reason": "Five attempts below target on steer-it-project.", "severity": "high", "createdAt": "2026-11-04T09:29:05Z", "resolvedAt": null }
+  ],
+  "passive": [
+    { "studentId": "stu-quick", "signal": "speed_up", "hintStyle": "guiding_question", "reason": "Level 2 on all skills, first-try success, no hints.", "confidence": 0.86, "createdAt": "2026-11-04T10:09:05Z" },
+    { "studentId": "stu-slow", "signal": "slow_down", "hintStyle": "step_by_step", "reason": "Repeated misses; example and analogy already tried.", "confidence": 0.78, "createdAt": "2026-11-04T09:29:10Z" },
+    { "studentId": "stu-detail", "signal": "redirect", "hintStyle": "guiding_question", "reason": "Target reached, then repeated color and font edits with flat evidence.", "confidence": 0.74, "createdAt": "2026-11-04T13:33:05Z" },
+    { "studentId": "stu-away", "signal": "reengage", "hintStyle": "guiding_question", "reason": "Low-effort submits with long gaps between them; inferred from content and timing only.", "confidence": 0.55, "createdAt": "2026-11-04T12:10:05Z" }
+  ],
+  "routing": [
+    { "decisionId": "dec-quick-01", "studentId": "stu-quick", "proposedCheckpointId": "keep-or-redirect", "teacherInput": { "mode": "auto" }, "appliedCheckpointId": "keep-or-redirect", "reason": "steer-it and use-the-lingo tested out by diagnostic evidence; keep-or-redirect is first available.", "createdAt": "2026-11-04T10:03:00Z" },
+    { "decisionId": "dec-slow-01", "studentId": "stu-slow", "proposedCheckpointId": "steer-it", "teacherInput": { "mode": "auto" }, "appliedCheckpointId": "steer-it", "reason": "steer-it is the current checkpoint and still available; staying on it (depth not volume).", "createdAt": "2026-11-04T09:05:10Z" }
+  ],
+  "teacherInput": [
+    { "studentId": "stu-quick", "mode": "auto", "checkpointId": null, "updatedAt": "2026-11-04T10:03:00Z" },
+    { "studentId": "stu-slow", "mode": "auto", "checkpointId": null, "updatedAt": "2026-11-04T09:05:10Z" },
+    { "studentId": "stu-detail", "mode": "hold", "checkpointId": null, "updatedAt": "2026-11-04T13:33:05Z" },
+    { "studentId": "stu-away", "mode": "auto", "checkpointId": null, "updatedAt": "2026-11-04T12:10:05Z" }
+  ],
+  "teacherConfig": []
+}
