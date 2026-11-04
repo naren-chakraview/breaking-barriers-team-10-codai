@@ -5,6 +5,7 @@ import { Aspects } from 'aws-cdk-lib'
 import { AwsSolutionsChecks } from 'cdk-nag'
 import { DataStack } from '../lib/data-stack'
 import { ApiStack } from '../lib/api-stack'
+import { GuardrailStack } from '../lib/guardrail-stack'
 
 // Account and region come from the environment at synth time, never the repo (ADR-013).
 // Set CDK_DEFAULT_ACCOUNT / CDK_DEFAULT_REGION (the CLI does this from your AWS session),
@@ -26,6 +27,11 @@ new ApiStack(app, 'CodeAI-ApiStack', {
   env,
   description:
     'CodeAI REST API (C-29): routes, throttling, usage plan, placeholder handlers until Tasks 6/7.',
+})
+
+new GuardrailStack(app, 'CodeAI-GuardrailStack', {
+  env,
+  description: 'CodeAI Bedrock Guardrail for K-12 content safety (C-25, P-18).',
 })
 
 // cdk-nag runs on every synth (architecture 2.11). Findings are surfaced, not silently passed.
