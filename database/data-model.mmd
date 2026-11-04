@@ -1,78 +1,237 @@
 erDiagram
-    SKILL_TREE ||--o{ CHECKPOINT : contains
-    SKILL_TREE ||--o{ SKILL : defines
+    COURSE ||--o{ SKILLS : "has"
+    SKILLS ||--o{ MCQ_QUESTIONS : "assessed by"
+    SKILLS ||--o{ LEARNING_EXAMPLES : "illustrated by"
+    SKILLS ||--o{ STUDENT : "tracked per"
+    SKILLS ||--o{ SKILL_TIER_CONTENT : "delivered as"
+    SKILLS ||--o{ SKILL_RUBRIC_CRITERIA : "scored by"
+    SKILLS ||--o{ SKILL_LEVEL_DESCRIPTOR : "described per level by"
+    COMPETENCE_LEVELS_MASTER ||--o{ STUDENT : "level of"
+    COMPETENCE_LEVELS_MASTER ||--o{ SKILL_LEVEL_DESCRIPTOR : "describes"
+    STUDENT_PROFILE ||--o{ STUDENT : "progress of"
+    STUDENT_PROFILE ||--o{ STUDENT_ENROLLED_COURSES : "enrolls in"
+    COURSE ||--o{ STUDENT_ENROLLED_COURSES : "enrolled by"
 
-    SKILL ||--o{ SKILL_EVIDENCE_LEVEL : "has rubric"
-
-    CHECKPOINT ||--o{ CHECKPOINT_REQUIRES : "prereq of"
-    CHECKPOINT ||--o{ CHECKPOINT_REQUIRES : "required by"
+    %% Course structure: checkpoints and steps. Ids are the string slugs from
+    %% sample-skilltree.json (C-5), not integers.
+    COURSE ||--o{ CHECKPOINT : "contains"
+    CHECKPOINT ||--o{ CHECKPOINT_REQUIRES : "has prerequisite"
+    CHECKPOINT ||--o{ CHECKPOINT_REQUIRES : "is prerequisite of"
     CHECKPOINT ||--o{ CHECKPOINT_TARGET : "targets skill at"
-    SKILL ||--o{ CHECKPOINT_TARGET : "targeted by"
+    SKILLS ||--o{ CHECKPOINT_TARGET : "targeted by"
     CHECKPOINT ||--o{ STEP : "made up of"
-
+    SKILLS ||--o{ STEP : "validated against"
     STEP ||--o{ MEASURE : "scores"
-    SKILL ||--o{ MEASURE : "measured by"
+    SKILLS ||--o{ MEASURE : "measured by"
+    STEP ||--o{ STEP_ATTEMPT : "attempted as"
+    CHECKPOINT ||--o{ CHECKPOINT_PROGRESS : "tracked as"
+    CHECKPOINT ||--o{ ROUTING_DECISION : "proposed or applied in"
+    STEP ||--o{ HINT_EVENT : "hinted on"
+    STEP ||--o{ FALLBACK_EVENT : "failed on"
+    STEP ||--o{ STUDENT_SKILL_EVIDENCE : "source of"
 
-    SKILL_TREE {
-        varchar tree_id PK
-        int format_version
-        varchar title
-        text objective
-        varchar map_layout
-        varchar project_template_level
-        text project_description
+    %% Transactional state (architecture 2.9). Master data above, student state below.
+    STUDENT_PROFILE ||--o{ STUDENT_SKILL_EVIDENCE : "has"
+    SKILLS ||--o{ STUDENT_SKILL_EVIDENCE : "measured as"
+    STUDENT_PROFILE ||--o{ STEP_ATTEMPT : "makes"
+    STUDENT_PROFILE ||--o{ CHECKPOINT_PROGRESS : "has"
+    STUDENT_PROFILE ||--o{ REMEDIATION_FLAG : "may have"
+    SKILLS ||--o{ REMEDIATION_FLAG : "raised on"
+    STUDENT_PROFILE ||--o{ ROUTING_DECISION : "is routed by"
+    STUDENT_PROFILE ||--o{ FALLBACK_EVENT : "may trigger"
+    STUDENT_PROFILE ||--o{ PASSIVE_SIGNAL : "is assessed by"
+    STUDENT_PROFILE ||--o{ HINT_EVENT : "receives"
+    TEACHER ||--|| TEACHER_CONFIG : "sets"
+    TEACHER ||--o{ ROUTING_DECISION : "may override"
+
+    COURSE {
+        int CourseId PK
+        varchar CourseTitle
     }
-    SKILL {
-        varchar skill_id PK
-        varchar tree_id FK
-        varchar title
-        text description
-        varchar icon
+    SKILLS {
+        int SkillId PK
+        int CourseId FK
+        varchar Title
+        text Description
+        text LessonObjective
     }
-    SKILL_EVIDENCE_LEVEL {
-        varchar skill_id FK
-        int level
-        text descriptor
+    COMPETENCE_LEVELS_MASTER {
+        int LevelId PK
+        varchar LevelName
+        text Rubric
+        int ThresholdInMCQ
+    }
+    MCQ_QUESTIONS {
+        int QuestionId PK
+        int SkillId FK
+        text MCQQuestion
+        text PossibleAnswers
+        varchar CorrectAnswer
+    }
+    LEARNING_EXAMPLES {
+        int ExampleId PK
+        int SkillId FK
+        blob Example
+    }
+    SKILL_TIER_CONTENT {
+        int TierContentId PK
+        int SkillId FK
+        varchar Tier "core, support or depth"
+        varchar Title
+        text Instructions
+        text StarterCode
+        text Hints
+    }
+    SKILL_RUBRIC_CRITERIA {
+        int CriterionId PK
+        int SkillId FK
+        varchar Description
+        decimal Weight "0 to 1, sums to 1 per skill"
+        varchar Method "dom or llm"
+        text CheckSpec "JSON"
     }
     CHECKPOINT {
-        varchar checkpoint_id PK
-        varchar tree_id FK
-        varchar title
-        text description
-        varchar destination
-        boolean skippable
-        boolean route_after_completion
-        int sequence
+        varchar CheckpointId PK "slug"
+        int CourseId FK
+        varchar Title
+        text Description
+        varchar Destination
+        boolean Skippable "can be tested out"
+        boolean RouteAfterCompletion
+        int Sequence "JSON order, used for the linear fallback path"
     }
     CHECKPOINT_REQUIRES {
-        varchar checkpoint_id FK
-        varchar requires_checkpoint_id FK
+        varchar CheckpointId FK
+        varchar RequiresCheckpointId FK
     }
     CHECKPOINT_TARGET {
-        varchar checkpoint_id FK
-        varchar skill_id FK
-        int target_evidence_level
+        varchar CheckpointId FK
+        int SkillId FK
+        int TargetEvidenceLevel "default 1"
     }
     STEP {
-        varchar step_id PK
-        varchar checkpoint_id FK
-        int sequence
-        varchar kind
-        varchar title
-        varchar level_ref
-        boolean is_project
-        text instructions
-        text instructions_prompt
-        json payload
-        text validation_condition
-        varchar validation_skill_id
+        varchar StepId PK "slug"
+        varchar CheckpointId FK
+        int Sequence
+        varchar Kind "panels, multiple choice, project and so on"
+        varchar Title
+        boolean IsProject "project step is validated by the LLM judge"
+        text Instructions
+        text InstructionsPrompt
+        text Payload "JSON"
+        text ValidationCondition
+        int ValidationSkillId FK
     }
     MEASURE {
-        bigint measure_id PK
-        varchar step_id FK
-        varchar skill_id FK
-        varchar question_name
-        json evidence_map
+        int MeasureId PK
+        varchar StepId FK
+        int SkillId FK
+        varchar QuestionName
+        text EvidenceMap "JSON, maps a choice to an evidence level, no model call"
+    }
+    SKILL_LEVEL_DESCRIPTOR {
+        int SkillId FK
+        int LevelId FK
+        text Descriptor
+    }
+    STUDENT_PROFILE {
+        int StudentId PK
+        varchar Name
+    }
+    STUDENT {
+        int StudentId FK
+        int SkillId FK
+        int CompetenceLevel FK
+        int McqScore
+        datetime CreatedAt
+        datetime UpdatedAt
+    }
+    STUDENT_ENROLLED_COURSES {
+        int StudentId FK
+        int CourseId FK
+    }
+
+    TEACHER {
+        int TeacherId PK
+        varchar Name
+    }
+    TEACHER_CONFIG {
+        int TeacherId PK, FK
+        int AnswerTimeoutSeconds "default 180"
+    }
+    STUDENT_SKILL_EVIDENCE {
+        int EvidenceId PK
+        int StudentId FK
+        int SkillId FK
+        int Level "append-only, skill level is the max observed"
+        varchar SourceStepId FK "step slug"
+        datetime CreatedAt
+    }
+    STEP_ATTEMPT {
+        varchar AttemptId PK
+        int StudentId FK
+        varchar StepId FK "step slug"
+        text InputText "restricted and encrypted"
+        varchar ProjectSnapshotRef
+        int EvidenceLevel
+        float Confidence "0 to 1"
+        varchar PromptVersion "prompt hash"
+        datetime CreatedAt
+    }
+    CHECKPOINT_PROGRESS {
+        int StudentId FK
+        varchar CheckpointId FK "checkpoint slug"
+        varchar Status "locked, available, current, completed or tested_out"
+        datetime UpdatedAt
+    }
+    REMEDIATION_FLAG {
+        int FlagId PK
+        int StudentId FK
+        int SkillId FK
+        varchar Reason
+        varchar Severity "normal or high"
+        datetime CreatedAt
+        datetime ResolvedAt
+    }
+    ROUTING_DECISION {
+        varchar DecisionId PK
+        int StudentId FK
+        int TeacherId FK "set when a teacher held or assigned"
+        varchar ProposedCheckpointId FK
+        varchar TeacherInput "auto, hold or assign"
+        varchar AppliedCheckpointId FK
+        text Reason
+        datetime CreatedAt
+    }
+    FALLBACK_EVENT {
+        int FallbackEventId PK
+        int StudentId FK
+        varchar StepId FK "step slug"
+        varchar Component "validation, routing, generation, safety or passive"
+        text Error
+        datetime CreatedAt
+    }
+    PASSIVE_SIGNAL {
+        varchar SignalId PK
+        int StudentId FK
+        varchar Signal "speed_up, slow_down, redirect, reengage or steady"
+        varchar HintStyle "guiding_question, example, analogy or step_by_step"
+        varchar AngleToTry
+        text Reason
+        text EvidenceRefs "JSON array"
+        float Confidence "0 to 1"
+        varchar FeaturesHash "cache lookup key"
+        varchar ModelId "null when rule-based"
+        varchar PromptVersion
+        datetime CreatedAt
+    }
+    HINT_EVENT {
+        int HintEventId PK
+        int StudentId FK
+        varchar StepId FK "step slug"
+        varchar HintStyle
+        varchar Angle "explanation angle used"
+        datetime CreatedAt
     }
 
     %% ---- Student-state tables (C-8). Physical store: Aurora PostgreSQL (ADR-016),
