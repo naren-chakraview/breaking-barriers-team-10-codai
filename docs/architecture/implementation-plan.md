@@ -342,21 +342,24 @@ fallback paths. **Demo:** the eval prints three agreement numbers on fixtures.
 Owner: ____ · Serves: C-8, C-38, P-13 · Discrepancy item 3 · Architecture: 2.9, 2.11 · ADR-016
 
 - [x] CDK app skeleton (TypeScript) in `infra/`, stacks by concern
-- [x] `DataStack`: Aurora Serverless v2 (PostgreSQL, scale-to-zero, Data API) + KMS; C-8 schema as SQL
-  (`infra/schema.sql`) including `passive_signal`, `hint_event`, `teacher_input`
+- [x] `DataStack`: Aurora Serverless v2 (PostgreSQL, scale-to-zero, Data API) + KMS (cluster only)
 - [x] JSON-file adapter for demo mode with the same shapes (`backend/store/json_repository.py`)
-- [x] Aurora adapter over the Data API (`backend/store/aurora_repository.py`)
 - [x] cdk-nag runs on synth (0 findings; suppressions carry written reasons)
-- [x] `database/data-model.mmd` gains the student-state tables (discrepancy item 3)
+- [x] `database/data-model.mmd` carries the student-state tables (discrepancy item 3; data track's
+  version is authoritative after PR #13, my duplicate block removed)
 - [x] `cdk synth` verified locally (template produced, scale-to-zero + Data API + KMS confirmed)
+- [ ] Schema of record is `database/schema.sql` (PR #13, data track), applied by a migration runner
+  (still to build)
+- [ ] **Aurora store adapter — DEFERRED.** `database/schema.sql` uses INTEGER student ids and a
+  different teacher-input model than the contract records; reconcile with the data track first
+  (see `backend/store/README.md`). Follow-up issue.
 - [ ] `cdk bootstrap` for `us-west-2` (**needs explicit confirmation first; creates IAM roles**)
 - [ ] First deploy of `DataStack` (not done this session; code-and-synth only)
 - [ ] CDK assertion tests (`infra` test script present; assertions still to write)
-- [ ] Run the store contract suite against a live cluster after deploy
 
-**Tests:** `pytest backend/store` -> JSON adapter passes the contract suite; Aurora adapter SQL/param
-mapping tested with a fake Data API client. **Demo:** `cdk synth` produces the template; deploy when
-confirmed. (Done in the Aurora data PR; bootstrap/deploy pending your go-ahead.)
+**Tests:** `pytest backend/store` -> JSON adapter passes the contract suite. **Demo:** `cdk synth`
+produces the template; deploy when confirmed. (Aurora data PR; adapter deferred, bootstrap/deploy
+pending your go-ahead.)
 
 ### Task 4.5: Configuration and secrets (MVP)
 Owner: ____ · Serves: P-13.4, C-26, C-38 · ADR-013 · Architecture: 2.14 · Blocked by: Task 4

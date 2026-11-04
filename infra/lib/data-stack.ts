@@ -15,8 +15,9 @@ import { Construct } from 'constructs'
  * attachment, no DB password in code). The admin credential lives in a KMS-encrypted
  * Secrets Manager secret; callers use IAM + the secret ARN.
  *
- * The C-8 tables are created as SQL (see schema.sql), applied by a one-off migration the
- * backend runs on first deploy — not by CDK, so schema changes do not require a stack update.
+ * The schema of record is `database/schema.sql` (owned by the data track), applied by a
+ * one-off migration the backend runs on first deploy — not by CDK, so schema changes do not
+ * require a stack update. This stack provisions the cluster only, not the tables.
  */
 export class DataStack extends cdk.Stack {
   public readonly cluster: rds.DatabaseCluster

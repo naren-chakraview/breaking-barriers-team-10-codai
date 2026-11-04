@@ -563,11 +563,13 @@ copied into JS (C-6). The relational reference model is `database/data-model.mmd
 (`SKILL_TREE`, `SKILL`, `SKILL_EVIDENCE_LEVEL`, `CHECKPOINT`, `CHECKPOINT_REQUIRES`,
 `CHECKPOINT_TARGET`, `STEP`, `MEASURE`). IDs are the JSON string slugs (C-5).
 
-**Student state** (snake_case, C-8) lives in **Aurora Serverless v2 (PostgreSQL)**, or a JSON file in
-demo mode (ADR-016). Aurora is the customer's system of record. The shapes are the contract either way:
-the repository interface (seam 4) abstracts the store, so `STORE_MODE=json` (demo default) and
-`STORE_MODE=aurora` (deployed) are the same code behind different adapters. The SQL schema is
-`infra/schema.sql`; the adapters are in `backend/store/` (Python, ADR-015).
+**Student state** (C-8) lives in **Aurora Serverless v2 (PostgreSQL)**, or a JSON file in demo mode
+(ADR-016). Aurora is the customer's system of record. The repository interface (seam 4) abstracts the
+store. The SQL schema of record is `database/schema.sql` (owned by the data track); the demo-mode
+`JsonRepository` is built in `backend/store/` (Python, ADR-015). The `STORE_MODE=aurora` adapter is
+**deferred**: `database/schema.sql` uses INTEGER student ids and a different teacher-input model than
+the contract records, so the mapping is a reconciliation the data track owns (see
+`backend/store/README.md`).
 
 ```mermaid
 erDiagram
@@ -661,15 +663,15 @@ erDiagram
 | `passive_signal` | **New.** Added by this design (see "Edits to constraints" below). |
 | `teacher_config` | `answer_timeout_seconds` defaults to 180. |
 
-**Aurora layout (ADR-016, built in `infra/DataStack`):** one PostgreSQL table per entity, matching the
-C-8 snake_case columns one to one (`infra/schema.sql`). Indexes: `step_attempt` and the event tables by
-`(student_id, created_at)` for a student's history; a partial index on open `remediation_flag` rows for
-the teacher roster; `passive_signal` on `(student_id, features_hash, prompt_version)` for the cache.
-The cluster is **Aurora Serverless v2, scale-to-zero** (min 0 ACU, auto-pause 5 min, max 2 ACU),
-reached via the **RDS Data API** so Lambdas need no VPC attachment, no connection pool, and no DB
-password (IAM + a KMS-encrypted Secrets Manager secret). Storage is KMS-encrypted. The schema is
-applied by a migration the backend runs on first deploy, not by CDK, so schema changes do not force a
-stack update. Tradeoff: a resume delay on the first query after idle (see ADR-016).
+**Aurora layout (ADR-016).** The schema of record is `database/schema.sql` (data track): one PostgreSQL
+table per entity, with indexes on `(student_id, created_at)` for history, a partial index on open
+`remediation_flag` rows for the roster, and `passive_signal` on `(features_hash, prompt_version)` for the
+cache. The `infra/DataStack` provisions the **cluster only** — Aurora Serverless v2, scale-to-zero
+(min 0 ACU, auto-pause 5 min, max 2 ACU), reached via the **RDS Data API** so Lambdas need no VPC
+attachment, no connection pool, and no DB password (IAM + a KMS-encrypted Secrets Manager secret).
+Storage is KMS-encrypted. The schema is applied by a migration the backend runs on first deploy, not by
+CDK, so schema changes do not force a stack update. Tradeoff: a resume delay on the first query after
+idle (see ADR-016). The Python `STORE_MODE=aurora` adapter is deferred (see 2.9 above).
 
 **DynamoDB (superseded):** earlier drafts proposed DynamoDB on-demand. ADR-016 replaced it with Aurora
 to match the customer's stated system of record; `STORE_MODE` dropped `dynamodb` for `aurora`.
