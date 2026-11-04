@@ -7,6 +7,8 @@ validator judge (C-14) are separate tasks and are stubbed to raise until built.
 
 from .safety import Safety, wrap_untrusted, SAFE_INPUT_REPLACEMENT, SAFE_OUTPUT_REPLACEMENT
 from .bedrock_port import BedrockModelPort
+from .invoke import invoke, build_converse_kwargs, TASK_TIER
+from .factory import create_bedrock_port
 
 __all__ = [
     "Safety",
@@ -14,4 +16,8 @@ __all__ = [
     "SAFE_INPUT_REPLACEMENT",
     "SAFE_OUTPUT_REPLACEMENT",
     "BedrockModelPort",
+    "invoke",
+    "build_converse_kwargs",
+    "TASK_TIER",
+    "create_bedrock_port",
 ]
