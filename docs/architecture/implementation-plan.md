@@ -27,40 +27,165 @@ that does the work (C-36). The design behind each task is in
 
 | Tier | Done | Total |
 |---|---|---|
-| MVP | 0 | 17 |
+| MVP | 0 | 18 |
 | STRETCH | 0 | 2 |
 | FULL | 0 | 5 |
 
 Update the counts when you tick a task's top-level box.
 
-## Order of work and dependencies
+## Parallel work plan
+
+The task list below is organized by component. To let several people work at once, the work is split
+into **tracks** that own separate directories, and the tracks meet at **integration checkpoints**
+(IC0 to IC5). This works because every seam between components has a contract, a stub and a contract
+test (architecture 1.8, ADR-014), so a track never has to wait for another track's real code.
+
+Percentages below are shares of the build window between kickoff and the 3:30 pm feature freeze. I do
+not know the kickoff time or the team's pace, so treat them as a starting guess and write real clock
+times in the checkpoint table once the team has agreed them.
+
+### Tracks
+
+| Track | Focus | Tasks | Directories | Can start |
+|---|---|---|---|---|
+| A. Platform | Preflight, CI, CDK, data, config and secrets, observability stacks, deploy | 0, 1, 4, 4.5, 10a, 13 | `infra/`, `.github/` | Now |
+| B. Domain core | Tree loader, evidence, `route`, Passive features and rules | 2, 8a | `shared/core/` | Now. Its signatures are already fixed by C-18 and C-19 |
+| C. AI and safety | `invoke`, Guardrail and safety module, validator, Passive reasoner, tutor, golden-set gate | 3, 5, 6, 8b, 11 | `backend/ai/`, `prompts/` | Now for schemas and logic against stubs. Live model calls wait for Task 0 |
+| D. Backend API | Handlers, submit orchestration, store and adapters, teacher endpoints, spend protection | 7 | `backend/api/`, `backend/store/` | At IC0, against stubs |
+| E. Student UI | Services layer, tree, workspace, preview, fallback UX, "why" panels | 9a, 10b | `src/services/`, student UI | At IC0, against mock services |
+| F. Teacher UI and demo | Roster, hold and assign, persona fixtures, replay, nudge, demo director | 8c, 9b, 12 | Teacher UI, persona fixtures | At IC0, against mock services |
+| G. Content and evaluation | Human ratings, red-team strings, persona histories, demo script and voiceover | 3 (ratings), 5 (red-team set), 12 (script) | `shared/contracts/fixtures/`, `docs/` | Now. Needs no code, so anyone can pick it up |
+
+Not in the table: Task 0.5 is done by the IC0 integrator, who can come from any track. Task 1.5 is these
+documents, which everyone maintains. Task 14 (stretch) belongs to Track C. Tasks 15 to 19 are the later
+roadmap and have no track yet.
+
+### Who does what
+
+The git history shows about five contributors. Pick the layout that matches who is in the room, and
+write names in each task's `Owner:` line.
+
+| People | Suggested split |
+|---|---|
+| 3 | A and D, then B and C, then E, F and G |
+| 4 | A, then B and D, then C, then E, F and G |
+| 5 | A, then B and D, then C, then E, then F and G |
+
+Whoever has the least code-heavy role starts Track G immediately. The human ratings are the slowest
+dependency in the whole plan (C-17), and they need no code.
+
+### What each track delivers at each checkpoint
+
+| Track | By IC1: mock end to end | By IC2: backend slice | By IC3: real models and safety | By IC4: adaptive demo | By IC5: freeze |
+|---|---|---|---|---|---|
+| A | Preflight done, CI green, DataStack synths | DataStack deployed (or JSON store chosen), config helpers | Guardrail and SSM parameters deployed, model IAM | Observability stack and alarms | Deploy pipeline (stretch), docs current |
+| B | `route`, evidence, tree loader, Passive features and rules, all tested | Fallback logic used by the API | Support | Persona regression tests | Fixes only |
+| C | Schemas, validator logic, safety module and `invoke` wrapper against stubs | Prompts v1, golden-set runner | Real Bedrock calls, Guardrail wired in, verify, generate and validate | Passive reasoner with cache, tutor | Kappa gate on `main` |
+| D | Handler skeleton on stubs | Submit orchestration, JSON and DynamoDB adapters, contract tests green | Real `invoke` wired in, throttling and per-student cap | Teacher endpoints | `GET /health`, hardening |
+| E | Tree, workspace and preview on mock services | HTTP service implementations and the mode switch | Prompt flow with real responses and hints | "Why" panels | Polish |
+| F | Roster with rule-based chips and persona fixtures on mocks | Replay control | Hold and assign over HTTP | Live chips and the redirect nudge | Demo director and recording |
+| G | Ratings started, red-team strings | 8 or more ratings | 15 or more ratings | Persona scripts | Voiceover script |
 
 ```mermaid
 flowchart LR
-  T0[0 Preflight] --> T4[4 CDK + Data]
-  T1[1 Hygiene + CI] --> T2[2 Shared core]
-  T1 --> T3[3 Validator + eval]
-  T2 --> T7[7 API + submit]
-  T3 --> T6[6 invoke + Lambdas]
-  T4 --> T45[4.5 Config + secrets]
-  T45 --> T5[5 Safety + Guardrail]
-  T5 --> T6
-  T45 --> T6
-  T6 --> T7
-  T7 --> T8a[8a Passive features]
-  T8a --> T8b[8b Passive reasoner]
-  T8b --> T8c[8c Personas]
-  T2 --> T9[9 Frontend services]
-  T7 --> T9
-  T7 --> T10[10 Observability]
-  T3 --> T11[11 Golden-set gate]
-  T8c --> T12[12 Demo director]
-  T9 --> T12
-  T10 --> T12
+  C0["Task 0.5<br/>Contracts and stubs"] --> IC0(["IC0<br/>Contracts frozen"])
+  IC0 --> IC1(["IC1<br/>Mock end to end"])
+  IC1 --> IC2(["IC2<br/>Backend slice"])
+  IC2 --> IC3(["IC3<br/>Real models and safety"])
+  IC3 --> IC4(["IC4<br/>Adaptive demo"])
+  IC4 --> IC5(["IC5<br/>Freeze and rehearsal"])
+  A["A Platform"] -.-> IC2
+  B["B Domain core"] -.-> IC1
+  C["C AI and safety"] -.-> IC3
+  D["D Backend API"] -.-> IC2
+  E["E Student UI"] -.-> IC1
+  F["F Teacher UI and demo"] -.-> IC4
+  G["G Content and evaluation"] -.-> IC3
 ```
 
-Tasks 1, 2, 3 and 9's mock side need no AWS access, so they can start immediately. Tasks 4 to 7 wait
-on Task 0.
+Dotted lines show the checkpoint each track's main deliverable must reach. Tracks run in parallel
+between checkpoints.
+
+### Integration checkpoints
+
+A checkpoint is a short sync (about 15 minutes) where the integrator runs the criteria **live**. Do not
+tick a box from memory. If a checkpoint is missed, use its fallback and carry on, so one late track
+never stalls the others.
+
+**IC0: Contracts frozen** · Target: first ~10% · Clock time: ____ · Integrator: ____
+- [ ] Task 0.5 complete: typedefs, schemas, repository interface, `invoke` signature, fixtures
+- [ ] Contract test harness runs green against every stub
+- [ ] Repo layout and directory ownership agreed (architecture 1.8)
+- [ ] Contract-change rule agreed
+- Fallback if missed: freeze whatever exists and finish the rest as contract-change PRs. Do not hold
+  everyone.
+
+**IC1: Mock end to end, no AWS** · Target: ~35% · Clock time: ____ · Integrator: ____
+- [ ] The browser runs the student loop on mock services, with the tree and node states computed from
+  the JSON (C-6)
+- [ ] A submit uses the real `route()` and shows the "why this checkpoint" reason
+- [ ] The quick-learner persona replays to `keep-or-redirect`
+- [ ] The fallback toggle shows the notice and the lesson keeps working
+- [ ] The roster shows three personas with rule-based chips
+- [ ] `main` builds and CI is green
+- Why it matters: this is a complete demo with no AWS dependency. If everything else fails, it still
+  ships.
+- Fallback if missed: cut scope to the quick-learner path and the roster, and keep going.
+
+**IC2: Backend vertical slice** · Target: ~50% · Clock time: ____ · Integrator: ____
+- [ ] One `curl` to `POST /steps/{id}/submit` returns evidence, next checkpoint and the reason, with
+  `MODEL_MODE=stub`
+- [ ] `step_attempt`, `routing_decision` and `fallback_event` rows are written through the store
+- [ ] The store contract suite passes on the JSON adapter, and on DynamoDB if Task 0 allowed a deploy
+- [ ] The UI can flip `VITE_SERVICE_MODE=http` for the non-model calls
+- Fallback if missed: stay on the JSON adapter and run the API locally. Revisit DynamoDB after IC3.
+
+**IC3: Real models and safety** · Target: ~65% · Clock time: ____ · Integrator: ____
+- [ ] `MODEL_MODE=bedrock` runs one real prompt through verify, generate and validate
+- [ ] The Guardrail is deployed with a pinned numbered version, and an unsafe prompt is blocked while the
+  lesson continues
+- [ ] A forced timeout produces the fallback notice and a `fallback_event`
+- [ ] Model ids come from SSM parameters (or Lambda environment variables if Task 0 denied SSM)
+- [ ] No response in this mode carries `source: "stub"`
+- Fallback if missed: keep `MODEL_MODE=stub` and say so on screen. Never present stub output as live.
+
+**IC4: Adaptive demo** · Target: ~80% · Clock time: ____ · Integrator: ____
+- [ ] The Passive reasoner runs on the three personas and produces the expected signals, with the rule
+  fallback proven by a forced failure
+- [ ] The teacher roster works over the real API, including hold and assign
+- [ ] The dashboard shows the decisions made in the run
+- [ ] Persona regression tests are green in CI
+- Fallback if missed: ship rule-based Passive signals, labeled as rules, and keep the reasoner as a
+  stretch.
+
+**IC5: Freeze and rehearsal** · Target: feature freeze, 3:30 pm (C-37) · Clock time: 3:30 pm · Integrator: ____
+- [ ] The demo director runs twice with identical output
+- [ ] The kappa number is reported (or the gap is stated if fewer than 15 ratings exist)
+- [ ] A fallback drill (API off, then back on) works
+- [ ] Documents are current: this plan, architecture sections marked `Built`, ADRs
+- [ ] `main` builds and the demo works from a clean checkout
+- After this: fixes only.
+
+### Rules for working in parallel
+
+- Stay in your track's directories. Edits outside them go through the owner or a small, announced PR.
+- Build against the stub for any seam you consume. Do not wait for the real component.
+- A contract change is one PR that updates the contract, the stub and the contract test, and is
+  announced first (architecture 1.8).
+- `main` builds and demos at every merge (C-37). Short branches and squash merges (C-36).
+- Tick only your own track's boxes, and only for verified work. Plan-file conflicts are likely when
+  many people tick boxes, so keep each tick in the PR that does the work and rebase often.
+- When you finish early, help the track that is behind the next checkpoint.
+- The integrator for a checkpoint is a different person from the one who built most of it, where
+  possible.
+
+### What is still serial
+
+- Task 0.5 (contracts) comes first, but it is thin: signatures and shapes, not behavior.
+- Task 0 (preflight) gates anything that touches the real account: deploys, live model calls, the
+  Guardrail. Everything else proceeds on stubs.
+- Task 4's `cdk bootstrap` needs your explicit confirmation before it runs.
+- The human ratings take people's time, not engineering time. Start them first.
 
 ---
 
@@ -113,6 +238,32 @@ Fallbacks:
 
 **Demo:** a go/no-go list in the PR description.
 
+### Task 0.5: Contracts and stubs (MVP)
+Owner: ____ (integrator for IC0) · Serves: C-16, C-28, C-29, C-30 · ADR-014 · Architecture: 1.8
+
+Keep this thin. Define signatures and shapes, not behavior. It runs alongside Tasks 0, 1, 2 and 3, and
+it gates only Tracks D, E and F.
+
+- [ ] Repo layout and directory ownership agreed (architecture 1.8), with a one-line README in each
+  new directory stating its owner track and boundary
+- [ ] `src/services/types.js`: JSDoc typedefs for the eight service functions and their inputs and
+  outputs (C-28, C-30)
+- [ ] `shared/contracts/` JSON Schemas: validator output (C-16), Passive signal, error shape (C-29),
+  submit response
+- [ ] Repository interface (JSDoc) for the store seam
+- [ ] `invoke(task, prompt, opts)`, `screenInput`, `screenOutput` signatures and the task names
+- [ ] `getConfig` and `getSecret` signatures
+- [ ] Fixtures: draft histories for the three personas, canned model outputs per task (valid, invalid
+  JSON, low confidence, blocked), and a sample submit response
+- [ ] Contract test harness: each seam has a suite that takes an implementation and runs against the
+  stub today
+- [ ] Mode switches defined: `VITE_SERVICE_MODE`, `MODEL_MODE`, `STORE_MODE`, with `source: "stub"` on
+  stub output
+- [ ] Contract-change rule written down and agreed
+
+**Tests:** each schema validates its own fixtures, and every stub passes its seam's contract suite.
+**Demo:** `npm test` runs the contract suites green against the stubs.
+
 ### Task 1: Repo hygiene and CI skeleton (MVP)
 Owner: ____ · Serves: C-35, C-36, C-37, C-38 · Discrepancy items 1, 2
 
@@ -125,7 +276,7 @@ Owner: ____ · Serves: C-35, C-36, C-37, C-38 · Discrepancy items 1, 2
 - [ ] GitHub Actions workflow on PRs: lint, test, `vite build`
 - [ ] `.env.local` is in `.gitignore` (the `.env.*` rule already covers it)
 - [ ] Add `!.env.example` to `.gitignore` and commit an `.env.example` with variable **names** only
-- [ ] Docs check in CI: parse every ```` ```mermaid ```` block in `docs/` so a broken diagram fails the PR
+- [ ] Docs check in CI: parse every mermaid code block in `docs/` so a broken diagram fails the PR
   (a syntax error in the system context diagram was caught by hand on 2026-11-04)
 - [ ] Secret scanning in CI: gitleaks on every PR, failing the build on a finding
 - [ ] GitHub secret scanning and push protection enabled on the repo (needs repo admin)
@@ -168,6 +319,7 @@ Owner: ____ · Serves: C-5, C-6, C-9 to C-12, C-18 to C-20 · Discrepancy items 
 
 ### Task 3: Validator contract and eval harness (MVP)
 Owner: ____ · Serves: C-13 to C-17, P-19 · Discrepancy items 8, 16 · Architecture: 2.5
+Track: C builds the schema, judge and metrics. Track G does the human ratings.
 
 - [ ] JSON Schema for `{ skillId, evidenceLevel, conditionMet, confidence, evidence }`
 - [ ] Parse with one repair retry, then fallback
@@ -301,6 +453,7 @@ Owner: ____ · Serves: C-27, ADR-005 · Architecture: 2.7
 
 ### Task 8c: Persona fixtures and visible adaptation (MVP)
 Owner: ____ · Serves: P-5.3, C-34 · Discrepancy item 14 · Architecture: 2.7, 2.8
+Track: F, using the rule-based signals from Track B. Track G writes the persona histories.
 
 - [ ] Hand-authored synthetic histories: quick, slow, distracted (obsessed and inattentive variants)
 - [ ] Teacher roster chips: signal, reason, evidence
@@ -316,6 +469,8 @@ model on `main`. **Demo:** the roster shows three different paths with reasons.
 
 ### Task 9: Frontend services and fallback (MVP)
 Owner: ____ · Serves: C-21 to C-23, C-28, C-30, C-32 · Discrepancy items 4, 5, 6, 12, 13, 15 · Architecture: 2.1, 2.6
+Track: this task is split. **9a** (Track E): the services layer, tree, workspace, preview, content from the
+JSON, fallback UX. **9b** (Track F): the teacher view and the demo-mode login.
 
 - [ ] `src/services/` with one function per call and `types.js` (JSDoc)
 - [ ] Mock implementations (move `engine.js` in; routing swapped for `shared/route`)
@@ -337,6 +492,8 @@ Owner: ____ · Serves: C-21 to C-23, C-28, C-30, C-32 · Discrepancy items 4, 5,
 
 ### Task 10: Observability and "why" surfaces (MVP)
 Owner: ____ · Serves: P-12, C-22 · Architecture: 2.10
+Track: this task is split. **10a** (Track A): the stack, dashboard, alarms, logs. **10b** (Track E): the "why
+this checkpoint" and "why this hint" panels.
 
 - [ ] `ObservabilityStack`: dashboard (error rate, model latency, guardrail blocks, fallbacks)
 - [ ] Alarms on the C-22 triggers
@@ -463,3 +620,4 @@ are done inside these tasks. Tick them there as well.
 |---|---|---|
 | 2026-11-04 | (initial) | First draft from the planning session. |
 | 2026-11-04 | #11 | Redacted the AWS account id. Added Task 4.5 (config and secrets), secret-scanning items in Task 1, and SSM/Secrets Manager checks in Task 0. |
+| 2026-11-04 | #11 | Replaced the sequential dependency graph with a parallel work plan: seven tracks, six integration checkpoints (IC0 to IC5) and Task 0.5 (contracts and stubs). |

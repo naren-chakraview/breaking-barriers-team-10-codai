@@ -150,6 +150,58 @@ instead (section 2.6, C-22).
 | Role can create IAM roles, Lambda, DynamoDB, Guardrail, CloudFormation stacks | **Unverified** (IAM simulation pending) |
 | Who is notified when the budget trips | **Unverified** |
 
+### 1.8 Seams, contracts and modes
+
+**Status:** Proposed. **Serves:** C-16, C-28, C-29, C-30, ADR-014.
+
+Components meet at five **seams**. Each seam has a written contract, a **stub** so the consuming side
+can work before the real implementation exists, and a **contract test** that runs against both. Swapping
+a stub for the real thing is then a mode switch plus a green test run, not a rewrite. This is what lets
+several people build different components at the same time (see the parallel work plan in
+[`implementation-plan.md`](./implementation-plan.md)).
+
+| # | Seam | Between | Contract | Stub | Contract test |
+|---|---|---|---|---|---|
+| 1 | Services API | UI and backend | The eight `src/services/` functions and the C-29 HTTP shapes, including the error shape | Mock services (today's `engine.js`) | The same response-shape tests run against the mock and the HTTP handlers |
+| 2 | Domain core | Backend and mock, and `shared/core` | `route`, `applyEvidence`, `extractFeatures`, `ruleSignal`, tree loader | None needed: it is pure and is built first. Until it lands, consumers use a stub that returns the first available checkpoint | Table-driven tests, one case per C-19 rule |
+| 3 | Model access | Backend and AI components | `invoke(task, prompt, opts)`, `screenInput`, `screenOutput`, `validateProject`, `reasonPassive`, plus the JSON Schemas for the validator output (C-16) and the Passive signal | `invoke` returns canned outputs by task from fixtures: valid, invalid JSON, low confidence, blocked | Every stub and real output is checked against its schema |
+| 4 | Store | Backend and data | A repository interface: `getProgress`, `upsertProgress`, `appendEvidence`, `saveAttempt`, `getHistory`, `writeRoutingDecision`, `writeFallbackEvent`, `writePassiveSignal`, `listStudents`, `getTeacherConfig` | JSON-file adapter (demo mode, C-8) | One suite runs against both the JSON and the DynamoDB adapter |
+| 5 | Config and secrets | Every Lambda and AWS | `getConfig(name)`, `getSecret(name)` (2.14) | Environment variables or a local JSON file | Missing-value and cache tests |
+
+**Modes.** Three switches choose stub or real, so a half-finished component never blocks a demo:
+
+| Switch | Values | Scope |
+|---|---|---|
+| `VITE_SERVICE_MODE` | `mock` (default), `http` | Front end. Public config only (C-26) |
+| `MODEL_MODE` | `stub`, `bedrock` | Backend `invoke`. A Lambda environment value, not a secret |
+| `STORE_MODE` | `json`, `dynamodb` | Backend store. A Lambda environment value |
+
+Anything produced in `stub` mode carries `source: "stub"` in its response and shows a visible label in
+the UI, so a recorded or canned result can never be mistaken for a live model result in the demo.
+
+**Where contracts live.** JSDoc typedefs for the service functions stay in `src/services/types.js` (C-30).
+JSON Schemas, fixtures and the contract test suites live in `shared/contracts/`. Backend code reuses the
+typedefs with `@typedef {import('../../src/services/types.js').X}`, which is erased at runtime.
+
+**Proposed repo layout.** Directories double as ownership boundaries, which keeps parallel PRs from
+colliding. It is a proposal for the team to confirm in Task 0.5.
+
+| Path | Holds | Track |
+|---|---|---|
+| `infra/` | CDK app and stacks | A |
+| `.github/` | CI workflows | A |
+| `shared/core/` | Pure domain logic: tree loader, evidence, `route`, Passive features and rules | B |
+| `shared/contracts/` | Schemas, fixtures, contract tests | Everyone, by the contract-change rule |
+| `backend/ai/` | `invoke`, safety, validator, Passive reasoner, tutor | C |
+| `prompts/` | Versioned prompts | C |
+| `backend/api/` and `backend/store/` | Handlers, orchestration, repository and adapters | D |
+| `src/services/` and student UI | Services layer, tree, workspace, preview | E |
+| Teacher UI, persona fixtures, demo director | Roster, replay, scripted demo | F |
+
+**Changing a contract.** A contract change is one PR that edits the contract, the stub and the contract
+test together, names the consumers, and is announced to the team before merging. Nobody changes a shape
+on one side only.
+
 ---
 
 ## 2. Component designs
@@ -802,6 +854,7 @@ for status, owners and blockers. Keep this table and that file in step.
 | Task | Item | Tier | Notes |
 |---|---|---|---|
 | 0 | Account preflight (model smoke test, IAM simulation) | MVP | Decides CDK deploy path vs fallbacks |
+| 0.5 | Contracts and stubs (five seams, mode switches) | MVP | ADR-014. Gates the parallel work plan, checkpoint IC0 |
 | 1 | Repo hygiene and CI skeleton | MVP | C-35, C-36, C-38 |
 | 1.5 | This document | MVP | Living doc, C-1 entry, steering pointer |
 | 2 | Shared domain core (`route`, evidence, tree loader) | MVP | C-9 to C-12, C-18 to C-20 |
@@ -986,6 +1039,21 @@ session on 2026-11-04 and are **Proposed** until the team reviews them.
   demo API key ships in the browser, so it is an identifier and not a secret. This is a known limit
   that ADR-012's throttling and per-student cap exist to cover.
 
+### ADR-014: Contracts first, with stubs and mode switches, so components build in parallel
+- **Status:** Proposed. **Date:** 2026-11-04.
+- **Context:** The first plan chained most tasks (domain core, then models, then API, then UI), which
+  lets only two or three people work at once. The hackathon has about five people and one day.
+- **Decision:** Freeze thin contracts at five seams (1.8) at the start (Task 0.5, checkpoint IC0). Every
+  seam gets a stub and a contract test that runs against both stub and real. Three mode switches
+  (`VITE_SERVICE_MODE`, `MODEL_MODE`, `STORE_MODE`) choose stub or real. Work is split into tracks that
+  own directories, and tracks meet at numbered integration checkpoints.
+- **Alternatives:** Keep the sequential order. Vertical slices per person (each person builds one
+  feature through every layer), which avoids early contracts but collides in shared files.
+- **Consequences:** A short serial step (the contracts) at the start, in return for most work running
+  in parallel afterwards. A working mock-only demo exists from the first integration checkpoint, which is
+  a fallback if AWS access never works. The cost is discipline: contract changes need a coordinated PR,
+  and stubs must be kept honest by running the same contract tests against them.
+
 ### ADR template
 
 ```
@@ -1005,4 +1073,5 @@ session on 2026-11-04 and are **Proposed** until the team reviews them.
 |---|---|---|
 | 2026-11-04 | (initial) | First draft from the planning session. All designs Proposed, ADR-001 to ADR-012 Proposed. |
 | 2026-11-04 | #11 | Redacted the AWS account id. Added 2.14 Configuration and secrets, ADR-013, and Task 4.5. |
-| 2026-11-04 | #11 | Added 10 diagrams (safety, validator, routing, checkpoint status, fallback, Passive pipeline, personas, help ladder, stacks and CI/CD, demo scenes, secrets). Fixed a syntax error in the system context diagram. All 15 diagrams parse. |
+| 2026-11-04 | #11 | Added 11 diagrams (safety, validator, routing, checkpoint status, fallback, Passive pipeline, personas, help ladder, stacks and CI/CD, demo scenes, secrets). Fixed a syntax error in the system context diagram. All 15 diagrams parse. |
+| 2026-11-04 | #11 | Added 1.8 Seams, contracts and modes, ADR-014, and Task 0.5, to support parallel work by component with integration checkpoints. |
