@@ -57,11 +57,13 @@ def test_param_type_selection():
 # ---- camelCase mapping (ADR-017) ----
 
 def test_to_camel_maps_known_columns():
-    assert _to_camel("studentid") == "StudentId"
-    assert _to_camel("createdat") == "CreatedAt"
-    assert _to_camel("teacherinput") == "TeacherInput"
-    assert _to_camel("evidencerefs") == "EvidenceRefs"
-    assert _to_camel("featureshash") == "FeaturesHash"  # Postgres-lowered → camelCase
+    # The contract records use lower-camelCase (records.schema.json), so the Postgres-lowered
+    # column maps back to lower-camelCase, not the PascalCase DDL spelling.
+    assert _to_camel("studentid") == "studentId"
+    assert _to_camel("createdat") == "createdAt"
+    assert _to_camel("teacherinput") == "teacherInput"
+    assert _to_camel("evidencerefs") == "evidenceRefs"
+    assert _to_camel("featureshash") == "featuresHash"  # Postgres-lowered → lower-camelCase
     assert _to_camel("unknowncol") == "unknowncol"       # unknown → passthrough
 
 
@@ -118,8 +120,8 @@ def test_routing_decision_jsonb_roundtrip():
         ]],
     })
     rows = repo.list_routing_decisions("stu-slow")
-    assert rows[0]["TeacherInput"]["mode"] == "assign"
-    assert rows[0]["TeacherInput"]["checkpointId"] == "use-the-lingo"
+    assert rows[0]["teacherInput"]["mode"] == "assign"
+    assert rows[0]["teacherInput"]["checkpointId"] == "use-the-lingo"
 
 
 # ---- teacher input (separate table, ADR-017) ----
