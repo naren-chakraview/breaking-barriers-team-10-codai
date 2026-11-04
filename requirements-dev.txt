@@ -3,4 +3,7 @@
 #   python -m venv .venv && . .venv/bin/activate && pip install -r requirements-dev.txt
 jsonschema==4.23.0
 referencing==0.36.2
+# Cognito JWT verification (ADR-018 phase 2). The [crypto] extra pulls `cryptography` for
+# RS256 signature verification against the user-pool JWKS. Only used when AUTH_MODE=cognito.
+pyjwt[crypto]==2.10.1
 pytest==8.3.4

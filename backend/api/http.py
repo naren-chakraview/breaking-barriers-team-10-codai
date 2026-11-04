@@ -16,8 +16,7 @@ from typing import Any, Callable, Mapping
 
 from .schema_validate import problems
 from .util import ContractError, as_contract_error
-
-_ROLES = {"student", "teacher"}
+from .auth import read_context
 
 # (method, compiled path pattern, service fn name, args builder, args schema def)
 _ROUTES = [
@@ -49,7 +48,7 @@ def create_router(services: Mapping[str, Callable[..., dict[str, Any]]], per_stu
                 raise ContractError("NOT_FOUND", "No such endpoint.")
             fn_name, build, args_def, match = route
 
-            ctx = {} if fn_name == "health" else _read_context(req.get("headers", {}))
+            ctx = {} if fn_name == "health" else read_context(req.get("headers", {}))
 
             if ctx.get("studentId"):
                 n = call_counts.get(ctx["studentId"], 0) + 1
@@ -69,20 +68,6 @@ def create_router(services: Mapping[str, Callable[..., dict[str, Any]]], per_stu
             return {"status": _status_for(ce.code), "headers": _json_headers(), "body": {"error": ce.error}}
 
     return handle
-
-
-def _read_context(headers: Mapping[str, Any]) -> dict[str, Any]:
-    auth = headers.get("authorization", "") or ""
-    token = auth[len("Bearer "):].strip() if auth.startswith("Bearer ") else ""
-    user_id = headers.get("x-user-id", "") or ""
-    role = headers.get("x-role", "") or ""
-    if not token:
-        raise ContractError("UNAUTHORIZED", "Missing bearer token.")
-    if not user_id:
-        raise ContractError("UNAUTHORIZED", "Missing X-User-Id.")
-    if role not in _ROLES:
-        raise ContractError("FORBIDDEN", "Unknown or missing role.")
-    return {"studentId": user_id, "role": role, "token": token}
 
 
 def _json_headers() -> dict[str, str]:

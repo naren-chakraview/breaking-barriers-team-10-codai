@@ -13,10 +13,16 @@ store seam (`backend/store`, seam 4).
 | `schema_validate.py` | Validates data against the JSON Schemas in `shared/contracts/schemas/`. |
 | `app.py` | `build_app`: wires modes → store/model/core → services + router. |
 | `lambda_handler.py` | API Gateway (REST, proxy) entrypoint. |
+| `auth.py` | Request auth (ADR-018): `read_context` builds `{studentId, role, token}` from the P-1.4 headers; in `AUTH_MODE=cognito` it verifies the Cognito JWT and takes the role from `cognito:groups`. |
 
 ## Boundaries
 
 - Routing is `shared.core.route` (C-18); the API never decides routing itself.
+- Auth (ADR-018): `AUTH_MODE=none` (default) trusts the P-1.4 headers — the demo/local path
+  (C-33). `AUTH_MODE=cognito` (with `COGNITO_ISSUER` + `COGNITO_CLIENT_ID`) verifies the bearer
+  JWT (RS256 against the pool JWKS; iss/exp/token_use/audience) and derives the role from the
+  `cognito:groups` claim, ignoring any client-supplied `X-Role`. Defense in depth behind an API
+  Gateway Cognito authorizer, which does not enforce group claims.
 - The model/safety seam (Track C) is injected via `ModelPort`. Until Bedrock lands,
   `MODEL_MODE=stub` uses `StubModel`; `MODEL_MODE=bedrock` requires an injected port and fails
   fast otherwise. Model-derived output carries `source` so a stub can never pass as live.

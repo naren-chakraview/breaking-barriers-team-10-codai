@@ -2,3 +2,6 @@
 # requirements-dev.txt so the bundle matches what the tests run against.
 jsonschema==4.23.0
 referencing==0.36.2
+# Cognito JWT verification (ADR-018 phase 2); [crypto] pulls cryptography for RS256.
+# Only exercised when AUTH_MODE=cognito; the demo default (AUTH_MODE unset) never imports it.
+pyjwt[crypto]==2.10.1

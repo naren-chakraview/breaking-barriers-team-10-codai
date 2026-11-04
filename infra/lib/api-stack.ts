@@ -22,6 +22,13 @@ export interface ApiStackProps extends cdk.StackProps {
   readonly secretArn: string
   /** The DataStack managed policy granting rds-data:*, GetSecretValue, kms:Decrypt. */
   readonly dataApiAccessPolicy: iam.IManagedPolicy
+  /**
+   * Cognito user-pool issuer and app-client id for backend JWT verification (ADR-018 phase 2).
+   * When set, the Lambda runs with AUTH_MODE=cognito and verifies tokens; when omitted, it
+   * keeps AUTH_MODE=none (demo header-trust). Supplied once the user pool is provisioned.
+   */
+  readonly cognitoIssuer?: string
+  readonly cognitoClientId?: string
 }
 
 /**
@@ -63,6 +70,12 @@ export class ApiStack extends cdk.Stack {
         AURORA_CLUSTER_ARN: props.clusterArn,
         AURORA_SECRET_ARN: props.secretArn,
         AURORA_DATABASE_NAME: props.databaseName,
+        // Auth (ADR-018 phase 2). `none` keeps the current header-trust behavior; set to
+        // `cognito` (with the issuer + client id) once the user pool is provisioned, to make
+        // backend/api/auth.py verify the JWT and derive the role from cognito:groups.
+        AUTH_MODE: props.cognitoIssuer ? 'cognito' : 'none',
+        ...(props.cognitoIssuer ? { COGNITO_ISSUER: props.cognitoIssuer } : {}),
+        ...(props.cognitoClientId ? { COGNITO_CLIENT_ID: props.cognitoClientId } : {}),
         PYTHONPATH: '/var/task',
       },
       logGroup: new logs.LogGroup(this, 'ApiFnLogs', {
