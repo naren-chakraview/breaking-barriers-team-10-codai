@@ -16,8 +16,9 @@ Reviewed 2026-11-03 against: platform requirements + sequence diagrams, frontend
 **C-1 Precedence.** When documents disagree, the higher one wins:
 1. `docs/platform/requirements.md` and `docs/platform/sequence-diagrams.md`
 2. `database/sample-skilltree.json` and `database/data-model.mmd` (content model)
-3. `.kiro/specs/codeai-frontend/requirements.md` (UI behavior and timings, where not in conflict)
-4. Everything else: frontend `design.md`, `tasks.md`, `README.md`, wireframes
+3. `docs/architecture/architecture.md` (system and component design, MVP scope, ADRs; a living document)
+4. `.kiro/specs/codeai-frontend/requirements.md` (UI behavior and timings, where not in conflict)
+5. Everything else: frontend `design.md`, `tasks.md`, `README.md`, wireframes
 
 **C-2 Known stale.** Do not build from these until they are updated:
 - `README.md` "Data model" section and frontend `design.md` "Data Models" (old UNIT/LESSON/LEVEL/OBJECTIVE/SKILL_EDGE model)
