@@ -18,6 +18,7 @@ from typing import Any, Callable, Mapping, Optional
 from .safety import Safety
 from .invoke import invoke as _invoke, TIMEOUT_MS
 from .validator import validate_project as _validate_project
+from .passive_reasoner import reason_passive as _reason_passive
 
 
 class BedrockModelPort:
@@ -98,6 +99,26 @@ class BedrockModelPort:
     def validate_project(self, request: Mapping[str, Any]) -> dict[str, Any]:
         descriptors = self._descriptors_for(request["skillId"])
         return _validate_project(request, invoke=self.invoke, evidence_descriptors=descriptors)
+
+    # ---- Passive reasoner (built; not part of the ModelPort protocol — Passive is produced
+    # out-of-band, not in the submit request/response path). A caller holding the port can use
+    # this; the submit-flow integration (persisting passive_signal + fallback_event) is Track D.
+    def reason_passive(
+        self,
+        features: Any,
+        recent_attempts: Any = None,
+        hint_log: Any = None,
+        cache_get: Any = None,
+        correlation_id: str = "",
+    ) -> dict[str, Any]:
+        return _reason_passive(
+            features,
+            invoke=self.invoke,
+            recent_attempts=recent_attempts,
+            hint_log=hint_log,
+            cache_get=cache_get,
+            correlation_id=correlation_id,
+        )
 
 
 # Lazily load the tree once and resolve a skill's evidence descriptors from it (C-14).
