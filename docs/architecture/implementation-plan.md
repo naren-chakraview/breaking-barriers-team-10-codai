@@ -448,20 +448,37 @@ Owner: ____ · Serves: C-14, C-27, P-7.2 · Discrepancy item 11 · Architecture:
 verify, generate and validate.
 
 ### Task 7: API stack and submit orchestration (MVP)
-Owner: ____ · Serves: C-24, C-29, P-11, P-1.4 · Architecture: 2.2
+Owner: Track D · Serves: C-24, C-29, P-11, P-1.4 · Architecture: 2.2
 
-- [ ] REST API with stage throttling and a usage plan
-- [ ] Per-student call cap in the handler
-- [ ] `POST /steps/{id}/submit`: filter, validate or direct-map, persist, Passive, route
-- [ ] `POST /tutor/ask`, `POST /prompts/verify`, `POST /prompts/generate`
-- [ ] `GET /teacher/students`, `POST /teacher/students/{id}/routing`, `GET /health`
-- [ ] P-11 endpoints
-- [ ] Headers per P-1.4; error shape `{ "error": { "code", "message" } }`; camelCase JSON
-- [ ] Student work persisted before any model call returns (C-24)
-- [ ] 10 s timeouts on adaptive calls
+Application layer built in `backend/api/` (Python, ADR-015) against the frozen seams; passes
+the seam-1 services contract. Consumes `shared/core` (Track B) directly and the seam-3
+`ModelPort` (Track C) by injection. The API Gateway stack + usage plan is Track A's CDK
+(`infra/`); the transport-agnostic router here is ready to drop behind it.
 
-**Tests:** handler tests with stubs and a response-shape contract test.
-**Demo:** one `curl` returns evidence, next checkpoint and the reason.
+- [ ] REST API with stage throttling and a usage plan — BLOCKED: CDK is Track A (`infra/`, Task 4). Router is stack-ready.
+- [x] Per-student call cap in the handler (`backend/api/http.py`, `per_student_cap`; RATE_LIMITED)
+- [x] `POST /steps/{id}/submit`: filter, validate or direct-map, persist, route (`backend/api/submit.py`). Passive hook left for Task 8a/8b (Track B/C seam).
+- [x] `POST /tutor/ask`, `POST /prompts/verify`, `POST /prompts/generate` (`backend/api/services.py`)
+- [x] `GET /teacher/students`, `POST /teacher/students/{id}/routing`, `GET /health` (`backend/api/services.py`, `http.py`)
+- [x] P-11 endpoints (routed in `backend/api/http.py`)
+- [x] Headers per P-1.4; error shape `{ "error": { "code", "message" } }`; camelCase JSON (`http.py`, `util.py`)
+- [x] Student work persisted before any model result is used (C-24) (`submit.py`; tested)
+- [~] 10 s timeouts on adaptive calls — the timeout budget is passed in the invoke `opts`; enforcement lives in Track C's `invoke` (model seam).
+
+**Tests:** handler tests with stubs and a response-shape contract test — DONE
+(`backend/api/tests/`: `test_http.py`, `test_services_contract.py`, `test_submit.py`,
+`test_app.py`): 38 Track D API tests, all green via `pytest`. Responses validated against the
+JSON Schemas in `shared/contracts/schemas/` (`schema_validate.py`).
+**Demo:** `build_app()["router"]` (or `lambda_handler.handler`) handles one submit and returns
+evidence, next checkpoint and the reason, and writes attempt/routing_decision/progress rows.
+Verified at IC2 with `STORE_MODE=json` + the stub model, driving the real `shared.core.route`.
+
+> Track D note: the backend is Python (ADR-015). `shared/core` (Track B) is a merged
+> dependency used directly; the bedrock `ModelPort` (Track C) is injected via
+> `backend/api/model.py`. Until it lands, `MODEL_MODE=stub` uses `StubModel` (from the
+> contract fixtures); `MODEL_MODE=bedrock` fails fast without an injected port. The store is
+> `STORE_MODE=json` (`aurora` deferred, ADR-016); the API never imports AWS. The earlier JS
+> backend draft was replaced to match ADR-015/016.
 
 ### Task 8a: Passive features, rule baseline and store (MVP)
 Owner: ____ · Serves: C-10, C-27, P-5, P-6 · Architecture: 2.7, 2.9
