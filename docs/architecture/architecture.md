@@ -259,7 +259,8 @@ plain JS ESM.
 
 ### 2.3 Safety
 
-**Status:** Proposed. **Serves:** C-25, C-26, P-18, P-13.5.
+**Status:** Built (screening + Guardrail; wiring into the live model path pends the `invoke` task).
+**Serves:** C-25, C-26, P-18, P-13.5. **Code:** `backend/ai/safety.py`, `infra/GuardrailStack`.
 
 Layered, server-side, and fail closed.
 
@@ -1161,3 +1162,4 @@ session on 2026-11-04 and are **Proposed** until the team reviews them.
 | 2026-11-04 | (domain core PR) | Added ADR-015 (Python backend) and ADR-016 (Aurora system of record). Noted C-30 governs the front end only. Aurora note on ADR-012. The 2.9 Database and 2.11 IaC rewrites and the data-model diagram come in the Aurora data PR. |
 | 2026-11-04 | (Task 4.6 PR) | Reconciled `infra/`: one DataStack, plus the `DbLoader` schema and master-data loader, a Data API access policy, a VPC flow log and IAM DB auth (0 cdk-nag findings). Added ADR-017. Rewrote the 2.9 note: the Aurora adapter is unblocked by the schema reconciliation. |
 | 2026-11-04 | (Aurora data PR) | Rewrote 2.9 Database and 2.11 IaC for Aurora + Python; replaced DynamoDB references with Aurora; marked Task 0 IAM/model checks verified; updated database/data-model.mmd with the C-8 student-state tables (discrepancy item 3). Added the `infra/` CDK DataStack (synth-verified, 0 nag findings) and the `backend/store/` adapters. |
+| 2026-11-04 | (Safety PR) | Built the content-safety module (`backend/ai/safety.py`, C-25/C-26) with a `BedrockModelPort` skeleton (seam 3), and the K-12 `infra/GuardrailStack` (synth-verified, 0 nag findings). Marked 2.3 Built. `invoke`/validator still pending. |
