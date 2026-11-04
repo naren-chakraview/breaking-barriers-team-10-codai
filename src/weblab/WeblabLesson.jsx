@@ -9,6 +9,7 @@ import CodeWorkspace from './CodeWorkspace.jsx'
 import Preview from './Preview.jsx'
 import Tutor from './Tutor.jsx'
 import ProgressReport from './ProgressReport.jsx'
+import './lessonTheme.css'
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms))
 
@@ -253,7 +254,7 @@ export default function WeblabLesson({ user, onExit, onViewSkillTree }) {
   }
 
   return (
-    <div className="wf">
+    <div className="wf wfl">
       <LessonTopBar
         user={user}
         completedCount={completedCount}

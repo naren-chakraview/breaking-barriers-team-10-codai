@@ -1,3 +1,4 @@
+import { BrandMark } from '../Brand.jsx'
 // Top bar from the wireframe: logo + project name, live lesson-progress meter,
 // Save and Deploy actions, and the user avatar. Dashboard / skill-tree links
 // are small text buttons so the student can always get back out.
@@ -13,8 +14,8 @@ export default function LessonTopBar({
   return (
     <header className="wf-top">
       <div className="wf-brand">
-        <span className="wf-logo" aria-hidden="true" />
-        <span className="wf-brand-name">CodeAI</span>
+        <BrandMark size={30} />
+        <span className="wf-brand-name">AdaptAI</span>
         <span className="wf-project">Project: My First Website</span>
         <button type="button" className="wf-textbtn" onClick={onExit}>← Dashboard</button>
         <button type="button" className="wf-textbtn" onClick={onViewSkillTree}>Skill tree</button>
@@ -24,7 +25,8 @@ export default function LessonTopBar({
         <span className="wf-progress-label">LESSON PROGRESS</span>
         <div className="wf-progress-row">
           <div
-            className="wf-bar"
+            className="wf-bar wf-bar--segs"
+            style={{ '--segs': Math.max(total, 1) }}
             role="progressbar"
             aria-valuemin={0}
             aria-valuemax={total}

@@ -1,0 +1,222 @@
+/* Lesson screen visuals. Everything is scoped under `.wfl` (added to the lesson
+   root only), so the shared `.wf` base styles, and the View course page that
+   also uses them, are untouched. Layout (columns, order, sizes) still comes from
+   index.css and follows wireframe-design.md; this file only adds visual polish.
+   Palette: the wireframe's blue / green / purple, in darker shades wherever
+   white text sits on them (the lighter wireframe shades fail 4.5:1). */
+.wfl {
+  background:
+    radial-gradient(900px 320px at 10% -8%, rgba(79, 140, 255, 0.18), transparent 62%),
+    radial-gradient(820px 300px at 96% -8%, rgba(124, 92, 255, 0.15), transparent 62%),
+    #f4f5f7;
+}
+
+/* Keyboard focus: the base amber ring is only 2.15:1 on white, so use a darker blue (6.7:1) here */
+.wfl *:focus-visible { outline: 3px solid #1d4ed8; outline-offset: 2px; }
+.wfl .wf-textarea:focus-visible, .wfl .wf-req-input:focus-visible, .wfl .wf-chat-input input:focus-visible { outline: none; }
+
+/* ---------- Top bar ---------- */
+.wfl .wf-top { position: relative; background: rgba(255, 255, 255, 0.94); box-shadow: 0 8px 24px -14px rgba(15, 23, 42, 0.25); border-bottom: 1px solid #e3e6ea; }
+.wfl .wf-top::after { content: ''; position: absolute; left: 0; right: 0; bottom: -1px; height: 3px; background: linear-gradient(90deg, #4f8cff, #7c5cff 55%, #22c55e); }
+.wfl .wf-brand-name { font-size: 16px; font-weight: 800; letter-spacing: -0.01em; }
+.wfl .wf-project { padding: 4px 12px; border-radius: 999px; background: #eef2ff; color: #3730a3; font-size: 12px; font-weight: 600; }
+.wfl .wf-textbtn { color: #1d4ed8; font-weight: 700; }
+.wfl .wf-progress-label { font-weight: 700; letter-spacing: 0.08em; color: #4b5563; }
+.wfl .wf-progress-count { font-weight: 700; color: #1f2937; }
+.wfl .wf-savetext { font-weight: 600; color: #4b5563; }
+.wfl .wf-avatar { background: linear-gradient(135deg, #4f8cff, #7c5cff); box-shadow: 0 4px 10px -2px rgba(79, 140, 255, 0.5); }
+
+/* Progress bars: taller, gradient fill, and one segment per objective */
+.wfl .wf-bar { height: 12px; background: #e5e7eb; box-shadow: inset 0 1px 2px rgba(15, 23, 42, 0.12); }
+.wfl .wf-bar--thin { height: 10px; }
+.wfl .wf-bar-fill--blue { background: linear-gradient(90deg, #3b82f6, #7c5cff); }
+.wfl .wf-bar-fill--green { background: linear-gradient(90deg, #16a34a, #22c55e); }
+.wfl .wf-bar--segs { position: relative; }
+.wfl .wf-bar--segs::after {
+  content: ''; position: absolute; inset: 0; pointer-events: none;
+  background: repeating-linear-gradient(90deg, transparent 0, transparent calc(100% / var(--segs) - 3px), #fff calc(100% / var(--segs) - 3px), #fff calc(100% / var(--segs)));
+}
+
+/* ---------- Buttons ---------- */
+.wfl .wf-btn { border-radius: 10px; font-weight: 700; box-shadow: 0 1px 2px rgba(15, 23, 42, 0.1); }
+.wfl .wf-btn--light { background: #fff; border-color: #d1d5db; color: #1f2937; }
+.wfl .wf-btn--blue { background: linear-gradient(135deg, #2563eb, #1d4ed8); box-shadow: 0 6px 14px -6px rgba(37, 99, 235, 0.7); }
+.wfl .wf-btn--green { background: linear-gradient(135deg, #15803d, #166534); box-shadow: 0 6px 14px -6px rgba(21, 128, 61, 0.7); }
+.wfl .wf-btn--purple { background: linear-gradient(135deg, #6d4bd8, #5b3bc4); box-shadow: 0 6px 14px -6px rgba(109, 75, 216, 0.7); }
+.wfl .wf-btn--soft { background: #fff8ec; border-color: #f0c26d; color: #7a5a10; }
+.wfl .wf-btn--ghost { color: #4b5563; box-shadow: none; }
+.wfl .wf-link { color: #5b3bc4; }
+.wfl .wf-banner { background: linear-gradient(90deg, #eff6ff, #f5f3ff); color: #1e3a8a; border-bottom: 1px solid #c7d2fe; font-weight: 600; }
+
+/* ---------- Cards ---------- */
+.wfl .wf-card { border-color: #e0e4ea; border-radius: 16px; box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04), 0 14px 28px -16px rgba(15, 23, 42, 0.18); }
+.wfl .wf-card-title { font-size: 14px; font-weight: 800; letter-spacing: -0.005em; }
+.wfl .wf-card-title:not(.wf-tutor-title)::before {
+  content: ''; display: inline-block; width: 4px; height: 14px; margin-right: 9px; vertical-align: -2px; border-radius: 2px;
+  background: linear-gradient(180deg, #4f8cff, #7c5cff);
+}
+.wfl .wf-h3 { font-size: 12px; font-weight: 800; letter-spacing: 0.04em; text-transform: uppercase; color: #4b5563; }
+.wfl .wf-muted { color: #4b5563; }
+.wfl .wf-tiny { color: #6b7280; }
+
+/* ---------- Left column: lesson, objectives, outcomes ---------- */
+.wfl .wf-lesson { padding: 0; overflow: hidden; }
+.wfl .wf-lesson > :not(.wf-lesson-top) { margin-left: 18px; margin-right: 18px; }
+.wfl .wf-lesson > .wf-btn { margin-bottom: 18px; width: calc(100% - 36px); }
+
+/* Gradient header: white text on the navy range only (>= 8.7:1) */
+.wfl .wf-lesson-top {
+  position: relative; overflow: hidden; margin-bottom: 4px; padding: 20px 18px 18px; color: #fff;
+  background: radial-gradient(260px 140px at 100% 0%, rgba(168, 85, 247, 0.45), transparent 65%), linear-gradient(135deg, #1e3a8a, #3730a3);
+}
+.wfl .wf-lesson-top::after { content: ''; position: absolute; right: -26px; bottom: -34px; width: 110px; height: 110px; border-radius: 50%; background: rgba(255, 255, 255, 0.1); }
+.wfl .wf-eyebrow { font-size: 11px; font-weight: 800; letter-spacing: 0.14em; color: #bfdbfe; }
+.wfl .wf-lesson-title { margin: 2px 0 6px; font-size: 19px; font-weight: 800; letter-spacing: -0.015em; line-height: 1.2; }
+.wfl .wf-lesson-top .wf-muted { color: #dbe7ff; }
+.wfl .wf-lesson > .wf-rule { margin-top: 18px; margin-bottom: 14px; border-top-color: #eceff3; }
+.wfl .wf-lesson > .wf-h3:first-of-type { margin-top: 16px; }
+
+/* Objectives as a connected stepper */
+.wfl .wf-objectives { gap: 0; }
+.wfl .wf-objective { position: relative; align-items: flex-start; gap: 12px; padding: 9px 10px 9px 0; border-radius: 10px; color: #6b7280; font-size: 13px; line-height: 1.4; }
+.wfl .wf-objective:not(:last-child)::after { content: ''; position: absolute; left: 10px; top: 32px; bottom: -8px; width: 2px; background: #e3e6ea; }
+.wfl .wf-objective.is-done:not(:last-child)::after { background: #16a34a; }
+.wfl .wf-check { flex: 0 0 22px; width: 22px; height: 22px; margin-top: 0; border-width: 2px; border-color: #8a919c; background: #fff; font-size: 12px; font-weight: 800; z-index: 1; }
+.wfl .wf-objective.is-done { color: #1f2937; }
+.wfl .wf-objective.is-done .wf-check { background: #15803d; border-color: #15803d; }
+.wfl .wf-objective.is-current { margin-left: -6px; padding-left: 6px; color: #1d4ed8; font-weight: 700; background: #eff6ff; box-shadow: inset 3px 0 0 #2563eb; }
+.wfl .wf-objective.is-current .wf-check { background: #2563eb; border-color: #2563eb; box-shadow: 0 0 0 4px #dbeafe; }
+.wfl .wf-objective.is-current:not(:last-child)::after { left: 16px; }
+
+/* "What you'll learn now" */
+.wfl .wf-learn { padding: 14px; background: linear-gradient(180deg, #f5f9ff, #fff); border: 1px solid #dbe7ff; border-radius: 14px; }
+.wfl .wf-learn-title { margin-bottom: 4px; font-size: 13px; font-weight: 800; color: #1e3a8a; }
+.wfl .wf-learn-body { color: #374151; }
+.wfl .wf-example-chip { background: #dbeafe; border-color: #bfdbfe; color: #1e3a8a; font-weight: 700; border-radius: 999px; padding: 2px 10px; }
+.wfl .wf-example pre { background: #0f172a; border-radius: 10px; color: #e2e8f0; }
+
+/* My outcomes: three stat tiles, then the mastery bar */
+.wfl .wf-outcomes { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; padding: 12px; background: #f8fafc; border: 1px solid #e3e6ea; border-radius: 14px; }
+.wfl .wf-outcome-row { flex-direction: column-reverse; align-items: center; justify-content: flex-end; gap: 2px; padding: 12px 4px 10px; text-align: center; background: #fff; border: 1px solid #e3e6ea; border-top: 3px solid #4f8cff; border-radius: 10px; font-size: 10px; line-height: 1.25; color: #4b5563; }
+.wfl .wf-outcome-row:nth-child(2) { border-top-color: #f5b942; }
+.wfl .wf-outcome-row:nth-child(3) { border-top-color: #7c5cff; }
+.wfl .wf-outcome-row strong { font-size: 20px; font-weight: 800; letter-spacing: -0.02em; color: #111827; }
+.wfl .wf-outcomes .wf-bar, .wfl .wf-outcomes .wf-tiny { grid-column: 1 / -1; }
+.wfl .wf-outcomes .wf-bar { margin-top: 4px; }
+.wfl .wf-outcomes .wf-tiny { margin: 2px 0 0; text-align: center; }
+
+/* ---------- Center: requirements box ---------- */
+.wfl .wf-req {
+  border: 1px solid transparent;
+  background: linear-gradient(#fff, #fff) padding-box, linear-gradient(135deg, #bfdbfe, #ddd6fe 60%, #bbf7d0) border-box;
+}
+.wfl .wf-req-sub { color: #4b5563; }
+.wfl .wf-req-input { border: 1px solid #d1d5db; border-radius: 12px; background: #f8fafc; padding: 12px 14px; font-size: 13px; line-height: 1.55; color: #1f2937; }
+.wfl .wf-req-input::placeholder { color: #6b7280; }
+.wfl .wf-req-input:focus { border-color: #2563eb; background: #fff; box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.15); }
+.wfl .wf-req-msg { color: #4b5563; font-weight: 600; }
+
+/* ---------- Center: code / files / build log ---------- */
+.wfl .wf-code { overflow: hidden; }
+.wfl .wf-code-head { padding: 14px 16px 12px; }
+.wfl .wf-tabs { gap: 2px; padding: 3px; background: #eef1f5; border-radius: 11px; }
+.wfl .wf-tab { border: none; background: transparent; border-radius: 8px; padding: 6px 15px; font-size: 12px; font-weight: 700; color: #4b5563; }
+.wfl .wf-tab.is-active { background: #fff; color: #1d4ed8; box-shadow: 0 1px 3px rgba(15, 23, 42, 0.18); }
+.wfl .wf-filepill { display: inline-flex; align-items: center; gap: 7px; padding: 4px 13px; border: 1px solid #d1d5db; color: #374151; font-weight: 600; }
+.wfl .wf-filepill::before { content: ''; width: 8px; height: 8px; border-radius: 50%; background: #e44d26; }
+.wfl .wf-filepill:nth-child(2)::before { background: #2965f1; }
+.wfl .wf-filepill.is-active { background: #eff6ff; border-color: #2563eb; color: #1d4ed8; }
+
+.wfl .wf-editor { background: #0b1220; border-radius: 14px; box-shadow: inset 0 0 0 1px #1e293b, 0 14px 26px -16px rgba(2, 6, 23, 0.7); }
+.wfl .wf-gutter { background: #080e1a; color: #8b9bb4; border-right: 1px solid #1e293b; }
+.wfl .wf-textarea { color: #e2e8f0; caret-color: #7dd3fc; }
+.wfl .wf-textarea::selection { background: rgba(79, 140, 255, 0.45); }
+.wfl .wf-editor:focus-within { box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.55), 0 14px 26px -16px rgba(2, 6, 23, 0.7); }
+.wfl .wf-editor-foot { color: #8b9bb4; }
+.wfl .wf-log { background: #0b1220; border-radius: 14px; color: #e2e8f0; box-shadow: inset 0 0 0 1px #1e293b; }
+.wfl .wf-log-ok { color: #86efac; }
+.wfl .wf-log-bad { color: #fca5a5; }
+.wfl .wf-filelist li { border-radius: 12px; background: #f8fafc; }
+.wfl .wf-filename { font-weight: 600; }
+
+.wfl .ca-hintcard { border-radius: 12px; background: #fffbeb; box-shadow: 0 6px 16px -10px rgba(180, 83, 9, 0.5); }
+.wfl .ca-hintcard-title { color: #7c2d12; }
+.wfl .ca-hintcard-body { color: #44403c; }
+.wfl .ca-codehint-tag { background: #f59e0b; color: #1f2937; box-shadow: 0 4px 10px rgba(0, 0, 0, 0.35); }
+
+/* Toolbar under the editor, then a build status strip that changes colour */
+.wfl .wf-learnbar { margin-top: 12px; padding: 10px 16px; background: #f8fafc; border-top: 1px solid #eceff3; }
+.wfl .wf-strip { margin-top: 0; padding: 13px 16px; border-top: 1px solid #eceff3; font-size: 12px; font-weight: 600; color: #4b5563; background: #fff; }
+.wfl .wf-strip--building { background: #fffbeb; color: #7a5a10; }
+.wfl .wf-strip--passed { background: #ecfdf3; color: #166534; }
+.wfl .wf-strip--failed { background: #fef2f2; color: #991b1b; }
+.wfl .wf-statusdot { width: 11px; height: 11px; }
+.wfl .wf-statusdot--passed { background: #16a34a; box-shadow: 0 0 0 4px rgba(22, 163, 74, 0.2); }
+.wfl .wf-statusdot--failed { background: #dc2626; box-shadow: 0 0 0 4px rgba(220, 38, 38, 0.18); }
+.wfl .wf-statusdot--building { background: #d97706; box-shadow: 0 0 0 4px rgba(217, 119, 6, 0.2); }
+.wfl .wf-url { color: #1d4ed8; font-weight: 700; }
+.wfl .wf-strip--failed .wf-link { color: #991b1b; text-decoration: underline; }
+
+/* ---------- Right: live preview ---------- */
+.wfl .wf-seg { gap: 2px; padding: 3px; background: #eef1f5; border-radius: 10px; }
+.wfl .wf-seg-btn { border: none; background: transparent; border-radius: 7px; padding: 4px 12px; font-size: 11px; font-weight: 700; color: #4b5563; }
+.wfl .wf-seg-btn.is-active { background: #fff; color: #1d4ed8; box-shadow: 0 1px 3px rgba(15, 23, 42, 0.18); }
+.wfl .wf-browser { border-color: #d9dee6; border-radius: 12px; box-shadow: 0 14px 28px -18px rgba(15, 23, 42, 0.5); }
+.wfl .wf-browser-bar { background: linear-gradient(180deg, #f6f7f9, #eceff3); }
+.wfl .wf-browser-url { border-radius: 999px; padding: 3px 12px; color: #374151; font-weight: 600; }
+.wfl .wf-stale { color: #7a5a10; background: #fef3c7; font-weight: 700; }
+.wfl .wf-browser-body--phone { padding: 14px 0; background: radial-gradient(circle at 50% 0%, #e3e9f5, #f1f4fa); }
+.wfl .wf-browser-body--phone .wf-browser-frame { height: 100%; border: 7px solid #1f2937; border-radius: 24px; box-shadow: 0 16px 28px -14px rgba(15, 23, 42, 0.6); }
+.wfl .wf-empty { background: radial-gradient(circle at 50% 30%, #f5f9ff, #fff 70%); }
+.wfl .wf-empty::before { content: ''; justify-self: center; width: 56px; height: 56px; margin-bottom: 8px; border-radius: 18px; background: linear-gradient(135deg, #dbeafe, #ede9fe); box-shadow: inset 0 0 0 1px #c7d2fe; }
+.wfl .wf-empty-sub { color: #4b5563; }
+
+/* ---------- Right: AI tutor ---------- */
+.wfl .wf-tutor-dot { width: 14px; height: 14px; background: linear-gradient(135deg, #6d4bd8, #4f8cff); box-shadow: 0 0 0 4px rgba(109, 75, 216, 0.18); }
+.wfl .wf-pill-nudge { color: #7a5a10; background: #fff8ec; border-color: #f0c26d; font-weight: 700; }
+.wfl .wf-chat { gap: 12px; padding: 4px 2px 4px 0; }
+.wfl .wf-msg { max-width: 86%; padding: 10px 13px; font-size: 12px; line-height: 1.55; }
+.wfl .wf-msg--tutor { position: relative; margin-left: 30px; background: #f3f0ff; color: #2b2f36; border-radius: 4px 14px 14px 14px; }
+.wfl .wf-msg--tutor::before { content: ''; position: absolute; left: -30px; top: 0; width: 22px; height: 22px; border-radius: 50%; background: linear-gradient(135deg, #6d4bd8, #4f8cff); box-shadow: 0 3px 8px -2px rgba(109, 75, 216, 0.6); }
+.wfl .wf-msg--student { background: linear-gradient(135deg, #2563eb, #1d4ed8); color: #fff; border-radius: 14px 4px 14px 14px; box-shadow: 0 6px 14px -8px rgba(37, 99, 235, 0.8); }
+.wfl .wf-msg--thinking { opacity: 1; color: #4b5563; font-style: normal; }
+.wfl .wf-hint { margin-left: 30px; padding: 12px 14px; background: #f5f3ff; border: 1px solid #ddd6fe; border-radius: 14px; }
+.wfl .wf-hint-label { margin-bottom: 8px; font-size: 11px; font-weight: 800; letter-spacing: 0.04em; text-transform: uppercase; color: #5b3bc4; }
+.wfl .wf-hint-steps { list-style: none; padding: 0; gap: 9px; counter-reset: hs; }
+.wfl .wf-hint-steps li { display: flex; align-items: flex-start; gap: 9px; counter-increment: hs; color: #2b2f36; }
+.wfl .wf-hint-steps li::before { content: counter(hs); flex: 0 0 20px; width: 20px; height: 20px; margin-top: 1px; border-radius: 50%; display: grid; place-items: center; font-size: 11px; font-weight: 800; color: #fff; background: #6d4bd8; }
+.wfl .wf-hint-done { color: #166534; font-weight: 700; }
+.wfl .wf-nudge { background: linear-gradient(135deg, #fffbeb, #fff7ed); border: 1px solid #f0c26d; border-left: 4px solid #f59e0b; border-radius: 14px; box-shadow: 0 8px 18px -12px rgba(180, 83, 9, 0.6); }
+.wfl .wf-nudge-title { color: #7a5a10; font-weight: 800; }
+.wfl .wf-nudge-text { color: #44403c; }
+.wfl .wf-tutor-foot { padding-top: 12px; border-top: 1px solid #eceff3; }
+.wfl .wf-chat-input input { border: 1px solid #d1d5db; border-radius: 999px; background: #f8fafc; padding: 9px 16px; font-size: 12px; }
+.wfl .wf-chat-input input:focus { border-color: #6d4bd8; background: #fff; box-shadow: 0 0 0 4px rgba(109, 75, 216, 0.15); }
+
+/* ---------- Progress report dialog ---------- */
+.wfl .wf-modal { border-radius: 20px; box-shadow: 0 30px 70px -20px rgba(15, 23, 42, 0.55); }
+.wfl .wf-report-stats div { border-radius: 12px; border-top: 3px solid #4f8cff; background: #fff; }
+.wfl .wf-report-stats div:nth-child(2) { border-top-color: #22c55e; }
+.wfl .wf-report-stats div:nth-child(3) { border-top-color: #f5b942; }
+.wfl .wf-report-stats div:nth-child(4) { border-top-color: #7c5cff; }
+.wfl .wf-report-stats span { color: #4b5563; }
+.wfl .wf-report-list li { border-radius: 10px; }
+.wfl .wf-status { color: #4b5563; }
+.wfl .wf-status--done { color: #166534; }
+
+/* ---------- Feedback (colour only for reduced-motion users; small lift otherwise) ---------- */
+.wfl .wf-btn:hover:not(:disabled) { filter: brightness(0.96); }
+@media (prefers-reduced-motion: no-preference) {
+  .wfl .wf-btn, .wfl .wf-tab, .wfl .wf-seg-btn, .wfl .wf-filepill, .wfl .wf-card { transition: transform 0.15s ease, box-shadow 0.15s ease, background-color 0.15s ease, border-color 0.15s ease; }
+  .wfl .wf-btn:hover:not(:disabled) { transform: translateY(-1px); }
+  .wfl .wf-pill-nudge::before { content: ''; display: inline-block; width: 7px; height: 7px; margin-right: 6px; border-radius: 50%; background: #f59e0b; animation: wfl-pulse 1.8s ease-in-out infinite; }
+  @keyframes wfl-pulse { 0%, 100% { box-shadow: 0 0 0 0 rgba(245, 158, 11, 0.5); } 50% { box-shadow: 0 0 0 6px rgba(245, 158, 11, 0); } }
+}
+
+/* ---------- Small screens: keep the stacked layout, relax the decorations ---------- */
+@media (max-width: 960px) {
+  .wfl .wf-top::after { height: 2px; }
+  .wfl .wf-lesson > :not(.wf-lesson-top) { margin-left: 14px; margin-right: 14px; }
+  .wfl .wf-lesson > .wf-btn { width: calc(100% - 28px); }
+  .wfl .wf-outcomes { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}

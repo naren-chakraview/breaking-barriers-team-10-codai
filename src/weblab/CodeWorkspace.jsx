@@ -151,7 +151,7 @@ export default function CodeWorkspace({
         </button>
       </div>
 
-      <div className="wf-strip" role="status" aria-live="polite">
+      <div className={`wf-strip wf-strip--${build.status}`} role="status" aria-live="polite">
         <span className={`wf-statusdot wf-statusdot--${build.status}`} aria-hidden="true" />
         <span className="wf-strip-text">
           {busy ? (phase === 'validating' ? 'AI is checking your work…' : 'Choosing your next step…') : statusText}
