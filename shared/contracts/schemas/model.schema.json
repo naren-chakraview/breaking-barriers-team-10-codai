@@ -238,6 +238,7 @@
       }
     },
     "PassiveResult": {
+      "description": "Passive always yields a usable signal (depth not volume; a model failure degrades to the rule baseline, never a broken state). `source` says where it came from: bedrock (reasoner), cache (prior reasoner result), or rules (the deterministic fallback). When source is 'rules' the caller also writes a fallback_event with component 'passive' (architecture 2.7). The Fallback branch is reserved for the case where even the rule baseline cannot run.",
       "oneOf": [
         {
           "type": "object",
@@ -246,7 +247,7 @@
           "properties": {
             "ok": { "const": true },
             "signal": { "$ref": "#/$defs/PassiveSignal" },
-            "source": { "enum": ["stub", "bedrock", "cache"] }
+            "source": { "enum": ["stub", "bedrock", "cache", "rules"] }
           }
         },
         { "$ref": "#/$defs/Fallback" }

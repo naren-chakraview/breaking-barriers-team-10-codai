@@ -10,6 +10,7 @@ from .bedrock_port import BedrockModelPort
 from .invoke import invoke, build_converse_kwargs, TASK_TIER
 from .factory import create_bedrock_port
 from .validator import validate_project, build_judge_prompt, CONFIDENCE_MIN
+from .passive_reasoner import reason_passive, build_passive_prompt, features_hash, is_rule_fallback
 
 __all__ = [
     "Safety",
@@ -24,4 +25,8 @@ __all__ = [
     "validate_project",
     "build_judge_prompt",
     "CONFIDENCE_MIN",
+    "reason_passive",
+    "build_passive_prompt",
+    "features_hash",
+    "is_rule_fallback",
 ]
