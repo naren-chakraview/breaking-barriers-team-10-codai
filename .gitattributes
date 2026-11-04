@@ -1,0 +1,10 @@
+# C-35: normalize line endings to LF so CRLF/LF churn never shows up in diffs.
+* text=auto eol=lf
+
+# Binary files: never touch line endings.
+*.ico binary
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.webp binary
