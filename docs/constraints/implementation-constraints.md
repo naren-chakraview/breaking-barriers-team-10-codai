@@ -134,7 +134,7 @@ exact, within-1 and quadratic weighted kappa. DEFAULT gate: kappa ≥ 0.70. Show
 1. *Available* = not completed and every `requires` checkpoint is completed or tested out.
 2. After `intro` (`routeAfterCompletion`), any `skippable` checkpoint whose target is already met by
    diagnostic evidence becomes `tested_out` (counts as done; depth not volume, P-6.5).
-3. Proposal = the available checkpoint whose skill has the largest gap to target; ties go to JSON order.
+3. Proposal = stay on the `current` checkpoint while it is still available (its target not yet met), otherwise the first available checkpoint in JSON order. A student finishes the checkpoint they are on before moving to another skill (depth not volume, P-6.5), rather than hopping to whichever skill has the largest gap. (Decided in issue #24 q2; supersedes the earlier "largest gap" rule.)
 4. Teacher input `{ mode: "auto" | "hold" | "assign", checkpointId? }`:
    `assign` → that checkpoint (if available); `hold` → stay; `auto` → proposal.
    (The P-8.2 AND rule: the proposal applies only if the teacher has not held or overridden it.)

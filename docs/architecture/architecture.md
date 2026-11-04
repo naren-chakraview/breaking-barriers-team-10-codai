@@ -376,8 +376,9 @@ Rules (C-19):
    diagnostic evidence becomes `tested_out` and counts as done (depth not volume, P-6.5). In the
    current tree the skippable checkpoints are `steer-it` (build ≥ 2), `use-the-lingo` (language ≥ 2)
    and `give-context` (debug ≥ 2).
-3. Proposal = the available checkpoint whose skill has the largest gap to target. Ties go to JSON
-   order.
+3. Proposal = stay on the `current` checkpoint while it is still available, otherwise the first
+   available checkpoint in JSON order (stay-on-current; depth not volume, P-6.5). Issue #24 q2
+   replaced the earlier "largest gap" rule.
 4. Teacher input `{ mode: auto | hold | assign, checkpointId? }`. `assign` picks that checkpoint if
    available, `hold` stays, `auto` takes the proposal (P-8.2).
 5. Every call writes a `routing_decision` row with a readable `reason`, shown in the UI.
@@ -390,7 +391,7 @@ decreases (C-9, C-10). A checkpoint completes when its project step is validated
 flowchart TD
   S["route: tree, progress, evidence, teacherInput"] --> A["Available = not completed and every<br/>requires is completed or tested out"]
   A --> T["After intro: test out skippable checkpoints<br/>whose target is already met"]
-  T --> P["Proposal = available checkpoint with the<br/>largest skill gap, ties by JSON order"]
+  T --> P["Proposal = stay on current if available,<br/>else first available in JSON order"]
   P --> M{"teacherInput.mode"}
   M -- "auto" --> R1["Apply the proposal"]
   M -- "hold" --> R2["Stay on the current checkpoint"]
@@ -1163,3 +1164,4 @@ session on 2026-11-04 and are **Proposed** until the team reviews them.
 | 2026-11-04 | (Task 4.6 PR) | Reconciled `infra/`: one DataStack, plus the `DbLoader` schema and master-data loader, a Data API access policy, a VPC flow log and IAM DB auth (0 cdk-nag findings). Added ADR-017. Rewrote the 2.9 note: the Aurora adapter is unblocked by the schema reconciliation. |
 | 2026-11-04 | (Aurora data PR) | Rewrote 2.9 Database and 2.11 IaC for Aurora + Python; replaced DynamoDB references with Aurora; marked Task 0 IAM/model checks verified; updated database/data-model.mmd with the C-8 student-state tables (discrepancy item 3). Added the `infra/` CDK DataStack (synth-verified, 0 nag findings) and the `backend/store/` adapters. |
 | 2026-11-04 | (Safety PR) | Built the content-safety module (`backend/ai/safety.py`, C-25/C-26) with a `BedrockModelPort` skeleton (seam 3), and the K-12 `infra/GuardrailStack` (synth-verified, 0 nag findings). Marked 2.3 Built. `invoke`/validator still pending. |
+| 2026-11-04 | (routing policy PR) | Issue #24 q2: changed C-19.3 from "largest gap" to **stay-on-current** (stay on the current checkpoint while available, else first in JSON order). Updated routing prose + diagram. Fixed the `distracted-detail` persona (evidence capped at 1 so steer-it does not test out). The q1 None-routing bug is fixed separately in #26. |
