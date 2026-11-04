@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { BrandLogo } from './Brand.jsx'
 
 export default function Login({ onLogin }) {
   const [role, setRole] = useState('student')
@@ -28,6 +29,7 @@ export default function Login({ onLogin }) {
   return (
     <div className="page">
       <form className="card" onSubmit={handleSubmit} noValidate>
+        <BrandLogo width={220} />
         <h1 className="title">School Portal</h1>
         <p className="subtitle">Sign in to continue</p>
 

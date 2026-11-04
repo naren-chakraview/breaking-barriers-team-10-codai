@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { CLUSTERS, NODES, EDGES, CANVAS, getNode } from './skillTreeData.js'
+import { BrandMark } from '../Brand.jsx'
 
 // Skill-tree / map view modeled on the CodeAI studio reference. Data-driven
 // from skillTreeData.js. Each node renders exactly one label (left/right/below)
@@ -29,7 +30,10 @@ export default function SkillTree({ user, onExit, onOpenLesson }) {
   return (
     <div className="st">
       <header className="ca-topbar">
-        <div className="ca-logo">CODE<span className="ca-logo-tri">∆</span>I</div>
+        <div className="brand-lockup">
+          <BrandMark size={30} />
+          <span className="ca-logo">AdaptAI</span>
+        </div>
         <div className="ca-topbar-center">
           <button type="button" className="ca-pill">Skill Tree: Hour of AI 2026 - Adaptive ☁</button>
           <button type="button" className="ca-pill ca-pill--project" onClick={onExit}>I'm finished! →</button>
