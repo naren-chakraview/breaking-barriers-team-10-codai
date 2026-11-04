@@ -10,9 +10,9 @@
 // default; `cognito` runs the real authorization-code + PKCE flow via react-oidc-context.
 // The rest of the app is identical in both modes — it only ever sees `user`.
 
-import { createContext, useCallback, useContext, useMemo, useRef, useState } from 'react'
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react'
 import { AuthProvider as OidcProvider, useAuth as useOidcAuth } from 'react-oidc-context'
-import { authMode, cognitoSettings } from './authConfig.js'
+import { authMode, cognitoSettings, cognitoLogoutUrl } from './authConfig.js'
 import { appUserFromOidc, requestIdentityFromOidc } from './identity.js'
 
 const AppAuthContext = createContext(null)
@@ -104,10 +104,27 @@ function CognitoAuthBridge({ children }) {
     void oidc.signinRedirect()
   }, [oidc])
 
-  const logout = useCallback(() => {
-    // End the OIDC session (clears local state and redirects to the post-logout URI).
-    void oidc.signoutRedirect()
+  const logout = useCallback(async () => {
+    // Clear the local OIDC session first (tokens, storage). Then end the session at Cognito
+    // via the Hosted-UI /logout endpoint so the Cognito cookie is cleared too — otherwise the
+    // next sign-in silently re-logs the same user in (a hazard on shared devices, ADR-018). If
+    // no Hosted-UI domain is configured, a local sign-out is the best we can do.
+    await oidc.removeUser()
+    const url = cognitoLogoutUrl()
+    if (url) {
+      window.location.assign(url)
+    }
   }, [oidc])
+
+  // Silent-renew failure (refresh token expired or revoked): drop the stale session so the
+  // app shows the login screen instead of making API calls with a dead token. Without this,
+  // automaticSilentRenew failures would surface only as backend 401s.
+  useEffect(() => {
+    const onRenewError = () => {
+      void oidc.removeUser()
+    }
+    return oidc.events.addSilentRenewError(onRenewError)
+  }, [oidc.events, oidc])
 
   const getIdentity = useCallback(() => requestIdentityFromOidc(userRef.current), [])
 

@@ -41,7 +41,11 @@ export function authMode(env = ambientEnv()) {
  *   VITE_COGNITO_CLIENT_ID  the public app-client id
  *   VITE_COGNITO_REDIRECT_URI    where Cognito returns the ?code= (this app's callback)
  * Optional:
- *   VITE_COGNITO_LOGOUT_URI      post-logout landing (defaults to the redirect origin)
+ *   VITE_COGNITO_DOMAIN          the Hosted-UI domain, e.g.
+ *                                https://<prefix>.auth.<region>.amazoncognito.com — needed for
+ *                                a true Hosted-UI sign-out (ends the Cognito session, not just
+ *                                the local one); see cognitoLogoutUrl().
+ *   VITE_COGNITO_LOGOUT_URI      post-logout landing (defaults to the redirect URI)
  *   VITE_COGNITO_SCOPE           defaults to "openid profile email"
  *
  * @param {Record<string, string|undefined>} [env]
@@ -79,4 +83,27 @@ export function cognitoSettings(env = ambientEnv()) {
       window.history.replaceState({}, document.title, window.location.pathname)
     },
   }
+}
+
+/**
+ * The Cognito Hosted-UI logout URL, or null if no domain is configured.
+ *
+ * Cognito does not expose a standard OIDC `end_session_endpoint`; signing out only at the
+ * client leaves the Cognito session cookie alive, so the next sign-in silently re-logs the
+ * same user in (a real hazard on shared/school devices). The fix is to send the browser to
+ * Cognito's `/logout?client_id=...&logout_uri=...` endpoint, which clears the Cognito session
+ * and then returns to `logout_uri` (which must be registered as an allowed sign-out URL on the
+ * app client). When no domain is configured we return null and fall back to a local-only
+ * sign-out.
+ *
+ * @param {Record<string, string|undefined>} [env]
+ * @returns {string | null}
+ */
+export function cognitoLogoutUrl(env = ambientEnv()) {
+  const domain = (env.VITE_COGNITO_DOMAIN || '').trim().replace(/\/+$/, '')
+  const clientId = (env.VITE_COGNITO_CLIENT_ID || '').trim()
+  const logoutUri = (env.VITE_COGNITO_LOGOUT_URI || env.VITE_COGNITO_REDIRECT_URI || '').trim()
+  if (!domain || !clientId || !logoutUri) return null
+  const qs = new URLSearchParams({ client_id: clientId, logout_uri: logoutUri })
+  return `${domain}/logout?${qs.toString()}`
 }
