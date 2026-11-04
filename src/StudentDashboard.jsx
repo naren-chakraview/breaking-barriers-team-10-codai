@@ -3,6 +3,11 @@ import './studentDashboard.css'
 import { LESSON } from './weblab/courseData.js'
 import { Icon, HeroArt } from './weblab/courseArt.jsx'
 import { BrandMark, BrandLogo } from './Brand.jsx'
+import { useServices } from './services/ServicesContext.jsx'
+import { adaptTree } from './services/treeAdapter.js'
+import SourceBadge from './services/SourceBadge.jsx'
+
+const COURSE_ID = 'hoai2026-adaptive'
 
 // The student's home screen: a welcome hero with the AdaptAI logo and the next
 // thing to do, three at-a-glance stats, and the course card with the objective
@@ -103,14 +108,31 @@ function ConfirmStart({ current, next, onConfirm, onCancel }) {
 }
 
 export default function StudentDashboard({ user, onLogout, onContinueLesson, onViewCourse, onStartLesson, onViewNewCourse }) {
+  const services = useServices()
   const startLesson = onStartLesson || onContinueLesson
   const [confirming, setConfirming] = useState(false)
   const requestStart = () => (inProgressCourse ? setConfirming(true) : startLesson())
   const viewNewCourse = onViewNewCourse || onViewCourse
   const name = displayName(user?.username)
+
+  // Progress reflects the services layer (seam 1) via getTree. Until it resolves,
+  // fall back to the mock course value so the page never looks empty.
+  const [adapted, setAdapted] = useState(null)
+  const [loading, setLoading] = useState(true)
+  useEffect(() => {
+    let alive = true
+    setLoading(true)
+    services
+      .getTree({ courseId: COURSE_ID })
+      .then((res) => { if (alive) setAdapted(adaptTree(res)) })
+      .catch(() => { /* keep the mock fallback below */ })
+      .finally(() => { if (alive) setLoading(false) })
+    return () => { alive = false }
+  }, [services])
+
   const total = LESSON.objectives.length
   const course = COURSES[0]
-  const pct = Math.max(0, Math.min(100, course.progress))
+  const pct = Math.max(0, Math.min(100, adapted ? adapted.progressPercent : course.progress))
   const exact = (pct / 100) * total
   const done = Math.min(total, Math.floor(exact))
   const finished = done >= total
@@ -132,6 +154,12 @@ export default function StudentDashboard({ user, onLogout, onContinueLesson, onV
 
       <main className="sd-page">
         <div className="sd-wrap">
+          <div aria-live="polite">
+            {loading && <p className="sd-loading" role="status">Loading your progress…</p>}
+            {adapted && (
+              <SourceBadge source={adapted.source} fallbackActive={adapted.fallbackActive} />
+            )}
+          </div>
           {/* ---------------- Welcome hero ---------------- */}
           <section className="sd-hero" aria-labelledby="sd-hi">
             <div className="sd-hero-text">

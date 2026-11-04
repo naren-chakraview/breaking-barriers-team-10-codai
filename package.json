@@ -4,11 +4,13 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
-    "dev": "vite",
+    "dev": "VITE_PROXY_BASE=/proxy/5173/ vite",
+    "dev:local": "vite",
     "build": "vite build",
     "preview": "vite preview",
     "test": "vitest run",
-    "test:contracts": "vitest run shared/contracts"
+    "test:contracts": "vitest run shared/contracts",
+    "dev:api": "python3 backend/local/run.py"
   },
   "dependencies": {
     "react": "^18.3.1",

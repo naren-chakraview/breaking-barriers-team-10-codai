@@ -1,0 +1,77 @@
+{
+  "pbtResults": {},
+  "executionHistory": {
+    "3.1 Implement the 2xx parse-and-validate path in `src/services/httpRequest.js`": [
+      {
+        "executionId": "063bb10a-da9f-47f3-9a66-8873621c5b97",
+        "chatSessionId": "sess_40ac174c-22fd-4eca-9a3f-516cf6129371",
+        "timestamp": 1793825532243
+      },
+      {
+        "executionId": "063bb10a-da9f-47f3-9a66-8873621c5b97",
+        "chatSessionId": "sess_40ac174c-22fd-4eca-9a3f-516cf6129371",
+        "timestamp": 1793825558390
+      },
+      {
+        "executionId": "063bb10a-da9f-47f3-9a66-8873621c5b97",
+        "chatSessionId": "sess_40ac174c-22fd-4eca-9a3f-516cf6129371",
+        "timestamp": 1793825944524
+      }
+    ],
+    "3.2 Implement the non-2xx error mapping in `src/services/httpRequest.js`": [
+      {
+        "executionId": "063bb10a-da9f-47f3-9a66-8873621c5b97",
+        "chatSessionId": "sess_40ac174c-22fd-4eca-9a3f-516cf6129371",
+        "timestamp": 1793825533792
+      },
+      {
+        "executionId": "063bb10a-da9f-47f3-9a66-8873621c5b97",
+        "chatSessionId": "sess_40ac174c-22fd-4eca-9a3f-516cf6129371",
+        "timestamp": 1793825945236
+      }
+    ],
+    "3.3 Implement the network-failure and abort paths in `src/services/httpRequest.js`": [
+      {
+        "executionId": "063bb10a-da9f-47f3-9a66-8873621c5b97",
+        "chatSessionId": "sess_40ac174c-22fd-4eca-9a3f-516cf6129371",
+        "timestamp": 1793825535072
+      },
+      {
+        "executionId": "063bb10a-da9f-47f3-9a66-8873621c5b97",
+        "chatSessionId": "sess_40ac174c-22fd-4eca-9a3f-516cf6129371",
+        "timestamp": 1793825946797
+      }
+    ],
+    "4. Checkpoint - Ensure all tests pass": [
+      {
+        "executionId": "063bb10a-da9f-47f3-9a66-8873621c5b97",
+        "chatSessionId": "sess_40ac174c-22fd-4eca-9a3f-516cf6129371",
+        "timestamp": 1793825536295
+      },
+      {
+        "executionId": "063bb10a-da9f-47f3-9a66-8873621c5b97",
+        "chatSessionId": "sess_40ac174c-22fd-4eca-9a3f-516cf6129371",
+        "timestamp": 1793825947693
+      }
+    ],
+    "8. Final verification - enforce guardrails and run the gates": [
+      {
+        "executionId": "063bb10a-da9f-47f3-9a66-8873621c5b97",
+        "chatSessionId": "sess_40ac174c-22fd-4eca-9a3f-516cf6129371",
+        "timestamp": 1793825537692
+      },
+      {
+        "executionId": "063bb10a-da9f-47f3-9a66-8873621c5b97",
+        "chatSessionId": "sess_40ac174c-22fd-4eca-9a3f-516cf6129371",
+        "timestamp": 1793825950064
+      }
+    ],
+    "3. Implement the request helper `src/services/httpRequest.js` (the only I/O)": [
+      {
+        "executionId": "063bb10a-da9f-47f3-9a66-8873621c5b97",
+        "chatSessionId": "sess_40ac174c-22fd-4eca-9a3f-516cf6129371",
+        "timestamp": 1793825949386
+      }
+    ]
+  }
+}

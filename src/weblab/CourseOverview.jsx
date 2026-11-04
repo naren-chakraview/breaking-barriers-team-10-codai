@@ -1,8 +1,14 @@
+import { useEffect, useState } from 'react'
 import './courseOverview.css'
 import { LESSON, LEVELS } from './courseData.js'
 import { NEEDLE_INFO } from './engine.js'
 import { Icon, HeroArt, SiteArt } from './courseArt.jsx'
 import { BrandMark } from '../Brand.jsx'
+import { useServices } from '../services/ServicesContext.jsx'
+import { adaptTree } from '../services/treeAdapter.js'
+import SourceBadge from '../services/SourceBadge.jsx'
+
+const COURSE_ID = 'hoai2026-adaptive'
 
 // "View course": the visual landing page for the whole course, built around how
 // a student actually learns it: know where you are and what is next, know what
@@ -117,8 +123,25 @@ function SectionHead({ id, kicker, title, sub }) {
 }
 
 export default function CourseOverview({ user, progress = 15, onBack, onContinueLesson }) {
+  const services = useServices()
+
+  // Progress reflects the services layer (seam 1) via getTree; the `progress`
+  // prop is the fallback until getTree resolves.
+  const [adapted, setAdapted] = useState(null)
+  const [loading, setLoading] = useState(true)
+  useEffect(() => {
+    let alive = true
+    setLoading(true)
+    services
+      .getTree({ courseId: COURSE_ID })
+      .then((res) => { if (alive) setAdapted(adaptTree(res)) })
+      .catch(() => { /* keep the prop fallback */ })
+      .finally(() => { if (alive) setLoading(false) })
+    return () => { alive = false }
+  }, [services])
+
   const total = LESSON.objectives.length
-  const pct = Math.max(0, Math.min(100, progress))
+  const pct = Math.max(0, Math.min(100, adapted ? adapted.progressPercent : progress))
   const exact = (pct / 100) * total
   const done = Math.min(total, Math.floor(exact))
   const partial = done < total ? Math.round((exact - done) * 100) : 0
@@ -154,6 +177,12 @@ export default function CourseOverview({ user, progress = 15, onBack, onContinue
 
       <main className="cv-page">
         <div className="cv-wrap">
+          <div aria-live="polite">
+            {loading && <p className="cv-sec-sub" role="status">Loading your progress…</p>}
+            {adapted && (
+              <SourceBadge source={adapted.source} fallbackActive={adapted.fallbackActive} />
+            )}
+          </div>
           {/* ---------------- Hero ---------------- */}
           <section className="cv-hero" aria-labelledby="cv-title">
             <div className="cv-hero-inner">
