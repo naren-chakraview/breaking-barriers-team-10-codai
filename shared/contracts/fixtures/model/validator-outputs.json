@@ -1,0 +1,37 @@
+{
+  "description": "Canned validator outputs for MODEL_MODE=stub and for testing the C-16 parse, retry and fallback paths. `raw` is what the model text would contain; `expect` is how validateProject should classify it.",
+  "cases": [
+    {
+      "name": "valid-pass",
+      "raw": "{\"skillId\":\"build\",\"evidenceLevel\":2,\"conditionMet\":true,\"confidence\":0.88,\"evidence\":\"Prompt named a goal, a constraint and one change; the project heading and button updated to match.\"}",
+      "expect": { "ok": true, "source": "stub", "evidenceLevel": 2 }
+    },
+    {
+      "name": "valid-fail-low-level",
+      "raw": "{\"skillId\":\"build\",\"evidenceLevel\":0,\"conditionMet\":false,\"confidence\":0.82,\"evidence\":\"Prompt was 'make it better' with no specific detail; no clear change to match.\"}",
+      "expect": { "ok": true, "source": "stub", "evidenceLevel": 0 }
+    },
+    {
+      "name": "low-confidence-triggers-fallback",
+      "raw": "{\"skillId\":\"build\",\"evidenceLevel\":1,\"conditionMet\":true,\"confidence\":0.41,\"evidence\":\"Unclear whether the change matched the prompt.\"}",
+      "expect": { "ok": false, "fallbackComponent": "validation", "reason": "low_confidence" }
+    },
+    {
+      "name": "invalid-json-then-repair",
+      "raw": "Sure! Here is the result:\n{\"skillId\":\"build\",\"evidenceLevel\":2,\"conditionMet\":true,\"confidence\":0.9,\"evidence\":\"ok\"}",
+      "repairRaw": "{\"skillId\":\"build\",\"evidenceLevel\":2,\"conditionMet\":true,\"confidence\":0.9,\"evidence\":\"Prompt named two details; project matched.\"}",
+      "expect": { "ok": true, "source": "stub", "afterRepair": true }
+    },
+    {
+      "name": "invalid-json-twice-fallback",
+      "raw": "I cannot produce JSON.",
+      "repairRaw": "still not json",
+      "expect": { "ok": false, "fallbackComponent": "validation", "reason": "unparseable" }
+    },
+    {
+      "name": "out-of-range-level-fallback",
+      "raw": "{\"skillId\":\"build\",\"evidenceLevel\":5,\"conditionMet\":true,\"confidence\":0.9,\"evidence\":\"Level above the skill maximum.\"}",
+      "expect": { "ok": false, "fallbackComponent": "validation", "reason": "schema_invalid" }
+    }
+  ]
+}

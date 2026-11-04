@@ -1,0 +1,24 @@
+{
+  "persona": "distracted-inattentive",
+  "status": "draft",
+  "description": "Distracted learner, variant 2: not paying attention. Rapid low-effort submits ('ok', 'asdf') separated by long gaps. There is deliberately no client telemetry (ADR-006), so this is inferred from content and server timestamps only, and it can look like slow thinking. Passive should reengage gently, with lower confidence, shown to the teacher as an observation. Synthetic.",
+  "student": { "studentId": "stu-away", "displayName": "Drifting Drew", "synthetic": true },
+  "attempts": [
+    { "attemptId": "att-away-01", "studentId": "stu-away", "stepId": "intro-plan", "inputText": "idk", "projectSnapshotRef": null, "evidenceLevel": null, "confidence": null, "createdAt": "2026-11-04T11:00:20Z" },
+    { "attemptId": "att-away-02", "studentId": "stu-away", "stepId": "intro-web-dev", "inputText": "q103:e", "projectSnapshotRef": null, "evidenceLevel": 0, "confidence": 1, "createdAt": "2026-11-04T11:00:25Z" },
+    { "attemptId": "att-away-03", "studentId": "stu-away", "stepId": "intro-web-dev", "inputText": "q104:e", "projectSnapshotRef": null, "evidenceLevel": 0, "confidence": 1, "createdAt": "2026-11-04T11:00:27Z" },
+    { "attemptId": "att-away-04", "studentId": "stu-away", "stepId": "intro-web-dev", "inputText": "q105:e", "projectSnapshotRef": null, "evidenceLevel": 0, "confidence": 1, "createdAt": "2026-11-04T11:00:29Z" },
+    { "attemptId": "att-away-05", "studentId": "stu-away", "stepId": "steer-it-project", "inputText": "ok", "projectSnapshotRef": "snap-away-05", "evidenceLevel": 0, "confidence": 0.9, "createdAt": "2026-11-04T11:34:10Z" },
+    { "attemptId": "att-away-06", "studentId": "stu-away", "stepId": "steer-it-project", "inputText": "asdf", "projectSnapshotRef": "snap-away-06", "evidenceLevel": 0, "confidence": 0.9, "createdAt": "2026-11-04T11:34:14Z" },
+    { "attemptId": "att-away-07", "studentId": "stu-away", "stepId": "steer-it-project", "inputText": "hi", "projectSnapshotRef": "snap-away-07", "evidenceLevel": 0, "confidence": 0.9, "createdAt": "2026-11-04T12:10:00Z" },
+    { "attemptId": "att-away-08", "studentId": "stu-away", "stepId": "steer-it-project", "inputText": "lol", "projectSnapshotRef": "snap-away-08", "evidenceLevel": 0, "confidence": 0.9, "createdAt": "2026-11-04T12:10:03Z" }
+  ],
+  "hints": [],
+  "teacherInput": { "mode": "auto" },
+  "expected": {
+    "signal": "reengage",
+    "hintStyle": "guiding_question",
+    "lowConfidence": true,
+    "nextAfterIntro": "steer-it"
+  }
+}

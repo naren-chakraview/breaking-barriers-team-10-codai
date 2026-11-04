@@ -1,0 +1,275 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://codeai.local/contracts/model.schema.json",
+  "title": "Model access, safety, validator and Passive",
+  "description": "Seams 2 and 3. Request and result shapes for invoke, the safety screens, the validator and the Passive reasoner.",
+  "$defs": {
+    "ValidatorOutput": {
+      "description": "C-16. Exactly these fields. The per-skill maximum for evidenceLevel is checked against the tree at runtime; confidence under 0.6 is treated as unreliable by the caller, not by the schema.",
+      "type": "object",
+      "required": ["skillId", "evidenceLevel", "conditionMet", "confidence", "evidence"],
+      "additionalProperties": false,
+      "properties": {
+        "skillId": { "$ref": "common.schema.json#/$defs/Slug" },
+        "evidenceLevel": { "$ref": "common.schema.json#/$defs/Level" },
+        "conditionMet": { "type": "boolean" },
+        "confidence": { "$ref": "common.schema.json#/$defs/Confidence" },
+        "evidence": { "$ref": "common.schema.json#/$defs/EvidenceText" }
+      }
+    },
+
+    "PassiveSignal": {
+      "description": "Passive reasoner output (architecture 2.7). additionalProperties is false on purpose: the model cannot return a checkpoint id, because routing is not a model decision (C-18).",
+      "type": "object",
+      "required": ["signal", "hintStyle", "reason", "evidenceRefs", "confidence"],
+      "additionalProperties": false,
+      "properties": {
+        "signal": { "$ref": "common.schema.json#/$defs/PassiveSignalName" },
+        "hintStyle": { "$ref": "common.schema.json#/$defs/HintStyle" },
+        "angleToTry": { "type": "string", "maxLength": 120 },
+        "reason": { "$ref": "common.schema.json#/$defs/Reason" },
+        "evidenceRefs": { "type": "array", "maxItems": 10, "items": { "type": "string", "maxLength": 80 } },
+        "confidence": { "$ref": "common.schema.json#/$defs/Confidence" }
+      }
+    },
+
+    "SkillFeatures": {
+      "type": "object",
+      "required": ["attempts", "misses", "consecutiveMisses", "bestLevel", "trend", "hintsUsed", "anglesTried"],
+      "additionalProperties": false,
+      "properties": {
+        "attempts": { "type": "integer", "minimum": 0 },
+        "misses": { "type": "integer", "minimum": 0 },
+        "consecutiveMisses": { "type": "integer", "minimum": 0 },
+        "bestLevel": { "$ref": "common.schema.json#/$defs/Level" },
+        "trend": { "enum": ["rising", "flat", "falling"] },
+        "hintsUsed": { "type": "integer", "minimum": 0 },
+        "anglesTried": { "type": "array", "items": { "$ref": "common.schema.json#/$defs/HintStyle" } }
+      }
+    },
+    "Features": {
+      "description": "DRAFT. Output of extractFeatures. Derived only from attempt content and server timestamps (ADR-006). Track B owns refinement through a contract-change PR.",
+      "type": "object",
+      "required": ["studentId", "window", "perSkill", "timing", "content"],
+      "additionalProperties": false,
+      "properties": {
+        "studentId": { "$ref": "common.schema.json#/$defs/StudentId" },
+        "window": {
+          "type": "object",
+          "required": ["attempts", "firstAt", "lastAt"],
+          "additionalProperties": false,
+          "properties": {
+            "attempts": { "type": "integer", "minimum": 0 },
+            "firstAt": { "oneOf": [{ "$ref": "common.schema.json#/$defs/Timestamp" }, { "type": "null" }] },
+            "lastAt": { "oneOf": [{ "$ref": "common.schema.json#/$defs/Timestamp" }, { "type": "null" }] }
+          }
+        },
+        "perSkill": { "type": "object", "additionalProperties": { "$ref": "#/$defs/SkillFeatures" } },
+        "timing": {
+          "type": "object",
+          "required": ["medianSecondsPerStep", "cohortMedianSecondsPerStep", "maxGapSeconds", "rapidSubmits"],
+          "additionalProperties": false,
+          "properties": {
+            "medianSecondsPerStep": { "type": ["number", "null"], "minimum": 0 },
+            "cohortMedianSecondsPerStep": { "type": ["number", "null"], "minimum": 0 },
+            "maxGapSeconds": { "type": ["number", "null"], "minimum": 0 },
+            "rapidSubmits": { "type": "integer", "minimum": 0 }
+          }
+        },
+        "content": {
+          "type": "object",
+          "required": ["cosmeticEditShare"],
+          "additionalProperties": false,
+          "properties": { "cosmeticEditShare": { "type": "number", "minimum": 0, "maximum": 1 } }
+        }
+      }
+    },
+
+    "Prompt": {
+      "description": "`system` and `user` are trusted. Everything the student wrote, and any retrieved or tool text, goes in `untrusted` so the safety layer can wrap it in guardContent blocks (architecture 2.3).",
+      "type": "object",
+      "required": ["system", "user"],
+      "additionalProperties": false,
+      "properties": {
+        "system": { "type": "string", "minLength": 1, "maxLength": 20000 },
+        "user": { "type": "string", "minLength": 1, "maxLength": 20000 },
+        "untrusted": { "type": "array", "maxItems": 20, "items": { "type": "string", "maxLength": 20000 } }
+      }
+    },
+    "InvokeRequest": {
+      "description": "invoke(task, prompt, opts) as one object. maxTokens is REQUIRED: Bedrock defaults to the model maximum, which wastes quota and cost. timeoutMs is capped at 10 s (C-22).",
+      "type": "object",
+      "required": ["task", "prompt", "opts"],
+      "additionalProperties": false,
+      "properties": {
+        "task": { "enum": ["verify", "codegen", "validate", "tutor", "passive"] },
+        "prompt": { "$ref": "#/$defs/Prompt" },
+        "opts": {
+          "type": "object",
+          "required": ["maxTokens", "correlationId"],
+          "additionalProperties": false,
+          "properties": {
+            "maxTokens": { "type": "integer", "minimum": 1, "maximum": 8192 },
+            "temperature": { "type": "number", "minimum": 0, "maximum": 1 },
+            "timeoutMs": { "type": "integer", "minimum": 1, "maximum": 10000 },
+            "correlationId": { "$ref": "common.schema.json#/$defs/CorrelationId" },
+            "promptVersion": { "type": "string", "minLength": 1, "maxLength": 64 }
+          }
+        }
+      }
+    },
+    "InvokeResult": {
+      "description": "Success or failure, never a thrown provider error. Decision-log fields only: no student text.",
+      "oneOf": [
+        {
+          "type": "object",
+          "required": ["ok", "task", "source", "modelId", "promptVersion", "text", "latencyMs", "usage", "guardrail", "correlationId"],
+          "additionalProperties": false,
+          "properties": {
+            "ok": { "const": true },
+            "task": { "enum": ["verify", "codegen", "validate", "tutor", "passive"] },
+            "source": { "enum": ["stub", "bedrock"] },
+            "modelId": { "type": "string", "minLength": 1 },
+            "promptVersion": { "type": "string", "minLength": 1 },
+            "text": { "type": "string" },
+            "latencyMs": { "type": "integer", "minimum": 0 },
+            "usage": {
+              "type": "object",
+              "required": ["inputTokens", "outputTokens"],
+              "additionalProperties": false,
+              "properties": {
+                "inputTokens": { "type": "integer", "minimum": 0 },
+                "outputTokens": { "type": "integer", "minimum": 0 }
+              }
+            },
+            "guardrail": {
+              "type": "object",
+              "required": ["version", "action"],
+              "additionalProperties": false,
+              "properties": {
+                "version": { "type": "string", "minLength": 1, "description": "A pinned numbered version, never DRAFT." },
+                "action": { "enum": ["none", "intervened"] }
+              }
+            },
+            "correlationId": { "$ref": "common.schema.json#/$defs/CorrelationId" }
+          }
+        },
+        {
+          "type": "object",
+          "required": ["ok", "task", "error", "correlationId"],
+          "additionalProperties": false,
+          "properties": {
+            "ok": { "const": false },
+            "task": { "enum": ["verify", "codegen", "validate", "tutor", "passive"] },
+            "error": { "$ref": "error.schema.json#/properties/error" },
+            "correlationId": { "$ref": "common.schema.json#/$defs/CorrelationId" }
+          }
+        }
+      ]
+    },
+
+    "ScreenResult": {
+      "description": "Result of screenInput or screenOutput. Fail closed (C-25): a filter error means allowed=false and action=error, never allowed=true.",
+      "type": "object",
+      "required": ["allowed", "action", "replacement", "categories", "guardrailVersion"],
+      "additionalProperties": false,
+      "properties": {
+        "allowed": { "type": "boolean" },
+        "action": { "enum": ["none", "blocked", "error"] },
+        "replacement": { "type": ["string", "null"], "maxLength": 400, "description": "Safe text to show instead of blocked content." },
+        "categories": { "type": "array", "maxItems": 10, "items": { "type": "string", "maxLength": 40 }, "description": "Guardrail categories only. Never the offending text." },
+        "guardrailVersion": { "type": ["string", "null"] }
+      },
+      "allOf": [
+        {
+          "if": { "properties": { "allowed": { "const": true } } },
+          "then": { "properties": { "action": { "const": "none" } } }
+        },
+        {
+          "if": { "properties": { "allowed": { "const": false } } },
+          "then": {
+            "properties": { "action": { "enum": ["blocked", "error"] }, "replacement": { "type": "string", "minLength": 1 } }
+          }
+        }
+      ]
+    },
+
+    "ValidateRequest": {
+      "description": "validateProject input (C-14). The step condition and the skill's evidence descriptors are looked up from the tree by the implementation.",
+      "type": "object",
+      "required": ["stepId", "skillId", "condition", "prompts", "projectBefore", "projectAfter", "correlationId"],
+      "additionalProperties": false,
+      "properties": {
+        "stepId": { "$ref": "common.schema.json#/$defs/Slug" },
+        "skillId": { "$ref": "common.schema.json#/$defs/Slug" },
+        "condition": { "type": "string", "minLength": 1, "maxLength": 2000 },
+        "prompts": { "type": "array", "minItems": 1, "maxItems": 10, "items": { "type": "string", "maxLength": 4000 } },
+        "projectBefore": { "oneOf": [{ "$ref": "common.schema.json#/$defs/Project" }, { "type": "null" }] },
+        "projectAfter": { "$ref": "common.schema.json#/$defs/Project" },
+        "correlationId": { "$ref": "common.schema.json#/$defs/CorrelationId" }
+      }
+    },
+    "ValidateResult": {
+      "description": "ok=true only when the output is schema-valid AND confidence is at least 0.6. Invalid JSON gets one repair retry, then fallback (C-16).",
+      "oneOf": [
+        {
+          "type": "object",
+          "required": ["ok", "result", "source"],
+          "additionalProperties": false,
+          "properties": {
+            "ok": { "const": true },
+            "result": { "$ref": "#/$defs/ValidatorOutput" },
+            "source": { "enum": ["stub", "bedrock"] }
+          }
+        },
+        { "$ref": "#/$defs/Fallback" }
+      ]
+    },
+
+    "PassiveRequest": {
+      "type": "object",
+      "required": ["features", "recentAttempts", "hintLog", "correlationId"],
+      "additionalProperties": false,
+      "properties": {
+        "features": { "$ref": "#/$defs/Features" },
+        "recentAttempts": { "type": "array", "maxItems": 10, "items": { "$ref": "records.schema.json#/$defs/StepAttempt" } },
+        "hintLog": { "type": "array", "maxItems": 50, "items": { "$ref": "records.schema.json#/$defs/HintEvent" } },
+        "correlationId": { "$ref": "common.schema.json#/$defs/CorrelationId" }
+      }
+    },
+    "PassiveResult": {
+      "oneOf": [
+        {
+          "type": "object",
+          "required": ["ok", "signal", "source"],
+          "additionalProperties": false,
+          "properties": {
+            "ok": { "const": true },
+            "signal": { "$ref": "#/$defs/PassiveSignal" },
+            "source": { "enum": ["stub", "bedrock", "cache"] }
+          }
+        },
+        { "$ref": "#/$defs/Fallback" }
+      ]
+    },
+
+    "Fallback": {
+      "description": "A model-backed step could not produce a reliable result. The caller writes a fallback_event and takes the fallback path (C-21, C-22).",
+      "type": "object",
+      "required": ["ok", "fallback"],
+      "additionalProperties": false,
+      "properties": {
+        "ok": { "const": false },
+        "fallback": {
+          "type": "object",
+          "required": ["component", "reason"],
+          "additionalProperties": false,
+          "properties": {
+            "component": { "$ref": "common.schema.json#/$defs/FallbackComponent" },
+            "reason": { "type": "string", "minLength": 1, "maxLength": 400 }
+          }
+        }
+      }
+    }
+  }
+}

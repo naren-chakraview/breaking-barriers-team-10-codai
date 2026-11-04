@@ -1,0 +1,33 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://codeai.local/contracts/error.schema.json",
+  "title": "Error",
+  "description": "C-29: { \"error\": { \"code\", \"message\" } }. Exactly these fields, nothing else.",
+  "type": "object",
+  "required": ["error"],
+  "additionalProperties": false,
+  "properties": {
+    "error": {
+      "type": "object",
+      "required": ["code", "message"],
+      "additionalProperties": false,
+      "properties": {
+        "code": {
+          "enum": [
+            "UNAUTHORIZED",
+            "FORBIDDEN",
+            "NOT_FOUND",
+            "VALIDATION_ERROR",
+            "CONTENT_BLOCKED",
+            "RATE_LIMITED",
+            "TIMEOUT",
+            "UPSTREAM_ERROR",
+            "CONFIG_ERROR",
+            "INTERNAL"
+          ]
+        },
+        "message": { "type": "string", "minLength": 1, "maxLength": 400 }
+      }
+    }
+  }
+}

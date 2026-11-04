@@ -1,0 +1,19 @@
+{
+  "description": "Canned screenInput/screenOutput results. Fail closed (C-25): the error case has allowed=false. categories carry labels only, never the offending text.",
+  "clean": { "allowed": true, "action": "none", "replacement": null, "categories": [], "guardrailVersion": "stub-1" },
+  "blocked_input": {
+    "allowed": false, "action": "blocked",
+    "replacement": "Let's keep this about building your website. Try describing a part of your page you want to change.",
+    "categories": ["off_topic", "unsafe"], "guardrailVersion": "stub-1"
+  },
+  "blocked_pii": {
+    "allowed": false, "action": "blocked",
+    "replacement": "Please don't share personal details like phone numbers or addresses. Let's focus on your project.",
+    "categories": ["pii"], "guardrailVersion": "stub-1"
+  },
+  "filter_error_fails_closed": {
+    "allowed": false, "action": "error",
+    "replacement": "The safety check is briefly unavailable, so we paused this response. Your work is saved and the lesson continues.",
+    "categories": [], "guardrailVersion": null
+  }
+}
