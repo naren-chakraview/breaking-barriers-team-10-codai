@@ -131,7 +131,7 @@ instead (section 2.6, C-22).
 | Pillar | How this design addresses it | Where |
 |---|---|---|
 | Operational excellence | IaC, CI on every PR, structured logs, dashboards, decision records | 2.10, 2.11 |
-| Security | Guardrails both ways, least-privilege IAM, KMS, no browser-side model calls, throttled API | 2.3, 2.12 |
+| Security | Guardrails both ways, least-privilege IAM, KMS, no browser-side model calls, throttled API, secrets kept out of the repo | 2.3, 2.12, 2.14 |
 | Reliability | Linear fallback path, 10 s timeouts, work persisted on every submit, health re-check | 2.6, 2.2 |
 | Performance efficiency | Haiku for checks, Sonnet for codegen and hints, 10 s adaptive budget | 2.4 |
 | Cost optimization | $500 account cap, token limits, response cache, two-model allow-list | 2.4, 2.7 |
@@ -141,8 +141,8 @@ instead (section 2.6, C-22).
 
 | Fact | Status |
 |---|---|
-| Account `475224768945`, region `us-west-2`, role `WSParticipantRole` | Verified (2026-11-04) |
-| Budget `hackathon-budget-475224768945`, $500/month, about $3.79 spent | Verified |
+| Hackathon account (id kept out of the repo), region `us-west-2`, role `WSParticipantRole` | Verified (2026-11-04) |
+| Budget `hackathon-budget-<account-id>`, $500/month, about $3.79 spent | Verified |
 | No Bedrock Guardrails exist yet | Verified |
 | CDK not bootstrapped in `us-west-2` (`CDKToolkit` absent) | Verified |
 | `us.` Haiku 4.5 and Sonnet 4.5 inference profiles are listed | Verified (listed only) |
@@ -242,7 +242,8 @@ One wrapper, `invoke(task, prompt)`, is the only code that calls Bedrock.
 | verify, validate, Passive reasoner | `us.anthropic.claude-haiku-4-5-20251001-v1:0` |
 | codegen, hints, tutor | `us.anthropic.claude-sonnet-4-5-20250929-v1:0` |
 
-- Model ids come from environment config. Nothing in front-end code references a model (C-26).
+- Model ids are read from SSM parameters (2.14), never hard-coded. Nothing in front-end code
+  references a model (C-26).
 - Verify and codegen use **different models** (P-7.2).
 - Every call sets `maxTokens` explicitly and a 10 s timeout. The Bedrock default is the model maximum,
   which wastes quota and cost.
@@ -505,7 +506,8 @@ small, so a single-table design is not needed.
 
 **Status:** Proposed. **Serves:** C-38, P-12.3, C-36, C-37.
 
-- One **CDK app** (TypeScript) in one account (`475224768945`, `us-west-2`), stacks by concern:
+- One **CDK app** (TypeScript) in one account (`us-west-2`; the account id comes from the
+  environment, never the repo), stacks by concern:
   `DataStack`, `AgentsSafetyStack` (Guardrail plus pinned version, model Lambdas, IAM), `ApiStack`,
   `ObservabilityStack`, and later `WebStack` and `PipelineStack` (ADR-007).
 - Lambda handlers are plain JS ESM. Shared logic (routing, scoring, schemas) lives in `shared/` and is
@@ -529,7 +531,8 @@ small, so a single-table design is not needed.
   routes. Demo mode relaxes authentication only (C-33).
 - Encryption in transit (TLS) and at rest (KMS).
 - No secrets, tokens or passwords in logs. Secrets are never committed. Local credentials stay in the
-  shell or in `.env.local`, which is gitignored (C-38).
+  shell or in `.env.local`, which is gitignored (C-38). Where configuration and secrets live, and the
+  rules for handling them, are in 2.14.
 - Student code runs only in the sandboxed preview iframe, with no access to platform secrets
   (C-32, P-13.5).
 - Student data is not shared commercially (P-18.5). Collect only what is needed (P-13.6).
@@ -553,6 +556,64 @@ Requirements: a scene index with fixed timings, `temperature 0`, a pre-warmed ca
 that shows when cached results are used, an on-screen "synthetic student histories" label, and a
 pre-recording checklist (reset state, warm cache, no credentials on screen).
 
+### 2.14 Configuration and secrets
+
+**Status:** Proposed. **Serves:** P-13.4, C-26, C-38, ADR-013. **Related:** 2.4, 2.11, 2.12.
+
+Nothing secret lives in the repo, in the browser bundle, in a CloudFormation template, or in a log.
+Anything that varies by environment or that we may need to change lives in AWS.
+
+**Two stores, chosen by what a leak would cost:**
+- **SSM Parameter Store** for configuration that is not secret but should change without a code change
+  or redeploy.
+- **AWS Secrets Manager** for real secrets, encrypted with the project's KMS key. It adds a small
+  per-secret monthly charge, so we create one only when a value is genuinely secret.
+
+**Inventory:**
+
+| Item | Kind | Where it lives | Notes |
+|---|---|---|---|
+| Developer AWS credentials | Secret | Not stored. `aws login` / SSO, or shell environment variables | Short-lived. Never in a file, commit or chat |
+| CI access to AWS | Credential | GitHub Actions OIDC role, no stored keys | Only if Task 13 goes the GitHub route |
+| Guardrail id and pinned version | Config | SSM parameters, written by `AgentsSafetyStack` | Missing or unreadable means fail closed (see below) |
+| Model profile ids (Haiku, Sonnet) | Config | SSM parameters | A model swap is a parameter change (ADR-001, ADR-002) |
+| Table, bucket and queue names | Config | CDK references passed as Lambda environment variables | Not secret |
+| API base URL | Public config | `VITE_API_BASE_URL` in the front end | Anything `VITE_` is public by design (C-26) |
+| Demo API key (usage plan) | Identifier, **not a secret** | API Gateway | It ships in the browser. Treat it as public. Protection comes from throttling and the per-student cap (ADR-012) |
+| JWT signing key, third-party tokens | Secret | Secrets Manager | Only needed with real authentication (FULL, Task 19) |
+| Password hashes | Data | DynamoDB, salted one-way hash (P-13.4) | Not a secrets-store item |
+| GitHub connection for CDK Pipelines | Managed | AWS CodeConnections | Authorized by hand in the console |
+
+**Rules:**
+1. The repo holds no secret values and no AWS account ids. The account and region come from the
+   environment at synth time.
+2. Front-end configuration is public. Only non-secret `VITE_` values go in the bundle (C-26).
+3. A secret value is created in AWS, either generated by Secrets Manager through CDK
+   (`generateSecretString`) or set out of band with the CLI. It is never a literal in CDK code, CDK
+   context or a CloudFormation parameter, because those appear in templates and the console.
+4. Lambda environment variables carry parameter names or ARNs, never secret values.
+5. Least privilege per function: `ssm:GetParameter` or `secretsmanager:GetSecretValue` on exact ARNs,
+   plus `kms:Decrypt` on the project key. No wildcards.
+6. Read once per cold start and cache with a short TTL, so a rotation takes effect without a redeploy
+   and without a call per request.
+7. Never log a secret, token or password (P-13.4). Decision logs hold ids and hashes only (2.4).
+8. Local development: mock mode needs no secrets. Deploy credentials live in the shell, or in
+   `.env.local`, which is gitignored (C-38). A committed `.env.example` lists variable **names** only.
+   The current `.gitignore` rule `.env.*` also ignores `.env.example`, so add `!.env.example`.
+9. Detection in CI: secret scanning with gitleaks on every PR, plus GitHub secret scanning and push
+   protection on the repo. A finding fails the build. If a secret is committed, **rotate it**.
+   Deleting the commit is not enough.
+10. Workshop session credentials are short-lived. Do not paste them into chats, issues or PRs.
+
+**Failure handling:** if the Guardrail parameter cannot be read, the safety module fails closed. It
+blocks the content, writes a `fallback_event` with component `safety`, and the lesson continues on the
+fallback path (2.3, 2.6). If a model-id parameter cannot be read, the last cached value is used. With
+no cached value, `GET /health` reports unhealthy and the UI shows the fallback notice (C-22, C-23).
+
+**Open question:** whether the workshop role may create Secrets Manager secrets and SSM parameters
+(Task 0 simulation). If not, non-secret config falls back to Lambda environment variables set by CDK,
+and the secret inventory above is empty for the MVP, which is acceptable.
+
 ---
 
 ## 3. MVP and deferred items
@@ -571,6 +632,7 @@ for status, owners and blockers. Keep this table and that file in step.
 | 2 | Shared domain core (`route`, evidence, tree loader) | MVP | C-9 to C-12, C-18 to C-20 |
 | 3 | Validator contract and eval harness | MVP | C-16, C-17. Start human ratings now |
 | 4 | CDK app and `DataStack` | MVP | Bootstrap needs confirmation |
+| 4.5 | Configuration and secrets (SSM, Secrets Manager, secret scanning) | MVP | ADR-013, P-13.4, C-26, C-38 |
 | 5 | Safety module and Guardrail | MVP | C-25 |
 | 6 | `invoke` wrapper and model Lambdas | MVP | C-27 |
 | 7 | API stack and submit orchestration | MVP | C-29, spend protection |
@@ -731,6 +793,24 @@ session on 2026-11-04 and are **Proposed** until the team reviews them.
 - **Alternatives:** WAF. Real authentication.
 - **Consequences:** A bounded worst case at low cost. Real authentication stays in the full roadmap.
 
+### ADR-013: Configuration in SSM Parameter Store, secrets in Secrets Manager, nothing in the repo
+- **Status:** Proposed. **Date:** 2026-11-04.
+- **Context:** The repo is meant to go public before judging (C-38). Students are minors and the
+  account has a spend cap. Account ids, model ids, the Guardrail id and any future signing keys must
+  not be hard-coded, and a leaked key must be recoverable.
+- **Decision:** Non-secret configuration that should change without a redeploy lives in SSM Parameter
+  Store. Real secrets live in Secrets Manager, encrypted with the project KMS key, and are generated in
+  AWS rather than written in code. Lambda environment variables hold names and ARNs, never secret
+  values. Per-function least-privilege IAM, short-TTL caching, gitleaks in CI, and GitHub push
+  protection. Developers and CI use short-lived credentials (shell/SSO, OIDC), never stored keys.
+- **Alternatives:** Secret values in Lambda environment variables (visible in the console and in
+  templates). Secrets Manager for everything (extra cost for non-secrets). Encrypted secrets committed
+  with SOPS (keeps secrets in the repo).
+- **Consequences:** Config is changeable without redeploy and a leak has a rotation path. It adds IAM
+  and a small cold-start fetch, and it is only as strong as the role permissions Task 0 confirms. The
+  demo API key ships in the browser, so it is an identifier and not a secret. This is a known limit
+  that ADR-012's throttling and per-student cap exist to cover.
+
 ### ADR template
 
 ```
@@ -749,3 +829,4 @@ session on 2026-11-04 and are **Proposed** until the team reviews them.
 | Date | PR | Change |
 |---|---|---|
 | 2026-11-04 | (initial) | First draft from the planning session. All designs Proposed, ADR-001 to ADR-012 Proposed. |
+| 2026-11-04 | #11 | Redacted the AWS account id. Added 2.14 Configuration and secrets, ADR-013, and Task 4.5. |

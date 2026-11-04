@@ -10,7 +10,7 @@ that does the work (C-36). The design behind each task is in
 | Status | **Draft, pending team review.** |
 | Last updated | 2026-11-04 |
 | Target | Working demo by the 3:30 pm Wednesday feature freeze (C-37), full roadmap after |
-| Account | `475224768945`, `us-west-2`, $500 cap (budget `hackathon-budget-475224768945`) |
+| Account | Hackathon account (id kept out of the repo), `us-west-2`, $500 cap (budget `hackathon-budget-<account-id>`) |
 
 ## How to use this file
 
@@ -27,7 +27,7 @@ that does the work (C-36). The design behind each task is in
 
 | Tier | Done | Total |
 |---|---|---|
-| MVP | 0 | 16 |
+| MVP | 0 | 17 |
 | STRETCH | 0 | 2 |
 | FULL | 0 | 5 |
 
@@ -42,8 +42,10 @@ flowchart LR
   T1 --> T3[3 Validator + eval]
   T2 --> T7[7 API + submit]
   T3 --> T6[6 invoke + Lambdas]
-  T4 --> T5[5 Safety + Guardrail]
+  T4 --> T45[4.5 Config + secrets]
+  T45 --> T5[5 Safety + Guardrail]
   T5 --> T6
+  T45 --> T6
   T6 --> T7
   T7 --> T8a[8a Passive features]
   T8a --> T8b[8b Passive reasoner]
@@ -70,18 +72,19 @@ Owner: ____ · Serves: ADR-001, ADR-007, ADR-008 · Architecture: 1.7
 Run these in your own shell. They only read, apart from one tiny model call. Never paste keys into the
 repo or a chat.
 
-- [x] Identity: `aws sts get-caller-identity` returns `WSParticipantRole` in account `475224768945`
+- [x] Identity: `aws sts get-caller-identity` returns `WSParticipantRole` in the hackathon account
 - [x] Region is `us-west-2`
 - [x] Claude `us.` inference profiles are listed (Haiku 4.5, Sonnet 4.5)
 - [x] `aws bedrock list-guardrails` works and returns none
-- [x] Budget `hackathon-budget-475224768945` exists ($500/month)
+- [x] Budget `hackathon-budget-<account-id>` exists ($500/month)
 - [x] `CDKToolkit` is absent in `us-west-2` (not bootstrapped)
 - [ ] Model access: Haiku smoke test succeeds
   `aws bedrock-runtime converse --region us-west-2 --model-id us.anthropic.claude-haiku-4-5-20251001-v1:0 --messages '[{"role":"user","content":[{"text":"Say OK"}]}]' --inference-config '{"maxTokens":10}'`
 - [ ] Sonnet 4.5 smoke test succeeds (same command, Sonnet profile id)
 - [ ] `aws iam simulate-principal-policy` for `iam:CreateRole`, `iam:PassRole`, `lambda:CreateFunction`,
   `dynamodb:CreateTable`, `apigateway:POST`, `bedrock:CreateGuardrail`, `cloudformation:CreateStack`,
-  `s3:CreateBucket`, `kms:CreateKey` is recorded below
+  `s3:CreateBucket`, `kms:CreateKey`, `ssm:PutParameter`, `secretsmanager:CreateSecret` is recorded
+  below
 - [ ] `aws iam list-attached-role-policies --role-name WSParticipantRole` is recorded below
 - [ ] Ask the organizers who is notified when the budget trips
 - [ ] Decide the path from the answers (go/no-go below)
@@ -94,6 +97,8 @@ Results (fill in, no secrets):
 | Sonnet invoke | |
 | `iam:CreateRole` | |
 | `bedrock:CreateGuardrail` | |
+| `ssm:PutParameter` | |
+| `secretsmanager:CreateSecret` | |
 | `cloudformation:CreateStack` | |
 | Attached policies | |
 | Budget notification contact | |
@@ -102,6 +107,8 @@ Fallbacks:
 - `iam:CreateRole` denied: use organizer-provided roles, and keep CDK synth-only in CI.
 - `bedrock:CreateGuardrail` denied: an organizer creates the Guardrail, and we reference its id in
   config.
+- `ssm:PutParameter` or `secretsmanager:CreateSecret` denied: non-secret config falls back to Lambda
+  environment variables set by CDK. The MVP has no true secrets, so nothing else is lost (Task 4.5).
 - Model invoke denied: complete the Anthropic use-case form first, or develop on mocks.
 
 **Demo:** a go/no-go list in the PR description.
@@ -116,7 +123,11 @@ Owner: ____ · Serves: C-35, C-36, C-37, C-38 · Discrepancy items 1, 2
 - [ ] Add Vitest and a first passing test
 - [ ] Add lint (ESLint) and a `npm run lint` script
 - [ ] GitHub Actions workflow on PRs: lint, test, `vite build`
-- [ ] `.env.local` is in `.gitignore`
+- [ ] `.env.local` is in `.gitignore` (the `.env.*` rule already covers it)
+- [ ] Add `!.env.example` to `.gitignore` and commit an `.env.example` with variable **names** only
+- [ ] Secret scanning in CI: gitleaks on every PR, failing the build on a finding
+- [ ] GitHub secret scanning and push protection enabled on the repo (needs repo admin)
+- [ ] Scan the existing history once for leaked keys or the AWS account id and report the result
 - [ ] Add a `LICENSE` (default MIT-0) before judging
 - [ ] Branch protection expectations agreed (one review, squash merge)
 
@@ -186,8 +197,34 @@ Owner: ____ · Serves: C-8, C-38, P-13 · Discrepancy item 3 · Architecture: 2.
 **Tests:** CDK assertion tests for tables and encryption. **Demo:** synth passes in CI; deploy if
 permitted.
 
+### Task 4.5: Configuration and secrets (MVP)
+Owner: ____ · Serves: P-13.4, C-26, C-38 · ADR-013 · Architecture: 2.14 · Blocked by: Task 4
+
+Keeps secrets and environment-specific values out of the repo and in AWS.
+
+- [ ] KMS key for config and secrets (in `DataStack`, shared by the other stacks)
+- [ ] SSM parameters for the model profile ids (Haiku 4.5, Sonnet 4.5)
+- [ ] SSM parameters for the Guardrail id and pinned version, written by `AgentsSafetyStack`
+- [ ] Account id and region read from the environment at synth time; none in the repo or in CDK context
+- [ ] Shared `getConfig(name)` and `getSecret(name)` helpers: read at cold start, short-TTL cache, never
+  log values
+- [ ] Per-function IAM on exact parameter and secret ARNs, plus `kms:Decrypt` (no wildcards)
+- [ ] Lambda environment variables hold names and ARNs only
+- [ ] Secrets Manager secret created through CDK with a **generated** value, added only when a real
+  secret exists (none required for the MVP; the mechanism must be ready for Task 19)
+- [ ] Failure behavior: unreadable Guardrail parameter fails closed with a `fallback_event` (safety);
+  unreadable model id uses the cached value, else `GET /health` reports unhealthy
+- [ ] Front end reads only `VITE_`-prefixed public config (`VITE_API_BASE_URL`)
+- [ ] Document the "demo API key is public" limitation next to the throttling setup (Task 7)
+- [ ] Fallback path if Task 0 denies SSM or Secrets Manager: Lambda environment variables from CDK
+
+**Tests:** CDK assertions that no Lambda environment variable holds a secret-looking value and that no
+policy grants wildcard parameter or secret access; helper tests for caching and for a missing value;
+gitleaks passes on the branch. **Demo:** change the model id parameter, show the next call use the new
+model with no redeploy.
+
 ### Task 5: Safety module and Guardrail (MVP)
-Owner: ____ · Serves: C-25, C-26, P-18 · Discrepancy item 10 · Architecture: 2.3 · Blocked by: Task 4
+Owner: ____ · Serves: C-25, C-26, P-18 · Discrepancy item 10 · Architecture: 2.3 · Blocked by: Task 4.5
 
 - [ ] Guardrail in `AgentsSafetyStack`: content filters, prompt-attack filter, PII filter, K-12 strengths
 - [ ] Pinned numbered Guardrail version (never `DRAFT`)
@@ -205,7 +242,8 @@ replacement and the lesson continues.
 Owner: ____ · Serves: C-14, C-27, P-7.2 · Discrepancy item 11 · Architecture: 2.4, 2.5, 2.8
 
 - [ ] `invoke(task, prompt)` is the only Bedrock caller
-- [ ] Model ids from env config (Haiku 4.5 for verify/validate/Passive, Sonnet 4.5 for codegen/hints)
+- [ ] Model ids read through `getConfig` from SSM (Haiku 4.5 for verify/validate/Passive, Sonnet 4.5 for
+  codegen/hints), never hard-coded (Task 4.5)
 - [ ] `maxTokens` and a 10 s timeout on every call
 - [ ] `guardrailConfig` on every call
 - [ ] Verify and codegen use different models
@@ -422,3 +460,4 @@ are done inside these tasks. Tick them there as well.
 | Date | PR | Change |
 |---|---|---|
 | 2026-11-04 | (initial) | First draft from the planning session. |
+| 2026-11-04 | #11 | Redacted the AWS account id. Added Task 4.5 (config and secrets), secret-scanning items in Task 1, and SSM/Secrets Manager checks in Task 0. |
