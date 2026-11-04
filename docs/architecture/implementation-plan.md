@@ -322,21 +322,21 @@ Owner: ____ · Serves: C-5, C-6, C-9 to C-12, C-18 to C-20 · Discrepancy items 
 Owner: ____ · Serves: C-13 to C-17, P-19 · Discrepancy items 8, 16 · Architecture: 2.5
 Track: C builds the schema, judge and metrics. Track G does the human ratings.
 
-- [ ] JSON Schema for `{ skillId, evidenceLevel, conditionMet, confidence, evidence }`
-- [ ] Parse with one repair retry, then fallback
-- [ ] `confidence < 0.6` triggers fallback
-- [ ] Multiple-choice answers map to levels with no model call (C-13)
-- [ ] Not-scored steps record completion only (C-15)
-- [ ] Condition source: `validation.condition`, else the `Evidence:` line of `instructionsPrompt`
-- [ ] Metrics: exact agreement, within-1 agreement, quadratic weighted kappa
-- [ ] Golden-set runner
-- [ ] Prompts in `prompts/` with version hashes
-- [ ] Human rating started: 15+ project submissions rated by people (**slowest dependency**)
-- [ ] `codeai-starter/contracts/model-contract.yaml` located and re-shaped (not in this repo; find it or
-  create the contract here and note it)
+- [x] JSON Schema for `{ skillId, evidenceLevel, conditionMet, confidence, evidence }` (`ValidatorOutput`, merged in contracts)
+- [x] LLM judge for project steps builds the rubric prompt and calls `invoke` (`backend/ai/validator.py`, C-14)
+- [x] Parse with one repair retry, then fallback (C-16)
+- [x] `confidence < 0.6` triggers fallback; out-of-range `evidenceLevel` triggers fallback
+- [x] Metrics: exact, within-1, quadratic weighted kappa (`backend/eval/metrics.py`, PR #33)
+- [x] Golden-set runner + launch gate + CLI (`backend/eval`, PR #33)
+- [ ] Multiple-choice answers map to levels with no model call (C-13) — lives in the submit flow (Track D), not here
+- [ ] Not-scored steps record completion only (C-15) — submit flow (Track D)
+- [ ] Condition source wiring (`validation.condition` / `Evidence:` line) — the submit flow passes `condition` into the ValidateRequest (Track D)
+- [ ] Human rating: 15+ project submissions rated by people (**slowest dependency**, Track G)
+- [ ] Snapshot the validator's `evidenceLevel`s into the golden set on a pinned model + prompt version
 
-**Tests:** kappa against hand-computed values, schema accept and reject cases, stubbed retry and
-fallback paths. **Demo:** the eval prints three agreement numbers on fixtures.
+**Tests:** `pytest backend/ai` (validator: valid/low-confidence/invalid-JSON-repair/out-of-range/model-fail,
+45 total) and `pytest backend/eval` (26, PR #33). **Demo:** `python -m backend.eval <file>` prints the
+three agreement numbers.
 
 ### Task 4: CDK app and DataStack (MVP)
 Owner: ____ · Serves: C-8, C-38, P-13 · Discrepancy item 3 · Architecture: 2.9, 2.11 · ADR-016
