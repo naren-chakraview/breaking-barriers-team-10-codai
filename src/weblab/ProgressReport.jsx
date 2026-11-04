@@ -47,7 +47,7 @@ const BAND = {
 }
 
 export default function ProgressReport({
-  open, onClose, lesson, completed, mastery, bestMastery, hintsUsed, timeLabel, levelsVisited, stepLog = [],
+  open, onClose, lesson, completed, mastery, bestMastery, hintsUsed, timeLabel, levelsVisited, stepLog = [], placements = {},
 }) {
   const closeRef = useRef(null)
   useEffect(() => {
@@ -77,7 +77,7 @@ export default function ProgressReport({
   else if (needs.length > 0) recommendation = `Spend a little more time on ${needs.map((r) => r.objective.title).slice(0, 2).join(' and ')}. The tutor can walk you through it step by step.`
   else recommendation = 'Solid progress — keep going to finish the remaining objectives.'
 
-  const adaptiveSteps = stepLog.filter((e) => e.routeReason === 'support' || e.routeReason === 'stretch')
+  const adaptiveSteps = stepLog.filter((e) => ['support', 'stretch', 'probe', 'diagnostic', 'placement'].includes(e.routeReason))
 
   return (
     <div className="pr-back" onMouseDown={(e) => { if (e.target === e.currentTarget) onClose() }}>
@@ -162,6 +162,23 @@ export default function ProgressReport({
         </div>
 
         {/* The adaptive path */}
+        {Object.keys(placements).length > 0 && (
+          <>
+            <h3 className="pr-h3">Where the lesson started you</h3>
+            <ul className="pr-placements">
+              {lesson.objectives.filter((o) => placements[o.id]).map((o) => (
+                <li key={o.id} className="pr-placement">
+                  <span className="pr-placement-obj">{o.title}</span>
+                  <span className={`pr-pill pr-pill--${placements[o.id].tier === 'support' ? 'working' : placements[o.id].tier === 'stretch' ? 'strong' : 'steady'}`}>
+                    {placements[o.id].tier === 'support' ? 'Extra support' : placements[o.id].tier === 'stretch' ? 'Stretch' : 'Standard'}
+                  </span>
+                  <span className="pr-placement-why">{describeRoute(placements[o.id].reason)}</span>
+                </li>
+              ))}
+            </ul>
+          </>
+        )}
+
         <h3 className="pr-h3">How the lesson adapted to you</h3>
         {adaptiveSteps.length === 0 ? (
           <p className="pr-empty">You're moving at the standard pace — no easier or tougher detours yet.</p>

@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { LESSON, FIRST_LEVEL_ID, getLevel } from './courseData.js'
-import { validateSubmission, routeNextLevel, buildNudge, describeRoute } from './engine.js'
+import { validateSubmission, routeNextLevel, buildNudge, describeRoute, computeConfidence, applyEstablished } from './engine.js'
 import { buildProject } from './tools.js'
 import { useServices } from '../services/ServicesContext.jsx'
 import { adaptTree, adaptSubmit } from '../services/treeAdapter.js'
@@ -88,6 +88,13 @@ export default function WeblabLesson({ user, onExit, onViewSkillTree }) {
   const [bestMastery, setBestMastery] = useState(0)
   const [stepLog, setStepLog] = useState([])
   const levelStartRef = useRef(Date.now())
+  // Diagnostic placement + confidence probing (diagnostic-placement feature).
+  const [confidence, setConfidence] = useState({})   // objectiveId -> high|borderline|low
+  const [probeCount, setProbeCount] = useState({})    // objectiveId -> consecutive probes
+  const [established, setEstablished] = useState({})  // objectiveId -> highest tier reached
+  const [placements, setPlacements] = useState({})    // objectiveId -> { tier, reason }
+  const [shownIds, setShownIds] = useState([FIRST_LEVEL_ID])
+  const probeSeedRef = useRef(0)
   const [phase, setPhase] = useState('working') // working | validating | routing | complete
   const [banner, setBanner] = useState(null)
   const [nudge, setNudge] = useState(null)
@@ -148,6 +155,8 @@ export default function WeblabLesson({ user, onExit, onViewSkillTree }) {
   function loadLevel(next, reason) {
     setLevelId(next.id)
     setHistory((h) => [...h, next.id])
+    setShownIds((ids) => [...ids, next.id])
+    setEstablished((e) => ({ ...e, [next.objectiveId]: applyEstablished(next.tier, e[next.objectiveId]) }))
     // Fresh starter if the level ships one; otherwise carry the code forward.
     const startHtml = next.starter ? (next.starter.html ?? '') : html
     const startCss = next.starter ? (next.starter.css ?? '') : css
@@ -198,9 +207,29 @@ export default function WeblabLesson({ user, onExit, onViewSkillTree }) {
     setMastery(signal.score)
     setBestMastery((m) => Math.max(m, signal.score)) // mastery never shown decreasing
     if (signal.passing) setCompleted((c) => ({ ...c, [level.objectiveId]: true }))
+    if (signal.passing) setEstablished((e) => ({ ...e, [level.objectiveId]: applyEstablished(level.tier, e[level.objectiveId]) }))
+
+    // Confidence in this objective's level drives whether we probe to confirm.
+    const conf = computeConfidence(signal, level.tier)
+    setConfidence((c) => ({ ...c, [level.objectiveId]: conf }))
 
     setPhase('routing')
-    const result = await routeNextLevel(level, signal, history)
+    probeSeedRef.current += 1
+    const ctx = {
+      confidence: conf,
+      probeCount: probeCount[level.objectiveId] || 0,
+      established,
+      shownIds,
+      seed: probeSeedRef.current,
+    }
+    const result = await routeNextLevel(level, signal, history, ctx)
+
+    // Track consecutive probes per objective so probing can't loop (cap in engine).
+    if (result.reason === 'probe') {
+      setProbeCount((pc) => ({ ...pc, [level.objectiveId]: (pc[level.objectiveId] || 0) + 1 }))
+    } else {
+      setProbeCount((pc) => ({ ...pc, [level.objectiveId]: 0 }))
+    }
 
     // Record this step for the progress report: what skill, how hard, how it went.
     const secondsOnStep = Math.max(1, Math.round((Date.now() - levelStartRef.current) / 1000))
@@ -481,6 +510,7 @@ export default function WeblabLesson({ user, onExit, onViewSkillTree }) {
         timeLabel={clock}
         levelsVisited={history.length}
         stepLog={stepLog}
+        placements={placements}
       />
     </div>
   )

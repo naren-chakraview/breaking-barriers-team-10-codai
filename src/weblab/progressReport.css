@@ -69,3 +69,12 @@
   .pr-headline { flex-direction: column; text-align: center; }
 }
 @media (prefers-reduced-motion: reduce) { .pr-meter-fill { transition: none; } }
+
+/* Diagnostic placement + probe (diagnostic-placement feature) */
+.pr-placements { list-style: none; margin: 0 0 4px; padding: 0; display: flex; flex-direction: column; gap: 10px; }
+.pr-placement { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; font-size: 13px; }
+.pr-placement-obj { font-weight: 700; color: #1f2937; }
+.pr-placement-why { color: #6b7280; }
+.pr-path-step--probe .pr-path-dot { background: #6d4bd8; }
+.pr-path-step--diagnostic .pr-path-dot { background: #0ea5e9; }
+.pr-path-step--placement .pr-path-dot { background: #2563eb; }
