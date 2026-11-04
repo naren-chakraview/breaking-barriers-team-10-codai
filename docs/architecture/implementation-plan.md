@@ -27,7 +27,7 @@ that does the work (C-36). The design behind each task is in
 
 | Tier | Done | Total |
 |---|---|---|
-| MVP | 0 | 18 |
+| MVP | 0 | 19 |
 | STRETCH | 0 | 2 |
 | FULL | 0 | 5 |
 
@@ -350,9 +350,9 @@ Owner: ____ · Serves: C-8, C-38, P-13 · Discrepancy item 3 · Architecture: 2.
 - [x] `cdk synth` verified locally (template produced, scale-to-zero + Data API + KMS confirmed)
 - [ ] Schema of record is `database/schema.sql` (PR #13, data track), applied by a migration runner
   (still to build)
-- [ ] **Aurora store adapter — DEFERRED.** `database/schema.sql` uses INTEGER student ids and a
-  different teacher-input model than the contract records; reconcile with the data track first
-  (see `backend/store/README.md`). Follow-up issue.
+- [ ] **Aurora store adapter — DEFERRED** until Task 4.6 (schema reconciliation) is done.
+  `database/schema.sql` uses INTEGER student ids and a different teacher-input model than the contract
+  records (see `backend/store/README.md`).
 - [ ] `cdk bootstrap` for `us-west-2` (**needs explicit confirmation first; creates IAM roles**)
 - [ ] First deploy of `DataStack` (not done this session; code-and-synth only)
 - [ ] CDK assertion tests (`infra` test script present; assertions still to write)
@@ -386,6 +386,34 @@ Keeps secrets and environment-specific values out of the repo and in AWS.
 policy grants wildcard parameter or secret access; helper tests for caching and for a missing value;
 gitleaks passes on the branch. **Demo:** change the model id parameter, show the next call use the new
 model with no redeploy.
+
+### Task 4.6: Reconcile the store schema with the contracts (MVP, cross-track)
+Owner: ____ (data track + whoever owns the store adapter) · Serves: C-4, C-5, C-8, C-29 · Architecture: 2.9 · Blocks: the Aurora store adapter and `STORE_MODE=aurora`
+
+`database/schema.sql` (merged, data track) and `shared/contracts/schemas/records.schema.json` (merged,
+contracts) describe the same student state differently. They must agree before the Aurora adapter can be
+built, because the adapter maps one to the other. Pick a resolution per row, update the losing side, and
+record it in an ADR. Until then the backend runs on `JsonRepository` (STORE_MODE=json), which satisfies
+the whole contract with no AWS.
+
+| Mismatch | `database/schema.sql` | Contract record | Decide |
+|---|---|---|---|
+| Student id type | `StudentId` INTEGER, FK to `STUDENT_PROFILE` | `studentId` string (`stu-quick`) | One type. If INTEGER wins, the API/services map slugs to ids at the edge; if string wins, the schema changes |
+| Column case | lowercase (Postgres folds unquoted ids) | camelCase records | Confirm the adapter maps lowercase result columns to camelCase |
+| Teacher input | `ROUTING_DECISION.TeacherInput` enum + `TeacherId` FK | a `teacher_input` record + JSON on the decision | One model for hold/assign persistence |
+| `synthetic` flag | not present | `student.synthetic` (demo personas) | Add a column, or carry it outside the DB |
+| Evidence range | `Level` 0..4 (competence scale) | 0..max per skill (build 2, language 3, debug 3) | Confirm the mapping; display-only 0-100 is separate (C-11) |
+| Proposed tables | `HINT_EVENT`, `PASSIVE_SIGNAL` present; no `TEACHER_INPUT` | `hint_event`, `passive_signal`, `teacher_input` | Confirm the C-8 edit covers the final set |
+
+- [ ] One decision per row above, agreed by the data track and the store-adapter owner
+- [ ] Update the losing side (schema, contracts, or both) in one coordinated PR
+- [ ] Make the C-8 edit for any agreed new tables/columns (ties in with Task 8a)
+- [ ] Write an ADR recording the student-id decision (it has the widest blast radius)
+- [ ] Then build the Aurora adapter against the agreed shape and run the store contract suite against a
+  live cluster (unblocks Task 4's deferred item)
+
+**Tests:** the store contract suite passes on both the JSON and the Aurora adapter after reconciliation.
+**Demo:** `STORE_MODE=aurora` serves the same submit flow as `STORE_MODE=json`.
 
 ### Task 5: Safety module and Guardrail (MVP)
 Owner: ____ · Serves: C-25, C-26, P-18 · Discrepancy item 10 · Architecture: 2.3 · Blocked by: Task 4.5
@@ -631,3 +659,4 @@ are done inside these tasks. Tick them there as well.
 | 2026-11-04 | (initial) | First draft from the planning session. |
 | 2026-11-04 | #11 | Redacted the AWS account id. Added Task 4.5 (config and secrets), secret-scanning items in Task 1, and SSM/Secrets Manager checks in Task 0. |
 | 2026-11-04 | #11 | Replaced the sequential dependency graph with a parallel work plan: seven tracks, six integration checkpoints (IC0 to IC5) and Task 0.5 (contracts and stubs). |
+| 2026-11-04 | #16 | Added Task 4.6 (reconcile the store schema with the contracts), which blocks the Aurora adapter after the PR #13 schema merge. MVP task count 18 -> 19. |
