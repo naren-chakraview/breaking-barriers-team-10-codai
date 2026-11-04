@@ -9,7 +9,43 @@ validator's evidence levels and enforces the launch gate.
 | `metrics.py` | Exact agreement, within-1 agreement, quadratic weighted kappa (QWK). |
 | `golden_set.py` | Load/validate a golden-set file; pooled + per-skill report; the gate. |
 | `__main__.py` | CLI: `python -m backend.eval <file>` — prints the report, exits non-zero if the gate fails. |
-| `fixtures/golden-set.sample.json` | **Placeholder** set that wires the gate; replace with real ratings. |
+| `rate.py` | CLI: `python -m backend.eval.rate` — walks a human rater through the submissions, collects `humanLevel`, writes the golden set. The HUMAN side of the benchmark. |
+| `fixtures/submissions.json` | 18 synthetic project-step submissions (6 each build/language/debug, levels 0..max). Synthetic submissions are fine; the ratings are not — see below. |
+| `fixtures/golden-set.sample.json` | **Placeholder** set that wires the gate; replace with the real ratings produced below. |
+
+## Producing a real gate number (Track G + C)
+
+The launch gate measures validator-vs-human agreement, so the `humanLevel` ratings must be
+assigned by real people and the `modelLevel`s by a real validator run. Two steps:
+
+1. **Human side** — a teammate rates the submissions (~30 min):
+
+   ```bash
+   python -m backend.eval.rate --rater "Sam"        # resumable; saves after each rating
+   ```
+
+   This reads `fixtures/submissions.json`, shows each submission with the skill's rubric, and
+   writes `fixtures/golden-set.json` with `humanLevel` set and `modelLevel: -1` (placeholder).
+   Rate all 18 (need ≥ 15 for the gate, C-17).
+
+2. **Model side** — snapshot the validator's scores on a pinned model + prompt version
+   (makes real, billable Bedrock calls, so it is `--live`-guarded; needs the deployed
+   Guardrail in SSM):
+
+   ```bash
+   python -m backend.ai.scripts.snapshot_validator --live
+   ```
+
+   This fills `modelLevel` in `fixtures/golden-set.json` from `validate_project`.
+
+3. **Run the gate** on the completed file:
+
+   ```bash
+   python -m backend.eval backend/eval/fixtures/golden-set.json
+   ```
+
+Submissions are synthetic (team-authored) by design — that only affects coverage, not the
+agreement measure. Keeping `humanLevel` genuinely human is what makes the kappa honest.
 
 ## The gate (C-17)
 
