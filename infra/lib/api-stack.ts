@@ -99,7 +99,7 @@ export class ApiStack extends cdk.Stack {
       },
       defaultCorsPreflightOptions: {
         allowOrigins: apigw.Cors.ALL_ORIGINS, // demo mode; tighten with real auth (Task 19)
-        allowHeaders: [...apigw.Cors.DEFAULT_HEADERS, 'X-User-Id', 'X-Role'], // P-1.4
+        allowHeaders: [...apigw.Cors.DEFAULT_HEADERS, 'X-User-Id', 'X-Role', 'X-Correlation-Id'], // P-1.4 + correlation
         allowMethods: apigw.Cors.ALL_METHODS,
       },
     })
