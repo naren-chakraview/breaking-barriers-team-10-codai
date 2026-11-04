@@ -128,3 +128,54 @@ export function neighborsOf(id) {
 export function edgesTouching(id) {
   return EDGES.filter((e) => e.from === id || e.to === id)
 }
+
+// ---------------------------------------------------------------------------
+// Assignment-driven tree (diagnostic: teacher picks CSTA standards -> skills).
+// When a teacher has assigned standards to the student, the skill tree is built
+// from those instead of the default demo graph. One cluster per subarea
+// (Artificial Intelligence, Cybersecurity); each assigned standard is a node,
+// laid out in columns inside its cluster. Returns the same { CLUSTERS, NODES,
+// EDGES } shape the component already renders.
+// ---------------------------------------------------------------------------
+export function buildAssignedTree(standards) {
+  const byArea = {}
+  for (const s of standards) {
+    ;(byArea[s.areaId] = byArea[s.areaId] || { id: s.areaId, label: s.areaLabel, items: [] }).items.push(s)
+  }
+  const areas = Object.values(byArea)
+  const COL_W = 520
+  const ROW_H = 64
+  const TOP = 110
+  const clusters = []
+  const nodes = []
+  const edges = []
+  const icon = (areaId) => (areaId === 'cyb' ? '🔐' : '🤖')
+
+  areas.forEach((area, ai) => {
+    const colX = 70 + ai * COL_W
+    const rows = area.items.length
+    const boxH = Math.max(ROW_H * rows + 40, 120)
+    clusters.push({ id: area.id, label: area.label, box: { x: colX - 30, y: 70, w: 360, h: boxH } })
+    area.items.forEach((s, i) => {
+      const id = s.code
+      const y = TOP + i * ROW_H
+      nodes.push({
+        id,
+        title: `${s.code} — ${s.statement}`,
+        shortTitle: s.code,
+        cluster: area.id,
+        kind: 'skill',
+        state: i === 0 ? 'available' : 'locked',
+        icon: icon(area.id),
+        x: colX,
+        y,
+        labelPos: 'right',
+      })
+      if (i > 0) edges.push({ from: area.items[i - 1].code, to: id })
+    })
+  })
+
+  const widest = areas.reduce((m, a) => Math.max(m, a.items.length), 0)
+  const canvas = { w: 70 + areas.length * COL_W + 360, h: Math.max(TOP + widest * ROW_H + 60, 400) }
+  return { CLUSTERS: clusters, NODES: nodes, EDGES: edges, CANVAS: canvas }
+}

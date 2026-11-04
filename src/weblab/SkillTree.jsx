@@ -1,8 +1,9 @@
 import { useCallback, useMemo, useRef, useState } from 'react'
 import {
-  CLUSTERS, NODES, EDGES, CANVAS, getNode,
-  NODE_META, STATE_META, treeProgress, neighborsOf, edgesTouching,
+  CLUSTERS as DEFAULT_CLUSTERS, NODES as DEFAULT_NODES, EDGES as DEFAULT_EDGES, CANVAS as DEFAULT_CANVAS,
+  NODE_META, STATE_META, buildAssignedTree,
 } from './skillTreeData.js'
+import { assignedStandards } from '../teacher/assignmentStore.js'
 import { BrandMark } from '../Brand.jsx'
 import './skillTree.css'
 
@@ -10,9 +11,32 @@ import './skillTree.css'
 // pan/zoom canvas: drag to pan, wheel or the +/- controls to zoom, click or
 // keyboard-focus a node to inspect it. Hovering a node lights up the skills it
 // connects to and dims the rest. All content is mocked (no backend).
-const ORDERED = [...NODES].sort((a, b) => (STATE_META[a.state]?.order ?? 9) - (STATE_META[b.state]?.order ?? 9))
 
 export default function SkillTree({ user, onExit, onOpenLesson }) {
+  // If the teacher assigned CSTA standards to this student, the tree is built
+  // from those; otherwise fall back to the default demo graph.
+  const assigned = useMemo(() => assignedStandards(user?.username), [user])
+  const tree = useMemo(
+    () => (assigned.length ? buildAssignedTree(assigned) : { CLUSTERS: DEFAULT_CLUSTERS, NODES: DEFAULT_NODES, EDGES: DEFAULT_EDGES, CANVAS: DEFAULT_CANVAS }),
+    [assigned],
+  )
+  const { CLUSTERS, NODES, EDGES, CANVAS } = tree
+  const isAssigned = assigned.length > 0
+  const getNode = (id) => NODES.find((n) => n.id === id) || null
+  const neighborsOf = (id) => {
+    const ids = new Set()
+    for (const e of EDGES) { if (e.from === id) ids.add(e.to); if (e.to === id) ids.add(e.from) }
+    return ids
+  }
+  const edgesTouching = (id) => EDGES.filter((e) => e.from === id || e.to === id)
+  const treeProgress = () => {
+    const total = NODES.length
+    const done = NODES.filter((n) => n.state === 'completed').length
+    const inProgress = NODES.filter((n) => n.state === 'current').length
+    const available = NODES.filter((n) => n.state === 'available').length
+    const locked = NODES.filter((n) => n.state === 'locked').length
+    return { total, done, inProgress, available, locked, pct: total ? Math.round((100 * done) / total) : 0 }
+  }
   const [selected, setSelected] = useState(null)
   const [hovered, setHovered] = useState(null)
   const [menuOpen, setMenuOpen] = useState(false)
@@ -22,10 +46,10 @@ export default function SkillTree({ user, onExit, onOpenLesson }) {
   const svgRef = useRef(null)
   const pan = useRef(null)
 
-  const progress = useMemo(() => treeProgress(), [])
+  const progress = useMemo(() => treeProgress(), [tree])
   const focus = hovered || selected
-  const related = useMemo(() => (focus ? neighborsOf(focus) : null), [focus])
-  const hotEdges = useMemo(() => new Set(focus ? edgesTouching(focus).map((e) => `${e.from}->${e.to}`) : []), [focus])
+  const related = useMemo(() => (focus ? neighborsOf(focus) : null), [focus, tree])
+  const hotEdges = useMemo(() => new Set(focus ? edgesTouching(focus).map((e) => `${e.from}->${e.to}`) : []), [focus, tree])
 
   const nodeRadius = (n) => (n.big ? 23 : 18)
 
@@ -86,7 +110,14 @@ export default function SkillTree({ user, onExit, onOpenLesson }) {
   const onPointerUp = () => { pan.current = null }
   const resetView = useCallback(() => setView({ x: 0, y: 0, w: CANVAS.w, h: CANVAS.h }), [])
 
-  const meta = selected ? { ...getNode(selected), ...NODE_META[selected] } : null
+  const selNode = selected ? getNode(selected) : null
+  // Assigned (CSTA) nodes carry a shortTitle (the code) and a "code — statement"
+  // title; default demo nodes use NODE_META for skill/mins/blurb.
+  const meta = selNode
+    ? (selNode.shortTitle
+        ? { ...selNode, title: selNode.shortTitle, skill: selNode.cluster === 'cyb' ? 'Cybersecurity' : 'Artificial Intelligence', blurb: selNode.title.replace(/^[^—]*— /, '') }
+        : { ...selNode, ...NODE_META[selected] })
+    : null
 
   return (
     <div className="stx">
@@ -95,7 +126,7 @@ export default function SkillTree({ user, onExit, onOpenLesson }) {
           <BrandMark size={30} />
           <span className="stx-brand-name">AdaptAI</span>
         </div>
-        <div className="stx-top-title">Skill Tree · Hour of AI 2026 — Adaptive</div>
+        <div className="stx-top-title">Skill Tree · {isAssigned ? "Your assigned CSTA standards" : "Hour of AI 2026 — Adaptive"}</div>
         <div className="stx-top-actions">
           <button type="button" className="stx-btn" onClick={() => setMenuOpen((o) => !o)} aria-expanded={menuOpen}>
             {user?.username || 'Student'} ▾
@@ -202,7 +233,7 @@ export default function SkillTree({ user, onExit, onOpenLesson }) {
                   <circle className="stx-node-circle" r={r} />
                   <circle className="stx-node-ring" r={r - 3} />
                   <text className="stx-node-icon" x="0" y="0" textAnchor="middle" dominantBaseline="central">{n.icon}</text>
-                  <text className="stx-node-label" x={lx} y={ly} textAnchor={anchor} dominantBaseline="central">{n.title}</text>
+                  <text className="stx-node-label" x={lx} y={ly} textAnchor={anchor} dominantBaseline="central">{n.shortTitle || n.title}</text>
                 </g>
               )
             })}
