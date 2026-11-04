@@ -29,7 +29,7 @@ const dataStack = new DataStack(app, 'CodeAI-DataStack', {
 new ApiStack(app, 'CodeAI-ApiStack', {
   env,
   description:
-    'CodeAI REST API (C-29): routes, throttling, usage plan, placeholder handlers until Tasks 6/7.',
+    'CodeAI REST API (C-29): routes, throttling, usage plan, Python router on Bedrock + Aurora.',
   clusterArn: dataStack.cluster.clusterArn,
   databaseName: dataStack.dbName,
   secretArn: dataStack.cluster.secret!.secretArn,

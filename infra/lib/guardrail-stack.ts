@@ -84,6 +84,19 @@ export class GuardrailStack extends cdk.Stack {
       stringValue: version.attrVersion,
     })
 
+    // Model ids per tier (P-7.2, C-27): verify/validate/passive use `fast` (Haiku), codegen
+    // and tutor use `strong` (Sonnet). The invoke wrapper reads these via the port's config
+    // so model choices live in one place and never in code. Cross-region inference profile
+    // ids (the `us.` prefix) for on-demand throughput.
+    new ssm.StringParameter(this, 'ModelFastParam', {
+      parameterName: '/codeai/model/fast',
+      stringValue: 'us.anthropic.claude-haiku-4-5-20251001-v1:0',
+    })
+    new ssm.StringParameter(this, 'ModelStrongParam', {
+      parameterName: '/codeai/model/strong',
+      stringValue: 'us.anthropic.claude-sonnet-4-5-20250929-v1:0',
+    })
+
     new cdk.CfnOutput(this, 'GuardrailId', { value: guardrail.attrGuardrailId })
     new cdk.CfnOutput(this, 'GuardrailVersion', { value: version.attrVersion })
   }

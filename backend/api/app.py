@@ -26,6 +26,44 @@ from .model import StubModel
 _VALID_STORE = ("json", "aurora")
 _VALID_MODEL = ("stub", "bedrock")
 
+# SSM parameter names the Bedrock port resolves at runtime (architecture 2.14). Written by
+# the Guardrail/model config stack; the keys here mirror backend.ai.factory's config keys.
+_SSM_PARAMS = {
+    "model.fast": "/codeai/model/fast",
+    "model.strong": "/codeai/model/strong",
+    "guardrail.id": "/codeai/guardrail/id",
+    "guardrail.version": "/codeai/guardrail/version",
+}
+
+
+def _ssm_config_resolver(region: Optional[str]) -> Callable[[str], Optional[str]]:
+    """A `get_config(key)` backed by SSM Parameter Store, reading each value once.
+
+    boto3 is imported lazily so stub mode never needs it. Missing parameters return None,
+    which makes create_bedrock_port raise a clear "missing config" error at build time
+    rather than failing on the first model call.
+    """
+    import boto3  # lazy: only on MODEL_MODE=bedrock
+
+    ssm = boto3.client("ssm", region_name=region)
+    cache: dict[str, Optional[str]] = {}
+
+    def get_config(key: str) -> Optional[str]:
+        if key in cache:
+            return cache[key]
+        name = _SSM_PARAMS.get(key)
+        if name is None:
+            cache[key] = None
+            return None
+        try:
+            value = ssm.get_parameter(Name=name)["Parameter"]["Value"]
+        except Exception:
+            value = None
+        cache[key] = value
+        return value
+
+    return get_config
+
 
 def _resolve_modes(env: Mapping[str, str]) -> dict[str, str]:
     store = env.get("STORE_MODE") or "json"
@@ -45,10 +83,14 @@ def build_app(
     env: Optional[Mapping[str, str]] = None,
     store_path: Optional[str] = None,
     per_student_cap: int = 500,
+    config_resolver: Optional[Callable[[str], Optional[str]]] = None,
 ) -> dict[str, Any]:
     """Build the wired services + router.
 
     Returns {"services": {...}, "router": callable, "modes": {...}}.
+
+    @param config_resolver: optional `get_config(key)` for the Bedrock port's SSM-backed
+                            values; defaults to a live SSM reader. Injectable for tests.
     """
     env = env if env is not None else dict(os.environ)
     modes = _resolve_modes(env)
@@ -59,10 +101,13 @@ def build_app(
     if model is not None:
         model_port = model
     elif modes["modelMode"] == "bedrock":
-        raise RuntimeError(
-            "MODEL_MODE=bedrock but no model port was injected. Track C provides the bedrock "
-            "ModelPort; pass it as build_app(model=...)."
-        )
+        # Build the real Bedrock port from SSM-backed config (Task 6). Imported lazily so
+        # stub mode carries no dependency on Track C or boto3.
+        from backend.ai import create_bedrock_port
+
+        region = env.get("AWS_REGION") or env.get("CDK_DEFAULT_REGION")
+        get_config = config_resolver or _ssm_config_resolver(region)
+        model_port = create_bedrock_port(get_config, region_name=region)
     else:
         model_port = StubModel()
 
