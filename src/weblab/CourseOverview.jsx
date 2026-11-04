@@ -1,136 +1,213 @@
+import './courseOverview.css'
 import { LESSON, LEVELS } from './courseData.js'
 
-// The "View course" page: a map of the whole course so a student can see the
-// unit, its lessons, the objectives within, and the adaptive levels that back
-// each objective — plus overall progress. Content is derived from the same
-// courseData the lesson uses, so the two screens stay consistent.
+// "View course": the visual map of the whole course. Same design system as the
+// lesson and teacher screens (it reuses the `.wf` tokens and shared classes in
+// index.css, so the page root must keep the `wf` class), with a hero banner,
+// a progress ring, a step path through the objectives, a journey-style
+// outline with one card per adaptive level, and icon tiles on how it adapts.
 
-// Group the authored levels under the objective they target.
-function levelsByObjective(objectiveId) {
-  return LEVELS.filter((l) => l.objectiveId === objectiveId)
+const TIERS = { support: 'Support', core: 'Core', stretch: 'Stretch' }
+const TIER_NOTE = {
+  support: 'Extra scaffolding if a step is tricky',
+  core: 'The main path for everyone',
+  stretch: 'A deeper take when you are ready',
+}
+const STATE_LABEL = { done: 'Mastered', progress: 'In progress', todo: 'Not started' }
+
+const ADAPTS = [
+  { icon: 'users', tone: 'blue', title: 'Same objectives for everyone', body: 'You and your classmates work toward the same goals, so nobody races ahead of the class.' },
+  { icon: 'lifebuoy', tone: 'amber', title: 'Extra support when you need it', body: 'If a step is tricky, the lesson adds scaffolding instead of moving on.' },
+  { icon: 'trending', tone: 'green', title: 'A deeper challenge when you are ready', body: 'Breeze through a skill and you get a deeper version of it to keep things interesting.' },
+  { icon: 'chat', tone: 'purple', title: 'An AI Tutor beside you', body: 'Ask anytime and get step-by-step hints that help you learn, not just answers.' },
+]
+
+// Simple stroke icons (decorative; always aria-hidden).
+const ICONS = {
+  clock: <><circle cx="12" cy="12" r="10" /><polyline points="12 6 12 12 16 14" /></>,
+  target: <><circle cx="12" cy="12" r="10" /><circle cx="12" cy="12" r="6" /><circle cx="12" cy="12" r="2" /></>,
+  layers: <><polygon points="12 2 2 7 12 12 22 7 12 2" /><polyline points="2 17 12 22 22 17" /><polyline points="2 12 12 17 22 12" /></>,
+  users: <><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" /><path d="M23 21v-2a4 4 0 0 0-3-3.87" /><path d="M16 3.13a4 4 0 0 1 0 7.75" /></>,
+  lifebuoy: <><circle cx="12" cy="12" r="10" /><circle cx="12" cy="12" r="4" /><line x1="4.93" y1="4.93" x2="9.17" y2="9.17" /><line x1="14.83" y1="14.83" x2="19.07" y2="19.07" /><line x1="14.83" y1="9.17" x2="19.07" y2="4.93" /><line x1="4.93" y1="19.07" x2="9.17" y2="14.83" /></>,
+  trending: <><polyline points="23 6 13.5 15.5 8.5 10.5 1 18" /><polyline points="17 6 23 6 23 12" /></>,
+  chat: <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z" />,
+  check: <polyline points="20 6 9 17 4 12" />,
+  play: <polygon points="6 3 20 12 6 21 6 3" />,
 }
 
-const TIER_LABEL = {
-  support: 'Support',
-  core: 'Core',
-  stretch: 'Stretch',
+function Icon({ name, size = 18 }) {
+  return (
+    <svg
+      className="cv-icon"
+      width={size}
+      height={size}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+      focusable="false"
+    >
+      {ICONS[name]}
+    </svg>
+  )
 }
+
+const RING_R = 52
+const RING_C = 2 * Math.PI * RING_R
+
+const levelsFor = (objectiveId) => LEVELS.filter((l) => l.objectiveId === objectiveId)
+const stateFor = (i, done) => (i < done ? 'done' : i === done ? 'progress' : 'todo')
 
 export default function CourseOverview({ user, progress = 15, onBack, onContinueLesson }) {
-  const totalObjectives = LESSON.objectives.length
+  const total = LESSON.objectives.length
+  const pct = Math.max(0, Math.min(100, progress))
+  const done = Math.min(total, Math.floor((pct / 100) * total))
+  const unitName = LESSON.unitTitle.replace(/^Unit \d+\s*·\s*/, '')
+  const initials = (user?.username || 'You').slice(0, 2).toUpperCase()
 
   return (
-    <div className="dash">
-      <header className="dash-header">
-        <div className="dash-brand">
-          <span className="badge badge--student">student</span>
-          <span className="dash-user">{user?.username}</span>
+    <div className="wf cv">
+      <header className="wf-top">
+        <div className="wf-brand">
+          <span className="wf-logo" aria-hidden="true" />
+          <span className="wf-brand-name">CodeAI</span>
+          <span className="wf-project">Student · Course overview</span>
         </div>
-        <button type="button" className="btn btn--ghost" onClick={onBack}>
-          ← Back to dashboard
-        </button>
+        <div className="wf-actions">
+          <button type="button" className="wf-btn wf-btn--light" onClick={onBack}>← Back to dashboard</button>
+          <span className="wf-avatar" aria-label={`Signed in as ${user?.username || 'you'}`}>{initials}</span>
+        </div>
       </header>
 
-      <main className="dash-main">
-        {/* Course header / banner */}
-        <section className="co-hero">
-          <div className="co-hero-main">
-            <p className="co-eyebrow">{LESSON.unitTitle}</p>
-            <h1 className="co-title">{LESSON.title}</h1>
-            <p className="co-desc">
-              Build your own webpage with HTML and CSS while an AI Tutor helps
-              you learn, debug, and level up. The lesson adapts to what you show
-              you know — everyone works toward the same objectives, with extra
-              support or tougher challenges along the way.
-            </p>
-            <div className="co-meta">
-              <span>⏱ ~{LESSON.estimatedMinutes} min</span>
-              <span>🎯 {totalObjectives} objectives</span>
-              <span>🧩 {LEVELS.length} adaptive levels</span>
-            </div>
-          </div>
-          <div className="co-hero-side">
-            <div className="co-progress-ring" aria-label={`${progress}% complete`}>
-              <span className="co-progress-num">{progress}%</span>
-              <span className="co-progress-sub">complete</span>
-            </div>
-            <button type="button" className="btn btn--primary co-cta" onClick={onContinueLesson}>
-              Continue lesson
-            </button>
-          </div>
-        </section>
-
-        {/* Unit → lesson → objectives outline */}
-        <section className="co-outline">
-          <h2 className="co-section-title">Course outline</h2>
-
-          <div className="co-unit">
-            <div className="co-unit-head">
-              <span className="co-unit-badge">Unit 1</span>
-              <span className="co-unit-name">{LESSON.unitTitle}</span>
-            </div>
-
-            <div className="co-lesson">
-              <div className="co-lesson-head">
-                <span className="co-lesson-badge">Lesson 1</span>
-                <span className="co-lesson-name">{LESSON.title}</span>
-                <span className="co-lesson-pill">In progress</span>
+      <main className="cv-page">
+        <div className="cv-wrap">
+          <section className="cv-hero" aria-labelledby="cv-title">
+            <div className="cv-hero-grid">
+              <div className="cv-hero-text">
+                <p className="cv-eyebrow">COURSE · UNIT 1</p>
+                <h1 id="cv-title" className="cv-title">{LESSON.title}</h1>
+                <p className="cv-lede">
+                  Build your own webpage with HTML and CSS while an AI Tutor helps you learn, debug,
+                  and level up. The lesson adapts to what you show you know: everyone works toward
+                  the same objectives, with extra support or a tougher challenge along the way.
+                </p>
+                <ul className="cv-chips" aria-label="Course facts">
+                  <li><Icon name="clock" size={15} />~{LESSON.estimatedMinutes} min</li>
+                  <li><Icon name="target" size={15} />{total} objectives</li>
+                  <li><Icon name="layers" size={15} />{LEVELS.length} adaptive levels</li>
+                </ul>
+                <button type="button" className="cv-cta" onClick={onContinueLesson}>
+                  <Icon name="play" size={14} />Continue lesson
+                </button>
               </div>
 
-              <ol className="co-objectives">
-                {LESSON.objectives.map((obj, i) => {
-                  const levels = levelsByObjective(obj.id)
-                  return (
-                    <li key={obj.id} className="co-objective">
-                      <div className="co-objective-head">
-                        <span className="co-objective-num">{i + 1}</span>
-                        <div>
-                          <p className="co-objective-title">{obj.title}</p>
-                          <p className="co-objective-code">{obj.code}</p>
+              <div
+                className="cv-ring"
+                role="progressbar"
+                aria-valuemin={0}
+                aria-valuemax={100}
+                aria-valuenow={pct}
+                aria-label="Course progress"
+              >
+                <svg viewBox="0 0 120 120" width="148" height="148" aria-hidden="true" focusable="false">
+                  <circle className="cv-ring-track" cx="60" cy="60" r={RING_R} />
+                  <circle
+                    className={`cv-ring-bar${pct === 0 ? ' is-empty' : ''}`}
+                    cx="60"
+                    cy="60"
+                    r={RING_R}
+                    strokeDasharray={`${(RING_C * pct) / 100} ${RING_C}`}
+                    transform="rotate(-90 60 60)"
+                  />
+                </svg>
+                <div className="cv-ring-label">
+                  <strong>{pct}%</strong>
+                  <span>complete</span>
+                </div>
+                <p className="cv-ring-sub">{done} of {total} objectives mastered</p>
+              </div>
+            </div>
+
+            <ol className="cv-path" aria-label="Your path through the lesson">
+              {LESSON.objectives.map((o, i) => {
+                const state = stateFor(i, done)
+                return (
+                  <li key={o.id} className={`cv-step cv-step--${state}`}>
+                    <span className="cv-node" aria-hidden="true">
+                      {state === 'done' ? <Icon name="check" size={14} /> : i + 1}
+                    </span>
+                    <span className="cv-step-label">
+                      {o.title}
+                      <span className="wf-sr"> — {STATE_LABEL[state]}</span>
+                    </span>
+                  </li>
+                )
+              })}
+            </ol>
+          </section>
+
+          <section className="wf-card cv-outline" aria-labelledby="cv-outline-h">
+            <div className="cv-outline-head">
+              <h2 id="cv-outline-h" className="wf-card-title">Course outline</h2>
+              <p className="cv-outline-sub">Unit 1 · {unitName} · Lesson 1 · ~{LESSON.estimatedMinutes} min</p>
+            </div>
+            <ul className="cv-key" aria-label="What the level types mean">
+              {Object.keys(TIERS).map((t) => (
+                <li key={t}>
+                  <span className={`cv-tier cv-tier--${t}`}>{TIERS[t]}</span>
+                  <span className="cv-key-note">{TIER_NOTE[t]}</span>
+                </li>
+              ))}
+            </ul>
+
+            <ol className="cv-objectives">
+              {LESSON.objectives.map((o, i) => {
+                const state = stateFor(i, done)
+                return (
+                  <li key={o.id} className={`cv-obj cv-obj--${state}`}>
+                    <span className="cv-mark" aria-hidden="true">
+                      {state === 'done' ? <Icon name="check" size={16} /> : i + 1}
+                    </span>
+                    <div className="cv-obj-card">
+                      <div className="cv-obj-head">
+                        <div className="cv-obj-text">
+                          <p className="cv-obj-title">{o.title}</p>
+                          <p className="cv-obj-code">{o.code}</p>
                         </div>
+                        <span className={`cv-state cv-state--${state}`}>{STATE_LABEL[state]}</span>
                       </div>
-                      <ul className="co-levels">
-                        {levels.map((lvl) => (
-                          <li key={lvl.id} className={`co-level co-level--${lvl.tier}`}>
-                            <span className="co-level-tier">{TIER_LABEL[lvl.tier] || lvl.tier}</span>
-                            <span className="co-level-title">{lvl.title}</span>
+                      <ul className="cv-levels" aria-label={`Levels for ${o.title}`}>
+                        {levelsFor(o.id).map((l) => (
+                          <li key={l.id} className={`cv-level cv-level--${l.tier}`}>
+                            <span className={`cv-tier cv-tier--${l.tier}`}>{TIERS[l.tier]}</span>
+                            <p className="cv-level-title">{l.title}</p>
+                            <p className="cv-level-desc">{l.instructions}</p>
                           </li>
                         ))}
                       </ul>
-                    </li>
-                  )
-                })}
-              </ol>
-            </div>
-          </div>
-        </section>
+                    </div>
+                  </li>
+                )
+              })}
+            </ol>
+          </section>
 
-        {/* How adaptivity works — a quick explainer for the demo */}
-        <section className="co-explainer">
-          <h2 className="co-section-title">How this course adapts to you</h2>
-          <div className="co-cards">
-            <div className="co-card">
-              <span className="co-card-icon" aria-hidden="true">🎯</span>
-              <h3>Same objectives for everyone</h3>
-              <p>You and your classmates all work toward the same goals — nobody races ahead of the class.</p>
-            </div>
-            <div className="co-card">
-              <span className="co-card-icon" aria-hidden="true">🪜</span>
-              <h3>Extra support when you need it</h3>
-              <p>If a step is tricky, the lesson gives you more scaffolding instead of moving on.</p>
-            </div>
-            <div className="co-card">
-              <span className="co-card-icon" aria-hidden="true">🚀</span>
-              <h3>Tougher challenges when you're ready</h3>
-              <p>Breeze through a skill and you'll get a deeper version of it to keep things interesting.</p>
-            </div>
-            <div className="co-card">
-              <span className="co-card-icon" aria-hidden="true">🤖</span>
-              <h3>An AI Tutor beside you</h3>
-              <p>Ask questions anytime and get step-by-step hints that help you learn — not just answers.</p>
-            </div>
-          </div>
-        </section>
+          <section aria-labelledby="cv-adapt-h">
+            <h2 id="cv-adapt-h" className="cv-section-title">How this course adapts to you</h2>
+            <ul className="cv-tiles">
+              {ADAPTS.map((a) => (
+                <li key={a.title} className="cv-tile">
+                  <span className={`cv-tile-icon cv-tile-icon--${a.tone}`}><Icon name={a.icon} size={20} /></span>
+                  <p className="cv-tile-title">{a.title}</p>
+                  <p className="cv-tile-body">{a.body}</p>
+                </li>
+              ))}
+            </ul>
+          </section>
+        </div>
       </main>
     </div>
   )

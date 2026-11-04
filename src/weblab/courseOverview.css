@@ -1,0 +1,136 @@
+/* "View course" page. Relies on the .wf design tokens/classes in index.css
+   (the page root is `wf cv`), so it matches the lesson and teacher screens.
+   Text on the hero gradient is always white on #2f5fd0 -> #6a4bd8 (>= 5.7:1);
+   decorative highlights are kept faint enough to stay above 4.5:1. */
+.cv-page { flex: 1; min-height: 0; overflow-y: auto; padding: 16px 16px 40px; }
+.cv-wrap { max-width: 1120px; margin: 0 auto; display: flex; flex-direction: column; gap: 20px; }
+.cv-icon { flex: 0 0 auto; }
+
+/* ---------- Hero ---------- */
+.cv-hero {
+  position: relative; overflow: hidden; color: #fff; border-radius: 16px; padding: 30px 34px 26px;
+  background:
+    radial-gradient(circle at 94% -8%, rgba(255, 255, 255, 0.07) 0 36%, transparent 37%),
+    radial-gradient(circle at 76% 118%, rgba(255, 255, 255, 0.06) 0 28%, transparent 29%),
+    linear-gradient(135deg, #2f5fd0 0%, #5a50d6 55%, #6a4bd8 100%);
+  box-shadow: 0 12px 32px rgba(47, 95, 208, 0.28);
+}
+.cv-hero-grid { display: grid; grid-template-columns: minmax(0, 1fr) 190px; gap: 32px; align-items: center; }
+.cv-eyebrow { margin: 0 0 8px; font-size: 11px; font-weight: 700; letter-spacing: 0.1em; }
+.cv-title { margin: 0 0 12px; font-size: 30px; line-height: 1.15; font-weight: 800; letter-spacing: -0.015em; }
+.cv-lede { margin: 0; max-width: 62ch; font-size: 14px; line-height: 1.65; }
+.cv-chips { list-style: none; margin: 18px 0 22px; padding: 0; display: flex; flex-wrap: wrap; gap: 8px; }
+.cv-chips li {
+  display: inline-flex; align-items: center; gap: 7px; font-size: 12px; font-weight: 600;
+  padding: 6px 12px; border-radius: 999px; background: rgba(15, 23, 42, 0.28); border: 1px solid rgba(255, 255, 255, 0.3);
+}
+.cv-cta {
+  display: inline-flex; align-items: center; gap: 8px; border: none; cursor: pointer;
+  background: #fff; color: #2f5fd0; font-weight: 700; font-size: 13px; padding: 11px 20px; border-radius: 999px;
+  box-shadow: 0 4px 14px rgba(15, 23, 42, 0.25);
+}
+
+/* Progress ring */
+.cv-ring { position: relative; display: grid; justify-items: center; gap: 12px; }
+.cv-ring svg { display: block; }
+.cv-ring-track { fill: none; stroke: rgba(255, 255, 255, 0.28); stroke-width: 10; }
+.cv-ring-bar { fill: none; stroke: #fff; stroke-width: 10; stroke-linecap: round; }
+.cv-ring-bar.is-empty { display: none; }
+.cv-ring-label { position: absolute; top: 0; left: 0; right: 0; height: 148px; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+.cv-ring-label strong { font-size: 32px; font-weight: 800; line-height: 1; }
+.cv-ring-label span { font-size: 11px; font-weight: 600; margin-top: 2px; }
+.cv-ring-sub { margin: 0; font-size: 12px; font-weight: 600; text-align: center; }
+
+/* Step path through the objectives */
+.cv-path {
+  list-style: none; margin: 26px 0 0; padding: 20px 0 0; border-top: 1px solid rgba(255, 255, 255, 0.3);
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+}
+.cv-step { position: relative; display: flex; flex-direction: column; align-items: flex-start; gap: 10px; padding-right: 14px; }
+.cv-step:not(:last-child)::before { content: ''; position: absolute; top: 13px; left: 36px; right: 4px; height: 2px; background: rgba(255, 255, 255, 0.4); }
+.cv-step--done:not(:last-child)::before { background: #fff; }
+.cv-node {
+  position: relative; z-index: 1; width: 28px; height: 28px; border-radius: 50%; display: grid; place-items: center;
+  font-size: 12px; font-weight: 700; color: #fff; border: 2px solid rgba(255, 255, 255, 0.75); background: rgba(15, 23, 42, 0.3);
+}
+.cv-step--done .cv-node { background: #16a34a; border-color: #16a34a; }
+.cv-step--progress .cv-node { background: #fff; border-color: #fff; color: #2f5fd0; box-shadow: 0 0 0 4px rgba(255, 255, 255, 0.3); }
+.cv-step-label { font-size: 12px; font-weight: 600; line-height: 1.4; }
+
+/* ---------- Outline (journey) ---------- */
+.cv-outline { padding: 22px 24px 24px; }
+.cv-outline-head { display: flex; align-items: baseline; justify-content: space-between; gap: 6px 16px; flex-wrap: wrap; }
+.cv-outline-head .wf-card-title { font-size: 15px; }
+.cv-outline-sub { margin: 0; font-size: 12px; color: var(--wf-muted); }
+.cv-key { list-style: none; margin: 10px 0 20px; padding: 0; display: flex; flex-wrap: wrap; gap: 8px 20px; }
+.cv-key li { display: flex; align-items: center; gap: 8px; }
+.cv-key-note { font-size: 11px; color: var(--wf-muted); }
+
+.cv-objectives { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 18px; }
+.cv-obj { position: relative; display: grid; grid-template-columns: 32px minmax(0, 1fr); gap: 16px; }
+.cv-obj:not(:last-child)::before { content: ''; position: absolute; left: 15px; top: 36px; bottom: -18px; width: 2px; background: #d6e2ff; }
+.cv-obj--done:not(:last-child)::before { background: var(--wf-green); }
+.cv-mark {
+  width: 32px; height: 32px; border-radius: 50%; display: grid; place-items: center; font-size: 13px; font-weight: 700;
+  color: #6b7280; background: #fff; border: 2px solid #c2c7ce; position: relative; z-index: 1;
+}
+.cv-obj--progress .cv-mark { background: var(--wf-blue); border-color: var(--wf-blue); color: #fff; box-shadow: 0 0 0 4px #dbe7ff; }
+.cv-obj--done .cv-mark { background: #16a34a; border-color: #16a34a; color: #fff; }
+.cv-obj-card { background: #fff; border: 1px solid var(--wf-line); border-radius: 12px; padding: 14px 16px 16px; box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04); }
+.cv-obj--progress .cv-obj-card { border-color: var(--wf-blue); background: #f5f9ff; box-shadow: 0 6px 18px rgba(79, 140, 255, 0.16); }
+.cv-obj-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.cv-obj-text { min-width: 0; }
+.cv-obj-title { margin: 0; font-size: 14px; font-weight: 700; }
+.cv-obj-code { margin: 3px 0 0; font: 11px ui-monospace, Consolas, monospace; color: var(--wf-muted); }
+
+/* Status + tier pills */
+.cv-state { flex: 0 0 auto; font-size: 10px; font-weight: 600; padding: 3px 10px; border-radius: 999px; white-space: nowrap; }
+.cv-state--done { background: #dff3e6; color: #166534; }
+.cv-state--progress { background: #fff4e0; color: #7a5a10; }
+.cv-state--todo { background: var(--wf-soft); color: #5b6370; }
+.cv-tier { align-self: flex-start; display: inline-block; text-align: center; font-size: 10px; font-weight: 700; padding: 2px 10px; border-radius: 999px; }
+.cv-tier--support { background: #fff4e0; color: #7a5a10; }
+.cv-tier--core { background: #e8f0ff; color: #1d4ed8; }
+.cv-tier--stretch { background: #dff3e6; color: #166534; }
+
+/* One card per adaptive level */
+.cv-levels { list-style: none; margin: 14px 0 0; padding: 0; display: grid; gap: 10px; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); }
+.cv-level { background: #fff; border: 1px solid var(--wf-line-soft); border-top: 3px solid var(--tier, #c2c7ce); border-radius: 10px; padding: 11px 13px 13px; display: flex; flex-direction: column; gap: 7px; }
+.cv-level--support { --tier: #f5b942; }
+.cv-level--core { --tier: #4f8cff; }
+.cv-level--stretch { --tier: #22c55e; }
+.cv-level-title { margin: 0; font-size: 12px; font-weight: 700; line-height: 1.35; }
+.cv-level-desc { margin: 0; font-size: 11px; line-height: 1.5; color: var(--wf-muted); display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+
+/* ---------- How it adapts ---------- */
+.cv-section-title { margin: 0 0 12px; font-size: 15px; font-weight: 700; }
+.cv-tiles { list-style: none; margin: 0; padding: 0; display: grid; gap: 12px; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); }
+.cv-tile { background: #fff; border: 1px solid var(--wf-line); border-radius: 12px; padding: 16px; }
+.cv-tile-icon { width: 38px; height: 38px; border-radius: 10px; display: grid; place-items: center; margin-bottom: 12px; }
+.cv-tile-icon--blue { background: #e8f0ff; color: #2563eb; }
+.cv-tile-icon--amber { background: #fff4e0; color: #8a6d1f; }
+.cv-tile-icon--green { background: #dff3e6; color: #15803d; }
+.cv-tile-icon--purple { background: #f3f0ff; color: #6d4bd8; }
+.cv-tile-title { margin: 0 0 4px; font-size: 13px; font-weight: 700; }
+.cv-tile-body { margin: 0; font-size: 12px; line-height: 1.55; color: var(--wf-muted); }
+
+/* Motion only for people who have not asked to reduce it */
+@media (prefers-reduced-motion: no-preference) {
+  .cv-ring-bar { transition: stroke-dasharray 0.7s ease; }
+  .cv-cta { transition: transform 0.15s ease, box-shadow 0.15s ease; }
+  .cv-cta:hover { transform: translateY(-1px); box-shadow: 0 8px 20px rgba(15, 23, 42, 0.3); }
+  .cv-tile { transition: transform 0.15s ease, box-shadow 0.15s ease; }
+  .cv-tile:hover { transform: translateY(-2px); box-shadow: 0 8px 20px rgba(15, 23, 42, 0.08); }
+}
+
+@media (max-width: 760px) {
+  .cv-hero { padding: 22px 20px; }
+  .cv-hero-grid { grid-template-columns: 1fr; gap: 22px; }
+  .cv-ring { justify-items: start; }
+  .cv-title { font-size: 24px; }
+  .cv-step:not(:last-child)::before { display: none; }
+  .cv-outline { padding: 18px 14px; }
+  .cv-obj { grid-template-columns: 26px minmax(0, 1fr); gap: 10px; }
+  .cv-mark { width: 26px; height: 26px; font-size: 11px; }
+  .cv-obj:not(:last-child)::before { left: 12px; top: 30px; }
+}
