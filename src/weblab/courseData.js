@@ -14,11 +14,51 @@ export const LESSON = {
   title: 'Hour of AI 2026 — Adaptive Web Lab',
   unitTitle: 'Unit 1 · Hour of AI 2026 — Adaptive Web Lab',
   estimatedMinutes: 45,
+  // Per objective: `canDo` is the student-facing goal ("I can ..."), `minutes` is
+  // a rough pace (they add up to estimatedMinutes), and `terms` are the key
+  // words, defined in plain language. "You've got it when..." is derived from
+  // each objective's rubric, so it always matches what the checker looks for.
   objectives: [
-    { id: 'obj-structure', code: 'HTML.1', title: 'Structure a page with HTML' },
-    { id: 'obj-style', code: 'CSS.1', title: 'Style a page with CSS' },
-    { id: 'obj-layout', code: 'CSS.2', title: 'Lay out content so it reads well' },
-    { id: 'obj-polish', code: 'WEB.1', title: 'Polish and make it your own' },
+    {
+      id: 'obj-structure', code: 'HTML.1', title: 'Structure a page with HTML', minutes: 10,
+      canDo: 'build a page with a heading and a paragraph using HTML tags.',
+      terms: [
+        { term: 'tag', meaning: 'A label in angle brackets, like <h1>, that tells the browser what something is.' },
+        { term: 'heading', meaning: 'The big title of a page, written with <h1>.' },
+        { term: 'paragraph', meaning: 'A block of text, written with <p>.' },
+        { term: 'closing tag', meaning: 'The matching tag with a slash, like </h1>, that ends the element.' },
+      ],
+    },
+    {
+      id: 'obj-style', code: 'CSS.1', title: 'Style a page with CSS', minutes: 10,
+      canDo: 'change the colors on my page with CSS rules.',
+      terms: [
+        { term: 'CSS rule', meaning: 'A style instruction: a selector, then settings inside { } curly braces.' },
+        { term: 'selector', meaning: 'Says what to style, like body or h1.' },
+        { term: 'property', meaning: 'What to change, like color or background.' },
+        { term: 'value', meaning: 'The new setting, like navy or #f0f9ff.' },
+      ],
+    },
+    {
+      id: 'obj-layout', code: 'CSS.2', title: 'Lay out content so it reads well', minutes: 10,
+      canDo: 'center my content and keep lines short enough to read comfortably.',
+      terms: [
+        { term: 'max-width', meaning: 'The widest an element is allowed to be.' },
+        { term: 'margin', meaning: 'Space outside an element. margin: 0 auto; centers it.' },
+        { term: 'padding', meaning: 'Space inside an element, between its edge and its content.' },
+        { term: 'column', meaning: 'A narrow strip of content, easier to read than full width.' },
+      ],
+    },
+    {
+      id: 'obj-polish', code: 'WEB.1', title: 'Polish and make it your own', minutes: 15,
+      canDo: 'add my own element, like a list or a quote, and make it match my page.',
+      terms: [
+        { term: 'element', meaning: 'Any building block of a page, like a heading, list or quote.' },
+        { term: 'list', meaning: 'A set of bullets made with <ul>.' },
+        { term: 'list item', meaning: 'One bullet, written with <li> inside a list.' },
+        { term: 'blockquote', meaning: 'A quote set apart from the text around it, written with <blockquote>.' },
+      ],
+    },
   ],
 }
 

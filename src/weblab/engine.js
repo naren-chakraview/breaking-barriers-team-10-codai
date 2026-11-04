@@ -8,7 +8,7 @@ const delay = (ms) => new Promise((r) => setTimeout(r, ms))
 
 // Human-friendly labels for the rubric needles, so diagnostics can talk about
 // what's missing in plain language with a concrete example.
-const NEEDLE_INFO = {
+export const NEEDLE_INFO = {
   '<h1': { label: 'a heading (<h1>)', example: '<h1>Your Name</h1>' },
   '</h1>': { label: 'a closing </h1> tag', example: '<h1>Your Name</h1>' },
   '<p': { label: 'a paragraph (<p>)', example: '<p>One thing you like</p>' },
