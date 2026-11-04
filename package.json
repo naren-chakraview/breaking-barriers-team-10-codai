@@ -8,7 +8,8 @@
     "build": "vite build",
     "preview": "vite preview",
     "test": "vitest run",
-    "test:contracts": "vitest run shared/contracts"
+    "test:contracts": "vitest run shared/contracts",
+    "dev:api": "python3 backend/local/run.py"
   },
   "dependencies": {
     "react": "^18.3.1",

@@ -28,3 +28,6 @@ cdk.out/
 
 # CDK lookup cache: holds the AWS account id, which stays out of the repo (ADR-013)
 infra/cdk.context.json
+
+# Local demo backend virtualenv (backend/local/run.py)
+.venv-api/
