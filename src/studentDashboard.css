@@ -127,3 +127,6 @@
 .sd-dialog p { margin: 0 0 18px; font-size: 15px; line-height: 1.55; color: #374151; }
 .sd-dialog-actions { display: flex; flex-wrap: wrap; gap: 10px; justify-content: flex-end; }
 .sd-dialog button:focus-visible { outline: 3px solid #1d4ed8; outline-offset: 2px; }
+
+/* Loading indicator while getTree resolves (seam 1). */
+.sd-loading { margin: 0 0 12px; font-size: 14px; color: #475569; }

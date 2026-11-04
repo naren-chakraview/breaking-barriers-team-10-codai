@@ -7,8 +7,8 @@ Aurora adapters implement this, and both are checked by the same contract tests.
 Defined as a Protocol so adapters are structurally typed and the contract test can assert
 every method is present without a base-class import.
 
-Adapters: `JsonRepository` (built, demo mode). The Aurora adapter is deferred pending a
-schema reconciliation with the data track (see README.md).
+Adapters: `JsonRepository` (built, demo mode) and `AuroraRepository` (built, over the RDS
+Data API; schema reconciled with the data track per ADR-017, see README.md).
 """
 
 from __future__ import annotations
