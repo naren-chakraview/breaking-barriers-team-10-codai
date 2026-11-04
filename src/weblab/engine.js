@@ -89,12 +89,7 @@ export async function routeNextLevel(currentLevel, signal, history) {
   const nextObj = objectives[currentObjIndex + 1]
   if (!nextObj) return { level: null, reason: 'complete' }
 
-  // "Strong" = full marks with no hints on this step and no easier version
-  // visited earlier. A student who needed help moves on at the standard pace.
-  const struggled =
-    (signal.hintsOnLevel || 0) > 0 ||
-    (history || []).some((id) => LEVELS.find((l) => l.id === id)?.tier === 'support')
-  const strong = signal.score >= 100 && !struggled
+  const strong = signal.score >= 100
   const stretch = LEVELS.find((l) => l.objectiveId === nextObj.id && l.tier === 'stretch')
   if (strong && stretch) return { level: stretch, reason: 'stretch' }
 
