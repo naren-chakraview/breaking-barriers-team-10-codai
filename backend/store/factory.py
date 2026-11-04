@@ -1,8 +1,8 @@
-"""Store factory: pick the repository adapter from STORE_MODE (ADR-016).
+"""Store factory: pick the repository adapter from STORE_MODE (ADR-016, ADR-017).
 
-`json` (default) -> JsonRepository (demo mode, no AWS). `aurora` -> the Aurora adapter, which
-is not built yet (unblocked by Task 4.6, see README.md); selecting it today raises a clear
-error rather than silently falling back, so a misconfigured deploy is obvious.
+`json` (default) -> JsonRepository (demo mode, no AWS).
+`aurora` -> AuroraRepository over the RDS Data API. Needs AURORA_CLUSTER_ARN, AURORA_SECRET_ARN,
+and AURORA_DATABASE_NAME in the environment (from CDK stack outputs / SSM, see docs/aws-access.md).
 """
 
 from __future__ import annotations
@@ -11,6 +11,7 @@ import os
 from typing import Any, Optional
 
 from .json_repository import JsonRepository
+from .aurora_repository import AuroraRepository
 
 VALID_MODES = ("json", "aurora")
 
@@ -25,9 +26,21 @@ def create_repository(env: Optional[dict[str, str]] = None, path: Optional[str] 
     mode = env.get("STORE_MODE") or "json"
     if mode not in VALID_MODES:
         raise ValueError(f"STORE_MODE must be one of {VALID_MODES}, got {mode!r}")
+
     if mode == "aurora":
-        raise NotImplementedError(
-            "STORE_MODE=aurora: the Aurora adapter is not built yet. The schema is reconciled "
-            "(Task 4.6, ADR-017); see backend/store/README.md. Use STORE_MODE=json for now."
+        cluster_arn = env.get("AURORA_CLUSTER_ARN")
+        secret_arn = env.get("AURORA_SECRET_ARN")
+        database = env.get("AURORA_DATABASE_NAME", "codeai")
+        if not cluster_arn or not secret_arn:
+            raise ValueError(
+                "STORE_MODE=aurora requires AURORA_CLUSTER_ARN and AURORA_SECRET_ARN in the "
+                "environment (from the DataStack outputs / SSM). See docs/aws-access.md."
+            )
+        return AuroraRepository(
+            cluster_arn=cluster_arn,
+            secret_arn=secret_arn,
+            database=database,
+            region_name=env.get("AWS_DEFAULT_REGION", "us-west-2"),
         )
+
     return JsonRepository(path)

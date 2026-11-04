@@ -1,37 +1,33 @@
 # backend/store (Python)
 
-The store seam (seam 4, ADR-016). A storage-agnostic repository interface
-(`repository.py`) with adapters selected by `STORE_MODE`.
+The store seam (seam 4, ADR-016/017). A storage-agnostic repository interface
+(`repository.py`) with adapters selected by `STORE_MODE` via `create_repository`
+(`factory.py`).
 
 | Adapter | `STORE_MODE` | Status |
 |---|---|---|
-| `JsonRepository` | `json` (default) | **Built.** Demo mode: in-memory, optional JSON-file persistence. No AWS. Passes the contract suite. |
-| Aurora adapter | `aurora` | **Not built yet, unblocked** by Task 4.6 (see below). |
+| `JsonRepository` | `json` (default) | Built. Demo mode: in-memory, optional JSON-file persistence. No AWS. |
+| `AuroraRepository` | `aurora` | Built. Aurora Serverless v2 (PostgreSQL) via the RDS Data API. |
 
-Both adapters must pass the same contract (`tests/contract.py`), so switching
-`STORE_MODE` is a config change, not a rewrite.
+Both pass the same contract (`tests/contract.py`), so switching `STORE_MODE` is a config
+change, not a rewrite.
 
-## Records
+## Records and the schema (ADR-017)
 
 Methods take and return the camelCase records in
-`shared/contracts/schemas/records.schema.json`.
+`shared/contracts/schemas/records.schema.json`. Task 4.6 aligned `database/schema.sql` to
+those records: **string ids, skill slugs, `TEACHER_INPUT` table, JSONB `TeacherInput` on
+`ROUTING_DECISION`, evidence levels 0..3.** Column names are the camelCase record keys,
+which Postgres folds to lowercase in result sets; `AuroraRepository` maps them back with a
+column-name table (`_CAMEL`). No id translation anywhere — the persona fixtures load as-is.
 
-## Aurora adapter: the agreed shape (Task 4.6, ADR-017)
+## Aurora via the Data API
 
-`database/schema.sql` now matches the contract records, so the adapter needs no id
-translation:
-
-- Student and teacher ids are strings (`stu-quick`); skills are referenced by slug (`build`).
-- Every student-state column is its record key in lower case. Map a result row to a record
-  with `row[key.lower()]` for each key in the record schema, and format `TIMESTAMPTZ` values
-  as ISO 8601 UTC (`2026-11-04T09:10:00Z`).
-- Teacher input: `TEACHER_INPUT` holds the standing hold or assign (no row means `auto`), and
-  `ROUTING_DECISION.TeacherInput` is a JSONB snapshot of `{mode, checkpointId}`.
-- `EvidenceId`, `FlagId` and `FallbackEventId` are internal surrogate keys. Do not return them.
-- Use Data API `parameters` for every value. Never build SQL by string concatenation.
-
-The seeded rows already validate against `records.schema.json` with this mapping. The adapter
-still has to pass the store contract suite against a live cluster.
+`AuroraRepository` calls the `rds-data` client: a secure HTTPS endpoint, so no connection
+pool, no VPC attachment, no DB password in code. `create_repository` reads
+`AURORA_CLUSTER_ARN`, `AURORA_SECRET_ARN`, and `AURORA_DATABASE_NAME` from the env (the
+`DataStack` outputs / SSM, see `docs/aws-access.md`). boto3 is imported lazily, so the
+module imports without it; the unit tests use a fake Data API client (no AWS).
 
 ## Tests
 
@@ -40,5 +36,8 @@ still has to pass the store contract suite against a live cluster.
 pytest backend/store
 ```
 
-`test_json_repository.py` runs the full contract suite against the JSON adapter and checks
-file persistence.
+- `test_json_repository.py` — full contract suite against the JSON adapter + persistence.
+- `test_aurora_repository.py` — SQL, parameter typing, lowercase→camelCase mapping, JSONB
+  round-trip, factory wiring, with a fake client.
+- `test_aurora_live.py` — the **same** contract suite against a real cluster. Skipped unless
+  `AURORA_CLUSTER_ARN`/`AURORA_SECRET_ARN` are set; run post-deploy against a scratch DB.
