@@ -9,18 +9,12 @@ These assert the deterministic parts the engine owns today (routing proposal aft
 rule signal, and the remediation flag from repeated misses). The Haiku reasoner (Task 8b) and
 the exact hint-angle wording are Track B/C/G and out of scope here.
 
-INTEGRATION FINDING (routing vs personas): for three of the four personas, the persona's
-`expected.nextAfterIntro` does not match `shared.core.route`:
-  - quick: evidence 2/2/2, all skippables tested out -> core returns None (lesson complete),
-    persona expects keep-or-redirect. Open question: should a checkpoint whose `requires` are
-    satisfied only by `tested_out` predecessors be surfaced as available?
-  - slow / distracted-detail: core applies "largest gap to target wins", so it proposes a
-    checkpoint on a *different* skill than the one the student was working on, while the
-    personas expect the student to continue on steer-it. Open question: largest-gap-wins vs
-    continue-on-current-checkpoint.
-These are cross-track (Track B routing C-19.3 vs Track G personas, both `status: draft`) and
-are marked xfail below with the reason, not silently matched. Flagged for the owners to
-reconcile C-19 and/or the persona `expected` values.
+RESOLVED (issue #24): the three routing discrepancies this suite originally surfaced are
+fixed on main. #26 fixed the quick None-routing bug (proposal selection dropped a valid
+available list to None); #27 switched C-19.3 to stay-on-current and corrected the
+distracted-detail persona (capped its steer-it-project evidence so steer-it no longer tests
+out). All four personas now route to their `expected.nextAfterIntro`, so the routing test
+asserts directly rather than xfailing.
 """
 
 from __future__ import annotations
@@ -134,40 +128,26 @@ def test_persona_fixture_is_well_formed(name):
         assert _step_obj(a["stepId"]) is not None, a["stepId"]
 
 
-# Cross-track discrepancy (filed for Track B routing vs Track G personas; see the module note
-# below). The persona `nextAfterIntro` does not match shared.core.route for these three. Marked
-# xfail so the integration suite stays green while the owners reconcile it, rather than hiding
-# the mismatch or bending the test to a guess. distracted-inattentive already agrees.
-_ROUTING_DISCREPANCY = {
-    "quick": "core returns None (lesson complete); persona expects keep-or-redirect. "
-             "A checkpoint whose `requires` are all tested_out may not be surfaced as available.",
-    "slow": "core picks give-context (debug gap 2); persona expects steer-it. "
-            "Largest-gap-wins vs continue-on-current (lowest-order available).",
-    "distracted-detail": "core picks use-the-lingo (language gap 1); persona expects steer-it. "
-                         "Same largest-gap vs current-checkpoint question.",
-}
-
-
 @pytest.mark.parametrize("name", _PERSONAS)
 def test_persona_routing_after_intro(name):
-    """With intro complete (and the tested-out skippables), route() proposes a checkpoint —
-    exercising the real evidence + routing path against the persona's history.
+    """With intro complete (and the tested-out skippables), route() proposes the persona's
+    expected next checkpoint — exercising the real evidence + routing path against the
+    persona's history.
 
-    Where the persona's expected next and the core disagree, the case is xfail with the
-    reason; these are flagged for the routing/persona owners (see _ROUTING_DISCREPANCY)."""
+    The three cross-track discrepancies originally filed in issue #24 are now resolved on
+    main (#26 fixed the quick None-routing bug; #27 switched C-19.3 to stay-on-current and
+    corrected the distracted-detail persona), so all four personas assert directly."""
     persona = _load(name)
     repo = _seed_repo(persona)
     evidence = repo.get_evidence(persona["student"]["studentId"])
     progress = _progress_after_intro(persona, evidence)
 
     result = core.route(_TREE, progress, evidence, persona.get("teacherInput", {"mode": "auto"}))
-    assert result.reason  # routing is always explainable (C-19.5), regardless of target
+    assert result.reason  # routing is always explainable (C-19.5)
 
     expected_next = persona["expected"].get("nextAfterIntro")
     if not expected_next:
         return
-    if name in _ROUTING_DISCREPANCY:
-        pytest.xfail(f"{name}: {_ROUTING_DISCREPANCY[name]} (core -> {result.checkpoint_id!r})")
     assert result.checkpoint_id == expected_next, (
         f"{name}: expected next {expected_next!r}, got {result.checkpoint_id!r} "
         f"(evidence={evidence}, progress={progress}, reason={result.reason!r})"
