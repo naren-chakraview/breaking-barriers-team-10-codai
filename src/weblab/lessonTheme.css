@@ -287,3 +287,31 @@
 .wfl .wf-col--left .wf-learn { opacity: 0.95; }
 
 @media (prefers-reduced-motion: reduce) { .wfl .wf-task { box-shadow: none; } }
+
+/* ---------- "Learn this first" teach-first card ---------- */
+.wfl .wf-learn2 {
+  border-radius: 16px; padding: 20px 22px;
+  background: #ffffff; border: 1px solid #dbe7ff; border-top: 5px solid #2563eb;
+  box-shadow: 0 14px 30px -20px rgba(37, 99, 235, 0.5);
+}
+.wfl .wf-learn2-eyebrow { display: inline-flex; align-items: center; gap: 6px; font-size: 11px; font-weight: 800; letter-spacing: 0.06em; text-transform: uppercase; color: #1d4ed8; background: #e0e7ff; padding: 4px 11px; border-radius: 999px; }
+.wfl .wf-learn2-title { margin: 10px 0 0; font-size: 20px; font-weight: 800; color: #111827; }
+.wfl .wf-learn2-intro { margin: 10px 0 0; font-size: 15px; line-height: 1.6; color: #1f2937; }
+.wfl .wf-learn2-points { margin: 14px 0 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 10px; }
+.wfl .wf-learn2-points li { display: flex; gap: 10px; font-size: 14.5px; line-height: 1.55; color: #1f2937; }
+.wfl .wf-learn2-num { flex: none; width: 22px; height: 22px; border-radius: 50%; background: #2563eb; color: #fff; font-size: 12px; font-weight: 800; display: grid; place-items: center; margin-top: 1px; }
+.wfl .wf-learn2-example { margin: 16px 0 0; border-radius: 10px; overflow: hidden; border: 1px solid #1e293b; }
+.wfl .wf-learn2-example-label { display: block; padding: 6px 12px; font-size: 11px; font-weight: 800; letter-spacing: 0.05em; text-transform: uppercase; color: #cbd5e1; background: #1e293b; }
+.wfl .wf-learn2-example pre { margin: 0; padding: 12px; font: 13px/1.6 ui-monospace, "SF Mono", Consolas, monospace; color: #e5e7eb; background: #0f172a; white-space: pre-wrap; word-break: break-word; }
+.wfl .wf-learn2-example-cap { margin: 0; padding: 10px 12px; font-size: 13px; line-height: 1.5; color: #374151; background: #f8fafc; border-top: 1px solid #e5e7eb; }
+.wfl .wf-learn2-terms { margin: 16px 0 0; }
+.wfl .wf-learn2-terms-label { margin: 0 0 6px; font-size: 12px; font-weight: 800; color: #374151; }
+.wfl .wf-learn2-terms dl { margin: 0; display: grid; grid-template-columns: max-content 1fr; gap: 6px 14px; }
+.wfl .wf-learn2-term { display: contents; }
+.wfl .wf-learn2-term dt { font-weight: 800; color: #1d4ed8; font-size: 13px; }
+.wfl .wf-learn2-term dd { margin: 0; font-size: 13px; line-height: 1.5; color: #374151; }
+.wfl .wf-learn2-actions { margin: 20px 0 0; }
+.wfl .wf-learn2-actions .wf-btn { font-size: 15px; padding: 11px 20px; }
+
+.wfl .wf-task-review { margin: 12px 0 0; border: none; background: transparent; color: #1d4ed8; font: inherit; font-size: 13px; font-weight: 700; cursor: pointer; padding: 0; }
+.wfl .wf-task-review:hover { text-decoration: underline; }

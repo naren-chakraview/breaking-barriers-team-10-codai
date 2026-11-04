@@ -11,7 +11,7 @@ const TIER_LABEL = {
   stretch: 'Challenge',
 }
 
-export default function TaskCard({ level, objectives, completed }) {
+export default function TaskCard({ level, objectives, completed, onReviewLesson }) {
   if (!level) return null
   const obj = getObjective(level.objectiveId)
   const total = objectives.length
@@ -44,6 +44,11 @@ export default function TaskCard({ level, objectives, completed }) {
       <p className="wf-task-hintline">
         Not sure how? Press <strong>💡 Get a hint</strong> in the AI Tutor, or tap <strong>📍 Show me where</strong>.
       </p>
+      {onReviewLesson && (
+        <button type="button" className="wf-task-review" onClick={onReviewLesson}>
+          📘 Review the lesson
+        </button>
+      )}
     </section>
   )
 }

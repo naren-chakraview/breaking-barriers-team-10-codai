@@ -10,6 +10,7 @@ import LessonTopBar from './LessonTopBar.jsx'
 import LessonPanel from './LessonPanel.jsx'
 import RequirementsBox from './RequirementsBox.jsx'
 import TaskCard from './TaskCard.jsx'
+import LearnCard from './LearnCard.jsx'
 import CodeWorkspace from './CodeWorkspace.jsx'
 import Preview from './Preview.jsx'
 import Tutor from './Tutor.jsx'
@@ -29,6 +30,12 @@ export default function WeblabLesson({ user, onExit, onViewSkillTree }) {
   const services = useServices()
   const [levelId, setLevelId] = useState(FIRST_LEVEL_ID)
   const level = getLevel(levelId)
+  // Teach-first: objectives whose Learn card the student has acknowledged. The
+  // current objective's lesson shows (gating the task) until "Got it" is pressed.
+  const [lessonSeen, setLessonSeen] = useState({})
+  const learning = level && !lessonSeen[level.objectiveId]
+  const markLessonSeen = () => setLessonSeen((m) => ({ ...m, [level.objectiveId]: true }))
+  const reviewLesson = () => setLessonSeen((m) => ({ ...m, [level.objectiveId]: false }))
 
   // Content + progress sourced from the services layer (seam 1). The editor
   // scaffolding (starter code, inline hints, build log) stays UI-local because
@@ -457,9 +464,18 @@ export default function WeblabLesson({ user, onExit, onViewSkillTree }) {
         </div>
 
         <div className="wf-col wf-col--center">
-          <TaskCard level={level} objectives={LESSON.objectives} completed={completed} />
-          <RequirementsBox onGenerate={generate} onAsk={askFromRequirements} />
-          <CodeWorkspace
+          {learning ? (
+            <LearnCard objectiveId={level.objectiveId} onStart={markLessonSeen} />
+          ) : (
+          <>
+            <TaskCard
+              level={level}
+              objectives={LESSON.objectives}
+              completed={completed}
+              onReviewLesson={reviewLesson}
+            />
+            <RequirementsBox onGenerate={generate} onAsk={askFromRequirements} />
+            <CodeWorkspace
             tab={tab}
             onTab={setTab}
             activeFile={activeFile}
@@ -485,6 +501,8 @@ export default function WeblabLesson({ user, onExit, onViewSkillTree }) {
             deployState={deployState}
             onShowLog={() => setTab('buildLog')}
           />
+          </>
+          )}
         </div>
 
         <div className="wf-col wf-col--right">

@@ -22,6 +22,15 @@ export const LESSON = {
     {
       id: 'obj-structure', code: 'HTML.1', title: 'Structure a page with HTML', minutes: 10,
       canDo: 'build a page with a heading and a paragraph using HTML tags.',
+      lesson: {
+        intro: "A web page is built from HTML tags \u2014 labels in angle brackets that tell the browser what each piece of content is. Before you write any, here is how they work.",
+        points: [
+          "A tag comes in a pair: an opening tag like <h1> and a closing tag like </h1>. Whatever you type between them is the content.",
+          "<h1> makes a big heading (usually the page title). <p> makes a paragraph of normal text.",
+          "The slash is what makes a tag a closing tag: <p> opens, </p> closes. Forgetting the closing tag is the most common beginner mistake.",
+        ],
+        example: { code: "<h1>Alex</h1>\n<p>I like soccer.</p>", caption: "A heading with a name, then a paragraph. On the page you'd see 'Alex' large and bold, with 'I like soccer.' below it." },
+      },
       terms: [
         { term: 'tag', meaning: 'A label in angle brackets, like <h1>, that tells the browser what something is.' },
         { term: 'heading', meaning: 'The big title of a page, written with <h1>.' },
@@ -32,6 +41,15 @@ export const LESSON = {
     {
       id: 'obj-style', code: 'CSS.1', title: 'Style a page with CSS', minutes: 10,
       canDo: 'change the colors on my page with CSS rules.',
+      lesson: {
+        intro: "HTML sets up WHAT is on the page; CSS controls how it LOOKS. You write style rules that target parts of the page and change things like color.",
+        points: [
+          "A CSS rule looks like: selector { property: value; }. The selector picks what to style (like body or h1).",
+          "Inside the curly braces { } you list changes, one per line, each ending in a semicolon ;",
+          "background sets the color behind an element; color sets its text color. Values can be names (navy) or hex codes (#4f46e5).",
+        ],
+        example: { code: "body { background: #f0f9ff; }\nh1 { color: navy; }", caption: "The first rule colors the whole page a light blue; the second makes every <h1> heading navy." },
+      },
       terms: [
         { term: 'CSS rule', meaning: 'A style instruction: a selector, then settings inside { } curly braces.' },
         { term: 'selector', meaning: 'Says what to style, like body or h1.' },
@@ -42,6 +60,15 @@ export const LESSON = {
     {
       id: 'obj-layout', code: 'CSS.2', title: 'Lay out content so it reads well', minutes: 10,
       canDo: 'center my content and keep lines short enough to read comfortably.',
+      lesson: {
+        intro: "Layout is about making a page comfortable to read. Long lines of text that stretch edge-to-edge are hard to follow, so you cap the width and center the content.",
+        points: [
+          "max-width sets the widest an element may grow \u2014 e.g. max-width: 600px; keeps lines a readable length.",
+          "margin is the space OUTSIDE an element. margin: 0 auto; centers a width-capped block by splitting the leftover space evenly on both sides.",
+          "padding is the space INSIDE an element, between its edge and its content \u2014 it keeps text from touching the edges.",
+        ],
+        example: { code: "body {\n  max-width: 600px;\n  margin: 0 auto;\n  padding: 32px;\n}", caption: "Caps the body at 600px, centers it, and adds breathing room \u2014 turning a full-width wall of text into a tidy centered column." },
+      },
       terms: [
         { term: 'max-width', meaning: 'The widest an element is allowed to be.' },
         { term: 'margin', meaning: 'Space outside an element. margin: 0 auto; centers it.' },
@@ -52,6 +79,15 @@ export const LESSON = {
     {
       id: 'obj-polish', code: 'WEB.1', title: 'Polish and make it your own', minutes: 15,
       canDo: 'add my own element, like a list or a quote, and make it match my page.',
+      lesson: {
+        intro: "Now you make the page yours by adding your own content. A few more HTML elements let you add lists and quotes, and a little CSS makes them match.",
+        points: [
+          "A bulleted list uses <ul> (unordered list) wrapping one <li> (list item) per bullet.",
+          "A <blockquote> sets a quote apart from the text around it.",
+          "You can style any new element with a CSS rule, the same way you colored your heading earlier.",
+        ],
+        example: { code: "<ul>\n  <li>Reading</li>\n  <li>Soccer</li>\n</ul>\n<blockquote>Stay curious.</blockquote>", caption: "A two-item bulleted list, then a set-apart quote. Add a CSS rule like ul { color: #4f46e5; } to style it." },
+      },
       terms: [
         { term: 'element', meaning: 'Any building block of a page, like a heading, list or quote.' },
         { term: 'list', meaning: 'A set of bullets made with <ul>.' },
