@@ -53,9 +53,11 @@ Retry it.
 ## CodeAI-ApiStack: API handler
 
 `CodeAI-ApiStack` proxies every route to the Track D backend
-(`backend/api/lambda_handler.handler`, Python 3.12), a single router that dispatches the
-C-29 and P-11 routes internally (Task 7). The CDK asset bundles `backend/`, `shared/`, and
-the handler's pip deps (`jsonschema`, `referencing`, see `lambda/api/requirements.txt`).
+(`backend/api/lambda_handler.handler`, Python 3.14), a single router that dispatches the
+C-29 and P-11 routes internally (Task 7). The CDK asset bundles `backend/`, `shared/`, the lesson
+tree `database/sample-skilltree.json`, and the handler's pip deps (`jsonschema`, `referencing`,
+see `lambda/api/requirements.txt`). Access logs go to their own log group with the standard
+metadata fields only; API Gateway never logs request bodies, so no student text is recorded.
 
 Runtime defaults are safe for a deploy with no external dependencies:
 
@@ -69,8 +71,10 @@ Switching the API to Aurora means building the adapter, setting `STORE_MODE=auro
 DataStack's access policy to the handler role, and passing the SSM parameter names (not values) to
 the handler.
 
-Bundling prefers Docker (`bundlingImage`); it falls back to a local `pip install` when a
-compatible `python3`/`pip` is on PATH and Docker is unavailable.
+Bundling tries a local `pip install` first and falls back to Docker (`bundlingImage`). The local
+path always fetches Linux x86_64 wheels for the Lambda's Python version, whatever Python the build
+machine has, because `jsonschema` depends on the compiled `rpds-py`. One constant,
+`PYTHON_RUNTIME` in `lib/api-stack.ts`, sets the runtime, the bundling image and the wheel version.
 
 ## Commands
 
