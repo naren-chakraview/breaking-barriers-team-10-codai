@@ -1142,6 +1142,40 @@ session on 2026-11-04 and are **Proposed** until the team reviews them.
   Seeded rows are proven against the contract on PostgreSQL 16; the adapter must still pass the store
   contract suite against a live cluster.
 
+### ADR-018: Authentication via Amazon Cognito (authorization code + PKCE), roles as groups
+- **Status:** Proposed. **Date:** 2026-11-04.
+- **Context:** Until now auth has been a placeholder: `Login.jsx` takes a username and a *self-selected*
+  role and holds `{username, role}` in memory, with no password check, no token, and no persistence
+  (C-33 "demo mode"; real auth was parked as a FULL-tier item). Two problems forced the decision now: a
+  student can simply pick "teacher" on the login screen (no server-verified role), and because the
+  session is in-memory only, any page reload — including a Vite HMR disconnect behind the CloudFront
+  proxy — drops the user back to the login page. The app's clients only call our own API (P-11, P-1.4),
+  and the service layer already sends `Authorization: Bearer <token>`, `X-User-Id`, `X-Role`.
+- **Decision:** Use an **Amazon Cognito user pool** as the identity provider. The browser is a **public
+  app client with no secret**, using the **authorization code grant with PKCE** (never the implicit
+  grant). Student vs teacher is a **Cognito group** surfaced in the `cognito:groups` claim, so the role
+  is server-issued, not chosen in the UI. The frontend runs the OIDC flow with `oidc-client-ts` /
+  `react-oidc-context`; it sends the user-pool **access token** as the bearer, the token `sub` as
+  `X-User-Id`, and the group as `X-Role`. No **identity pool** — the browser makes no direct AWS calls.
+  The backend (separate task) verifies the JWT at the edge (API Gateway Cognito/JWT authorizer or
+  `aws-jwt-verify` in the Lambda) and enforces the role claim, so `readContext()` trusts a *verified*
+  token rather than a bare header. `MODEL_MODE`/`STORE_MODE`-style demo mode is preserved: a
+  `VITE_AUTH_MODE=mock` keeps the no-AWS login path for local/offline work (C-33), and `cognito`
+  turns on the real flow.
+- **Alternatives:** A custom `POST /auth/login` issuing our own JWT (we would be building and securing an
+  identity provider for minors' data — password hashing, signing keys, rotation, refresh — not advisable).
+  AgentCore Identity inbound JWT (only applies if the backend moves onto AgentCore Runtime, not the
+  current Lambda + API Gateway stack, ADR-002). The Amplify auth library (heavier; `oidc-client-ts` is a
+  smaller, standard OIDC client for exactly this flow).
+- **Consequences:** Real, server-issued roles and a session that survives a reload (fixing the
+  logout-to-login bug), and the existing P-1.4 header contract is unchanged — the frontend swaps the
+  token/claims source, and the backend adds verification, with no reshaping of the services seam. Costs:
+  this reverses the C-33 "no real auth for the demo" scope (a constraints note accompanies it), it adds a
+  client dependency, and it needs a provisioned user pool (id, app-client id, domain) from Track A before
+  the real flow can run end to end. Refresh tokens are kept out of `localStorage` (XSS); the access token
+  lives in memory and the session is restored via the OIDC silent-renew path. Supersedes the placeholder
+  auth implied by C-33 for anything beyond local demo mode.
+
 ### ADR template
 
 ```
@@ -1171,3 +1205,4 @@ session on 2026-11-04 and are **Proposed** until the team reviews them.
 | 2026-11-04 | (invoke PR) | Built the `invoke` wrapper (C-27): `backend/ai/invoke.py` + `BedrockModelPort.invoke` + `create_bedrock_port` factory. Task→tier model routing (verify≠codegen, P-7.2), `maxTokens`+10s timeout, pinned guardrail, error-envelope on failure (never raises), decision log with no student text. Marked 2.4 Built. Validator (C-14) still pending; live smoke test pending a Bedrock run. |
 | 2026-11-04 | (validator PR) | Built the LLM-judge validator (C-14/C-16): `backend/ai/validator.py` — rubric prompt (trusted) + student text (untrusted/guardContent), one repair retry, fallback on invalid JSON / out-of-range level / confidence<0.6 / model failure; wired `BedrockModelPort.validate_project`. Marked 2.5 Built. Its evidence levels feed the golden-set gate (Task 11). C-13 direct-map and C-15 not-scored live in the submit flow (Track D); live smoke test pending. |
 | 2026-11-04 | (golden-set PR) | Built the validator eval harness (Task 11, C-17): `backend/eval/` — exact/within-1/QWK metrics (hand-verified), golden-set runner, launch gate (≥15 submissions AND QWK≥0.70), CLI. Placeholder sample set wires the gate; real human ratings (Track G) and the validator `modelLevel` snapshot (C-14) still pending. The validator (2.5) landed in the validator PR above; its levels feed this gate. |
+| 2026-11-04 | (frontend auth PR) | Added ADR-018 (Cognito auth, authorization code + PKCE, roles as groups). Phase 1 (frontend): `AuthProvider`/OIDC flow via `oidc-client-ts`, real token/claims fed to the services layer, `VITE_AUTH_MODE=mock` preserves the no-AWS demo login. Reverses the C-33 "no real auth for the demo" scope (constraints note). Backend JWT verification and the Cognito user pool (Track A) are later phases. |

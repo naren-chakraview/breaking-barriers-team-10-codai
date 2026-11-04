@@ -29,12 +29,17 @@ function ambientEnv() {
  * @param {Record<string, string | undefined>} [env] env-like object. Defaults to the
  *   ambient `import.meta.env`; pass an explicit object (e.g. in a test) to choose a mode
  *   without relying on Vite.
+ * @param {object} [opts]
+ * @param {() => ({ token: string, userId: string, role: string } | null)} [opts.identityProvider]
+ *   per-request live identity (the Cognito AuthProvider passes one). Ignored in mock mode.
  * @returns {import('./types.js').Services}
  */
-export function createServices(env) {
+export function createServices(env, opts = {}) {
   // resolveModes throws a ContractError('CONFIG_ERROR', ...) on an invalid value;
   // let it propagate so a misconfigured deploy fails loudly rather than silently.
   const resolvedEnv = env ?? ambientEnv()
   const { serviceMode } = resolveModes(resolvedEnv)
-  return serviceMode === 'http' ? createHttpServices(resolvedEnv) : createStubServices()
+  return serviceMode === 'http'
+    ? createHttpServices(resolvedEnv, opts)
+    : createStubServices()
 }

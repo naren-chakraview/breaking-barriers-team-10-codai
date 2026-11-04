@@ -226,7 +226,9 @@ F-8.2 and F-9.3 to F-9.5 are descoped and the Deploy button is hidden.
   demonstrates the P-8.2 rule; demo mode with both roles side by side (P-1.5)
 
 **Out of scope** (say so in the pitch):
-- real authentication (demo mode only)
+- real authentication (demo mode only) — *being revisited: ADR-018 adds Cognito auth (authorization
+  code + PKCE, roles as Cognito groups). Frontend lands first behind `VITE_AUTH_MODE` (mock stays the
+  demo default); backend JWT verification and the user pool follow. Demo mode is preserved.*
 - CS-standards grading (P-9.3, P-9.4): show a placeholder
 - teacher help-ladder configuration UI: use a fixed timeout from `teacher_config`
 - generated lesson content

@@ -1,7 +1,41 @@
 import { useState } from 'react'
 import { BrandLogo } from './Brand.jsx'
+import { authMode } from './auth/authConfig.js'
 
+/**
+ * Login screen. Two modes (ADR-018):
+ *  - cognito: a single "Sign in" button that redirects to the Cognito Hosted UI. No
+ *    username/password/role in our UI — Cognito collects credentials, and the role comes
+ *    from the user's Cognito group, not a button.
+ *  - mock (demo, C-33): the original demo form; `onLogin({ username, role })`.
+ *
+ * `onLogin` is the auth layer's `login`. In cognito mode it ignores its argument and starts
+ * the redirect; in mock mode it takes the demo `{ username, role }`.
+ */
 export default function Login({ onLogin }) {
+  if (authMode() === 'cognito') {
+    return <HostedUiLogin onLogin={onLogin} />
+  }
+  return <DemoLogin onLogin={onLogin} />
+}
+
+function HostedUiLogin({ onLogin }) {
+  return (
+    <div className="page">
+      <div className="card">
+        <BrandLogo width={220} />
+        <h1 className="title">School Portal</h1>
+        <p className="subtitle">Sign in to continue</p>
+        <button type="button" className="submit" onClick={() => onLogin()}>
+          Sign in
+        </button>
+        <p className="footer">You will be redirected to your school sign-in page.</p>
+      </div>
+    </div>
+  )
+}
+
+function DemoLogin({ onLogin }) {
   const [role, setRole] = useState('student')
   const [username, setUsername] = useState('')
   const [password, setPassword] = useState('')
@@ -21,8 +55,7 @@ export default function Login({ onLogin }) {
       return
     }
 
-    // Placeholder auth. Replace with a real backend call that verifies
-    // credentials and returns the user's role from the server.
+    // Demo mode only (C-33): no credential check. The real path is the cognito mode above.
     onLogin({ username: username.trim(), role })
   }
 
@@ -31,7 +64,7 @@ export default function Login({ onLogin }) {
       <form className="card" onSubmit={handleSubmit} noValidate>
         <BrandLogo width={220} />
         <h1 className="title">School Portal</h1>
-        <p className="subtitle">Sign in to continue</p>
+        <p className="subtitle">Sign in to continue (demo mode)</p>
 
         <div className="roles" role="group" aria-label="Account type">
           <button

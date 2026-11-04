@@ -21,10 +21,19 @@ const ROLES = Object.freeze(['student', 'teacher'])
 /**
  * Read and validate the public VITE_ config into a frozen ClientConfig.
  * Throws ContractError('CONFIG_ERROR') on any missing, empty, or invalid value.
+ *
+ * When `requireIdentity` is false (ADR-018 Cognito mode), the demo identity values
+ * (token/userId/role) are not required here — a live identity is supplied per request by the
+ * AuthProvider — so only the base URL is validated. The identity fields fall back to empty
+ * placeholders, which the per-request identity overrides before any request is sent.
+ *
  * @param {Record<string, string|undefined>} [env] env-like object
+ * @param {object} [opts]
+ * @param {boolean} [opts.requireIdentity=true] require the static VITE_DEMO_* identity.
  * @returns {ClientConfig}
  */
-export function readConfig(env = {}) {
+export function readConfig(env = {}, opts = {}) {
+  const { requireIdentity = true } = opts
   const baseUrl = typeof env.VITE_API_BASE_URL === 'string' ? env.VITE_API_BASE_URL.trim() : ''
   const token = typeof env.VITE_DEMO_TOKEN === 'string' ? env.VITE_DEMO_TOKEN : ''
   const userId = typeof env.VITE_DEMO_USER_ID === 'string' ? env.VITE_DEMO_USER_ID : ''
@@ -33,17 +42,20 @@ export function readConfig(env = {}) {
   if (!baseUrl) {
     throw new ContractError('CONFIG_ERROR', 'The API base URL is not configured.')
   }
-  if (!token) {
-    throw new ContractError('CONFIG_ERROR', 'The demo identity is not configured.')
-  }
-  if (!userId) {
-    throw new ContractError('CONFIG_ERROR', 'The demo identity is not configured.')
-  }
-  if (!role) {
-    throw new ContractError('CONFIG_ERROR', 'The demo identity is not configured.')
-  }
-  if (!ROLES.includes(role)) {
-    throw new ContractError('CONFIG_ERROR', 'The demo role is not valid.')
+
+  if (requireIdentity) {
+    if (!token) {
+      throw new ContractError('CONFIG_ERROR', 'The demo identity is not configured.')
+    }
+    if (!userId) {
+      throw new ContractError('CONFIG_ERROR', 'The demo identity is not configured.')
+    }
+    if (!role) {
+      throw new ContractError('CONFIG_ERROR', 'The demo identity is not configured.')
+    }
+    if (!ROLES.includes(role)) {
+      throw new ContractError('CONFIG_ERROR', 'The demo role is not valid.')
+    }
   }
 
   return Object.freeze({ baseUrl, token, userId, role })
