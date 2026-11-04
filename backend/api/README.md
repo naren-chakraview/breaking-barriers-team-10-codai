@@ -20,8 +20,8 @@ store seam (`backend/store`, seam 4).
 - The model/safety seam (Track C) is injected via `ModelPort`. Until Bedrock lands,
   `MODEL_MODE=stub` uses `StubModel`; `MODEL_MODE=bedrock` requires an injected port and fails
   fast otherwise. Model-derived output carries `source` so a stub can never pass as live.
-- The store is chosen by `STORE_MODE` (`json` default; `aurora` adapter not built yet, schema reconciled by Task 4.6, see
-  `../store/README.md`). Student work is persisted before any model result is used (C-24).
+- The store is chosen by `STORE_MODE` (`json` default; `aurora` adapter built, schema reconciled per
+  ADR-017, see `../store/README.md`). Student work is persisted before any model result is used (C-24).
 - Request/response shapes are the contract schemas; the HTTP layer rejects malformed bodies
   with `VALIDATION_ERROR` and emits the C-29 `{ "error": { "code", "message" } }` envelope.
 

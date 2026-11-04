@@ -376,9 +376,8 @@ Rules (C-19):
    diagnostic evidence becomes `tested_out` and counts as done (depth not volume, P-6.5). In the
    current tree the skippable checkpoints are `steer-it` (build ≥ 2), `use-the-lingo` (language ≥ 2)
    and `give-context` (debug ≥ 2).
-3. Proposal = stay on the `current` checkpoint while it is still available, otherwise the first
-   available checkpoint in JSON order (stay-on-current; depth not volume, P-6.5). Issue #24 q2
-   replaced the earlier "largest gap" rule.
+3. Proposal = the available checkpoint whose skill has the largest gap to target. Ties go to JSON
+   order.
 4. Teacher input `{ mode: auto | hold | assign, checkpointId? }`. `assign` picks that checkpoint if
    available, `hold` stays, `auto` takes the proposal (P-8.2).
 5. Every call writes a `routing_decision` row with a readable `reason`, shown in the UI.
@@ -391,7 +390,7 @@ decreases (C-9, C-10). A checkpoint completes when its project step is validated
 flowchart TD
   S["route: tree, progress, evidence, teacherInput"] --> A["Available = not completed and every<br/>requires is completed or tested out"]
   A --> T["After intro: test out skippable checkpoints<br/>whose target is already met"]
-  T --> P["Proposal = stay on current if available,<br/>else first available in JSON order"]
+  T --> P["Proposal = available checkpoint with the<br/>largest skill gap, ties by JSON order"]
   P --> M{"teacherInput.mode"}
   M -- "auto" --> R1["Apply the proposal"]
   M -- "hold" --> R2["Stay on the current checkpoint"]
@@ -676,7 +675,7 @@ the master data in `database/seed.sql` through the Data API, in one transaction.
 database and skips when tables exist, so editing the SQL never drops data; later schema changes are
 migrations, not stack updates. The API and agent roles get access by attaching the stack's Data API
 managed policy (SSM `/codeai/data/access-policy-arn`). Tradeoff: a resume delay on the first query after
-idle (see ADR-016). The Python `STORE_MODE=aurora` adapter is deferred (see 2.9 above).
+idle (see ADR-016). The Python `STORE_MODE=aurora` adapter is built (`backend/store/aurora_repository.py`, see 2.9 above).
 
 **DynamoDB (superseded):** earlier drafts proposed DynamoDB on-demand. ADR-016 replaced it with Aurora
 to match the customer's stated system of record; `STORE_MODE` dropped `dynamodb` for `aurora`.
