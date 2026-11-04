@@ -273,7 +273,9 @@ Owner: ____ · Serves: C-35, C-36, C-37, C-38 · Discrepancy items 1, 2
 - [ ] Rename `package.json` `name` from `login-app` to `codeai-adaptive`
 - [ ] Add Vitest and a first passing test
 - [ ] Add lint (ESLint) and a `npm run lint` script
-- [ ] GitHub Actions workflow on PRs: lint, test, `vite build`
+- [x] GitHub Actions workflow on PRs (`.github/workflows/ci.yml`): three parallel jobs — JS
+  (vitest + `vite build`), Python (`pytest shared/core backend`), infra (`cdk synth` + cdk-nag).
+  No AWS creds (synth uses a dummy account/region). ESLint/lint not yet added.
 - [ ] `.env.local` is in `.gitignore` (the `.env.*` rule already covers it)
 - [ ] Add `!.env.example` to `.gitignore` and commit an `.env.example` with variable **names** only
 - [ ] Docs check in CI: parse every mermaid code block in `docs/` so a broken diagram fails the PR
