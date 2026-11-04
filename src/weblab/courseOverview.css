@@ -13,6 +13,14 @@
 .cv-theme--teal { --c1: #0f766e; --c2: #0e7490; }
 .cv-theme--rose { --c1: #c2410c; --c2: #be123c; }
 
+/* The View course page scrolls as one document, so the root should grow with
+   its content and never leave the dark page background showing. `.wf` pins the
+   lesson to a fixed 100vh three-pane layout; the course page overrides that so
+   a viewport taller than 100vh (retracting browser toolbars, the IDE proxy's
+   reported height) can't reveal the body gradient below the page. */
+.wf.cv { height: auto; min-height: 100vh; background: var(--wf-bg); }
+.wf.cv .cv-page { overflow-y: visible; }
+
 /* ---------- Hero ---------- */
 .cv-hero {
   position: relative; isolation: isolate; overflow: hidden; color: #fff; border-radius: 28px;
