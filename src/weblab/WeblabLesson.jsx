@@ -4,6 +4,7 @@ import { routeNextLevel, buildNudge } from './engine.js'
 import { buildProject } from './tools.js'
 import { useServices } from '../services/ServicesContext.jsx'
 import { adaptTree, adaptSubmit } from '../services/treeAdapter.js'
+import { useHealthRecheck } from '../services/healthRecheck.js'
 import SourceBadge from '../services/SourceBadge.jsx'
 import LessonTopBar from './LessonTopBar.jsx'
 import LessonPanel from './LessonPanel.jsx'
@@ -40,23 +41,33 @@ export default function WeblabLesson({ user, onExit, onViewSkillTree }) {
   // Latest source/notice/fallback to surface in the badge.
   const [serviceStatus, setServiceStatus] = useState({ source: null, notice: null, fallbackActive: false })
 
-  useEffect(() => {
-    let alive = true
+  // Load (or reload) the tree from the services layer. Reused on mount and when health
+  // recovers, so resuming adaptive mode is just a fresh getTree (C-23, F-14.5).
+  const refreshTree = useCallback(() => {
     setLoadingTree(true)
-    services
+    return services
       .getTree({ courseId: COURSE_ID })
       .then((res) => {
-        if (!alive) return
         const adapted = adaptTree(res)
         setTree(adapted)
         if (adapted.current) setStepRef(adapted.current)
         setServiceStatus({ source: adapted.source, notice: null, fallbackActive: adapted.fallbackActive })
         setLoadError(null)
+        return adapted
       })
-      .catch((err) => { if (alive) setLoadError(err?.message || 'Could not load the lesson.') })
-      .finally(() => { if (alive) setLoadingTree(false) })
-    return () => { alive = false }
+      .catch((err) => { setLoadError(err?.message || 'Could not load the lesson.'); return null })
+      .finally(() => { setLoadingTree(false) })
   }, [services])
+
+  useEffect(() => { refreshTree() }, [refreshTree])
+
+  // C-23 / F-14.4: while on the fallback path, re-check health every 30 s and resume
+  // adaptive mode automatically when the service is healthy again — no reload needed.
+  useHealthRecheck({
+    active: serviceStatus.fallbackActive,
+    health: services.health,
+    onRecover: () => { refreshTree() },
+  })
 
   // Code buffers (carried forward across levels) and editor view state.
   const [html, setHtml] = useState(level.starter?.html ?? '')
