@@ -273,9 +273,7 @@ Owner: ____ · Serves: C-35, C-36, C-37, C-38 · Discrepancy items 1, 2
 - [ ] Rename `package.json` `name` from `login-app` to `codeai-adaptive`
 - [ ] Add Vitest and a first passing test
 - [ ] Add lint (ESLint) and a `npm run lint` script
-- [x] GitHub Actions workflow on PRs (`.github/workflows/ci.yml`): three parallel jobs — JS
-  (vitest + `vite build`), Python (`pytest shared/core backend`), infra (`cdk synth` + cdk-nag).
-  No AWS creds (synth uses a dummy account/region). ESLint/lint not yet added.
+- [ ] GitHub Actions workflow on PRs: lint, test, `vite build`
 - [ ] `.env.local` is in `.gitignore` (the `.env.*` rule already covers it)
 - [ ] Add `!.env.example` to `.gitignore` and commit an `.env.example` with variable **names** only
 - [ ] Docs check in CI: parse every mermaid code block in `docs/` so a broken diagram fails the PR
@@ -350,19 +348,22 @@ Owner: ____ · Serves: C-8, C-38, P-13 · Discrepancy item 3 · Architecture: 2.
 - [x] `database/data-model.mmd` carries the student-state tables (discrepancy item 3; data track's
   version is authoritative after PR #13, my duplicate block removed)
 - [x] `cdk synth` verified locally (template produced, scale-to-zero + Data API + KMS confirmed)
-- [ ] Schema of record is `database/schema.sql` (PR #13, data track), loaded with `database/seed.sql` by
-  the `DbLoader` custom resource in `DataStack` (built and synth-verified; untested until the first deploy)
-- [ ] **Aurora store adapter — DEFERRED** until Task 4.6 (schema reconciliation) is done.
-  `database/schema.sql` uses INTEGER student ids and a different teacher-input model than the contract
-  records (see `backend/store/README.md`).
+- [x] Schema of record is `database/schema.sql` (PR #13, data track), loaded with `database/seed.sql` by
+  the `DbLoader` custom resource in `DataStack` (loaded and verified through the Data API on the
+  2026-11-04 deploy)
+- [x] **Aurora store adapter — built** (`backend/store/aurora_repository.py`, ADR-017). Schema reconciled
+  (Task 4.6): string student ids and the agreed teacher-input model, so no id translation (see
+  `backend/store/README.md`). Passes the store contract suite with the JSON adapter; `STORE_MODE=aurora`
+  is wired end to end (factory + `ApiStack` env/IAM). Live contract test runs post-deploy.
 - [x] `cdk bootstrap` for `us-west-2` (run 2026-11-04 with the user's go-ahead)
 - [x] First deploy of `DataStack` (2026-11-04): Aurora PostgreSQL 16.13, schema and master data loaded and
   checked through the Data API
 - [ ] CDK assertion tests (`infra` test script present; assertions still to write)
 
-**Tests:** `pytest backend/store` -> JSON adapter passes the contract suite. **Demo:** `cdk synth`
-produces the template; deploy when confirmed. (Aurora data PR; adapter deferred, bootstrap/deploy
-pending your go-ahead.)
+**Tests:** `pytest backend/store` -> both the JSON and Aurora adapters pass the contract suite (the
+Aurora adapter via a fake Data API client; the live suite runs post-deploy). **Demo:** `DataStack`
+deployed 2026-11-04 (Aurora live, schema + master data loaded); `STORE_MODE=aurora` serves the same
+submit flow as `STORE_MODE=json`.
 
 ### Task 4.5: Configuration and secrets (MVP)
 Owner: ____ · Serves: P-13.4, C-26, C-38 · ADR-013 · Architecture: 2.14 · Blocked by: Task 4
@@ -488,7 +489,8 @@ Verified at IC2 with `STORE_MODE=json` + the stub model, driving the real `share
 > dependency used directly; the bedrock `ModelPort` (Track C) is injected via
 > `backend/api/model.py`. Until it lands, `MODEL_MODE=stub` uses `StubModel` (from the
 > contract fixtures); `MODEL_MODE=bedrock` fails fast without an injected port. The store is
-> `STORE_MODE=json` (`aurora` deferred, ADR-016); the API never imports AWS. The earlier JS
+> `STORE_MODE=json` by default; the `aurora` adapter is built (ADR-016/017) and the API reaches it
+> only through the Data API (boto3), never a direct DB connection. The earlier JS
 > backend draft was replaced to match ADR-015/016.
 
 ### Task 8a: Passive features, rule baseline and store (MVP)
