@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { LESSON, FIRST_LEVEL_ID, getLevel } from './courseData.js'
+import { LESSON, FIRST_LEVEL_ID, getLevel, getPool } from './courseData.js'
 import { validateSubmission, routeNextLevel, buildNudge, describeRoute, computeConfidence, applyEstablished } from './engine.js'
-import { writeProgress } from './progressStore.js'
+import { readProgress, writeProgress } from './progressStore.js'
 import { buildProject } from './tools.js'
 import { useServices } from '../services/ServicesContext.jsx'
 import { adaptTree, adaptSubmit } from '../services/treeAdapter.js'
@@ -11,6 +11,7 @@ import LessonPanel from './LessonPanel.jsx'
 import RequirementsBox from './RequirementsBox.jsx'
 import TaskCard from './TaskCard.jsx'
 import LearnCard from './LearnCard.jsx'
+import IntroDiagnostic from './IntroDiagnostic.jsx'
 import CodeWorkspace from './CodeWorkspace.jsx'
 import Preview from './Preview.jsx'
 import Tutor from './Tutor.jsx'
@@ -32,9 +33,33 @@ export default function WeblabLesson({ user, onExit, onViewSkillTree }) {
   const level = getLevel(levelId)
   // Teach-first: objectives whose Learn card the student has acknowledged. The
   // current objective's lesson shows (gating the task) until "Got it" is pressed.
+  // Pre-project skill check: shown once before the lesson so the engine can rank
+  // the student's starting level. Persisted so a reload doesn't re-ask.
+  const [diagnosticDone, setDiagnosticDone] = useState(() => !!readProgress(user?.username)?.placedTier)
   const [lessonSeen, setLessonSeen] = useState({})
   const learning = level && !lessonSeen[level.objectiveId]
   const markLessonSeen = () => setLessonSeen((m) => ({ ...m, [level.objectiveId]: true }))
+
+  function applyDiagnostic(result) {
+    const firstObj = LESSON.objectives[0].id
+    const tier = result?.tier || 'core'
+    const startLevel = (getPool(firstObj, tier)[0]) || getLevel(FIRST_LEVEL_ID)
+    setEstablished((e) => ({ ...e, [firstObj]: tier }))
+    setPlacements((pm) => ({ ...pm, [firstObj]: { tier, reason: 'placement' } }))
+    if (startLevel && startLevel.id !== levelId) {
+      setLevelId(startLevel.id)
+      setHistory((h) => [...h, startLevel.id])
+      setShownIds((ids) => [...ids, startLevel.id])
+      if (startLevel.starter) { setHtml(startLevel.starter.html ?? ''); setCss(startLevel.starter.css ?? '') }
+      setLevelStart({ html: startLevel.starter?.html ?? '', css: startLevel.starter?.css ?? '' })
+    }
+    writeProgress(user?.username, { started: true, placedTier: tier })
+    setDiagnosticDone(true)
+  }
+  function skipDiagnostic() {
+    writeProgress(user?.username, { started: true, placedTier: 'core' })
+    setDiagnosticDone(true)
+  }
   const reviewLesson = () => setLessonSeen((m) => ({ ...m, [level.objectiveId]: false }))
 
   // Content + progress sourced from the services layer (seam 1). The editor
@@ -404,6 +429,11 @@ export default function WeblabLesson({ user, onExit, onViewSkillTree }) {
   const completedCount = Object.keys(completed).length
   const totalObjectives = LESSON.objectives.length
   const clock = `${String(Math.floor(seconds / 60)).padStart(2, '0')}:${String(seconds % 60).padStart(2, '0')}`
+
+  // Gate the whole lesson behind the one-time skill check.
+  if (!diagnosticDone) {
+    return <IntroDiagnostic user={user} onComplete={applyDiagnostic} onSkip={skipDiagnostic} />
+  }
 
   if (phase === 'complete') {
     return (
