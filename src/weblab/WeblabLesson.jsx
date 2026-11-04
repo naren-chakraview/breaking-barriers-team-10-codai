@@ -9,6 +9,7 @@ import SourceBadge from '../services/SourceBadge.jsx'
 import LessonTopBar from './LessonTopBar.jsx'
 import LessonPanel from './LessonPanel.jsx'
 import RequirementsBox from './RequirementsBox.jsx'
+import TaskCard from './TaskCard.jsx'
 import CodeWorkspace from './CodeWorkspace.jsx'
 import Preview from './Preview.jsx'
 import Tutor from './Tutor.jsx'
@@ -456,6 +457,7 @@ export default function WeblabLesson({ user, onExit, onViewSkillTree }) {
         </div>
 
         <div className="wf-col wf-col--center">
+          <TaskCard level={level} objectives={LESSON.objectives} completed={completed} />
           <RequirementsBox onGenerate={generate} onAsk={askFromRequirements} />
           <CodeWorkspace
             tab={tab}
