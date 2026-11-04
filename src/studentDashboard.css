@@ -25,7 +25,7 @@
 
 /* ---------- Welcome hero ---------- */
 .sd-hero {
-  position: relative; isolation: isolate; overflow: hidden; color: #fff; border-radius: 28px; padding: 44px 48px 112px;
+  position: relative; isolation: isolate; overflow: hidden; color: #fff; border-radius: 28px; padding: 44px 48px 48px;
   display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(0, 0.9fr); gap: 36px; align-items: center;
   background:
     radial-gradient(620px 320px at 92% 0%, rgba(168, 85, 247, 0.5), transparent 62%),
@@ -46,8 +46,8 @@
 .sd-logo-panel::before { content: ''; position: absolute; inset: -12px; z-index: -1; border-radius: 30px; background: rgba(255, 255, 255, 0.14); transform: rotate(-4deg); }
 
 /* ---------- Stats (overlap the hero's bottom edge) ---------- */
-.sd-stats { position: relative; z-index: 2; list-style: none; padding: 0; margin: calc(-1 * var(--sd-gap) - 60px) 32px 0; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); background: #fff; border: 1px solid #e0e4ea; border-radius: 22px; box-shadow: 0 24px 50px rgba(15, 23, 42, 0.16); }
-.sd-stat { display: flex; align-items: center; gap: 14px; padding: 22px 26px; min-width: 0; }
+.sd-stats { list-style: none; padding: 0; margin: 0 0 4px; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); background: #f8fafc; border: 1px solid #e0e4ea; border-radius: 16px; }
+.sd-stat { display: flex; align-items: center; gap: 12px; padding: 14px 16px; min-width: 0; }
 .sd-stat + .sd-stat { border-left: 1px solid #eceff3; }
 .sd-ring { flex: 0 0 64px; height: 64px; }
 .sd-stat-icon { flex: 0 0 48px; width: 48px; height: 48px; border-radius: 15px; display: grid; place-items: center; }
@@ -71,10 +71,6 @@
 .sd-course-body { padding: 28px 30px 28px; min-width: 0; }
 .sd-course-title { margin: 0; font-size: 22px; font-weight: 800; letter-spacing: -0.015em; line-height: 1.25; }
 .sd-course-sub { margin: 6px 0 18px; font-size: 14px; line-height: 1.55; color: #4b5563; }
-.sd-progress { display: flex; align-items: center; gap: 14px; }
-.sd-bar { flex: 1; max-width: 360px; height: 12px; border-radius: 999px; background: #e5e7eb; overflow: hidden; box-shadow: inset 0 1px 2px rgba(15, 23, 42, 0.12); }
-.sd-bar-fill { height: 100%; border-radius: 999px; background: linear-gradient(90deg, #2563eb, #6d4bd8); }
-.sd-progress-label { font-size: 13px; font-weight: 700; color: #1f2937; white-space: nowrap; }
 
 /* Objective path: where you are, what is done, what is left */
 .sd-path { list-style: none; margin: 22px 0 0; padding: 0; display: grid; gap: 10px; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); }
@@ -106,9 +102,8 @@
 
 /* ---------- Responsive ---------- */
 @media (max-width: 960px) {
-  .sd-hero { grid-template-columns: 1fr; padding: 36px 30px 108px; gap: 28px; }
+  .sd-hero { grid-template-columns: 1fr; padding: 36px 30px 36px; gap: 28px; }
   .sd-logo-panel { justify-self: start; width: min(100%, 260px); }
-  .sd-stats { margin-inline: 14px; }
   .sd-course { grid-template-columns: 1fr; }
   .sd-course-art { padding: 52px 28px 22px; }
   .sd-course-art svg { max-width: 420px; margin-inline: auto; }
@@ -117,10 +112,18 @@
   .sd-top { padding: 10px 14px; }
   .sd-username, .sd-role { display: none; }
   .sd-page { padding: 14px 12px 56px; }
-  .sd-hero { padding: 28px 22px 104px; border-radius: 22px; }
-  .sd-stats { grid-template-columns: 1fr; margin-inline: 8px; }
+  .sd-hero { padding: 28px 22px 32px; border-radius: 22px; }
+  .sd-stats { grid-template-columns: 1fr; margin-inline: 0; }
   .sd-stat + .sd-stat { border-left: none; border-top: 1px solid #eceff3; }
   .sd-course-body { padding: 22px 18px; }
   .sd-course-actions { justify-content: stretch; }
   .sd-course-actions .sd-btn { flex: 1; justify-content: center; }
 }
+
+/* ---------- Confirm: start a new lesson ---------- */
+.sd-backdrop { position: fixed; inset: 0; z-index: 50; display: grid; place-items: center; padding: 16px; background: rgba(15, 23, 42, 0.6); }
+.sd-dialog { width: min(480px, 100%); background: #fff; border-radius: 18px; padding: 24px; color: #1f2937; box-shadow: 0 30px 60px -20px rgba(15, 23, 42, 0.7); }
+.sd-dialog h2 { margin: 0 0 8px; font-size: 22px; font-weight: 800; color: #111827; }
+.sd-dialog p { margin: 0 0 18px; font-size: 15px; line-height: 1.55; color: #374151; }
+.sd-dialog-actions { display: flex; flex-wrap: wrap; gap: 10px; justify-content: flex-end; }
+.sd-dialog button:focus-visible { outline: 3px solid #1d4ed8; outline-offset: 2px; }
