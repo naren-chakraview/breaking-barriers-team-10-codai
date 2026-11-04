@@ -53,8 +53,8 @@ aws cloudformation describe-stacks --stack-name CodeAI-DataStack \
 
 ## 4. Bootstrap: once for the whole team
 
-The account is not bootstrapped yet. **One person** runs it once (it creates IAM roles and an S3
-bucket, so it needs the go-ahead):
+**Done on 2026-11-04** (`CDKToolkit` exists in `us-west-2`). Nobody needs to run it again. For the
+record, it was run once with:
 
 ```bash
 npx cdk bootstrap aws://<account-id>/us-west-2
@@ -79,10 +79,12 @@ One account, one all-powerful role, several people: changes are not isolated, so
 
 Whoever runs the first deploy posts these to the team so others can fill `.env.local`:
 
-- [ ] `CodeAI-DataStack` deployed; outputs captured
-- [ ] Aurora cluster ARN
-- [ ] Aurora secret ARN (Secrets Manager)
-- [ ] Database name
+- [x] `CodeAI-DataStack` deployed (2026-11-04); outputs captured. Schema and master data loaded
+  (`DbLoadResult` output). Read the values from the stack outputs or SSM `/codeai/data/*`:
+- [x] Aurora cluster ARN (`ClusterArn`, `/codeai/data/cluster-arn`)
+- [x] Aurora secret ARN (`SecretArn`, `/codeai/data/secret-arn`)
+- [x] Database name (`DatabaseName`, `/codeai/data/database-name`; it is `codeai`)
+- [x] Data API access policy for API and agent roles (`AccessPolicyArn`, `/codeai/data/access-policy-arn`)
 - [ ] SSM parameter names (model ids, Guardrail id and version)
 - [ ] API base URL (once `ApiStack` is deployed)
 

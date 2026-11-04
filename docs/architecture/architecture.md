@@ -566,10 +566,10 @@ copied into JS (C-6). The relational reference model is `database/data-model.mmd
 **Student state** (C-8) lives in **Aurora Serverless v2 (PostgreSQL)**, or a JSON file in demo mode
 (ADR-016). Aurora is the customer's system of record. The repository interface (seam 4) abstracts the
 store. The SQL schema of record is `database/schema.sql` (owned by the data track); the demo-mode
-`JsonRepository` is built in `backend/store/` (Python, ADR-015). The `STORE_MODE=aurora` adapter is
-**deferred**: `database/schema.sql` uses INTEGER student ids and a different teacher-input model than
-the contract records, so the mapping is a reconciliation the data track owns (see
-`backend/store/README.md`).
+`JsonRepository` is built in `backend/store/` (Python, ADR-015). The `STORE_MODE=aurora` adapter is not
+built yet, but it is **unblocked**: Task 4.6 reconciled `database/schema.sql` with the contract records
+(ADR-017). Student and teacher ids are strings, skills are referenced by slug, and every student-state
+column is its record key in lower case, so the adapter maps rows with `key.lower()`.
 
 ```mermaid
 erDiagram
@@ -669,8 +669,11 @@ table per entity, with indexes on `(student_id, created_at)` for history, a part
 cache. The `infra/DataStack` provisions the **cluster only** — Aurora Serverless v2, scale-to-zero
 (min 0 ACU, auto-pause 5 min, max 2 ACU), reached via the **RDS Data API** so Lambdas need no VPC
 attachment, no connection pool, and no DB password (IAM + a KMS-encrypted Secrets Manager secret).
-Storage is KMS-encrypted. The schema is applied by a migration the backend runs on first deploy, not by
-CDK, so schema changes do not force a stack update. Tradeoff: a resume delay on the first query after
+Storage is KMS-encrypted. On first deploy a `DbLoader` custom resource loads `database/schema.sql` and
+the master data in `database/seed.sql` through the Data API, in one transaction. It only loads an empty
+database and skips when tables exist, so editing the SQL never drops data; later schema changes are
+migrations, not stack updates. The API and agent roles get access by attaching the stack's Data API
+managed policy (SSM `/codeai/data/access-policy-arn`). Tradeoff: a resume delay on the first query after
 idle (see ADR-016). The Python `STORE_MODE=aurora` adapter is deferred (see 2.9 above).
 
 **DynamoDB (superseded):** earlier drafts proposed DynamoDB on-demand. ADR-016 replaced it with Aurora
@@ -1111,6 +1114,29 @@ session on 2026-11-04 and are **Proposed** until the team reviews them.
   reminder. Aurora is the most expensive item in the account, so the demo default stays `STORE_MODE=json`
   and Aurora is the deployed, proven path. Spend protection in ADR-012 gains an Aurora note.
 
+### ADR-017: The store schema follows the contract records (string ids, skill slugs)
+- **Status:** Proposed. **Date:** 2026-11-04.
+- **Context:** Task 4.6. `database/schema.sql` and `shared/contracts/schemas/records.schema.json`
+  described student state differently: INTEGER student ids against string ids (`stu-quick`), integer
+  skill ids against slugs (`build`), a teacher-input enum on the decision against a `teacher_input`
+  record, no `synthetic` flag, and evidence levels 0..4 against 0..3. The Aurora adapter cannot be built
+  until one shape wins. The contracts, the persona fixtures, the Python domain core and `JsonRepository`
+  all use the contract shapes; the schema is the newest and has no code depending on it yet.
+- **Decision:** The schema changes and the contracts stay as they are. Student and teacher ids are
+  TEXT. `SKILLS` gains a unique `Slug`, and student tables reference skills by it. A new `TEACHER_INPUT`
+  table holds the standing hold or assign; `ROUTING_DECISION.TeacherInput` is a JSONB snapshot of the
+  contract `TeacherInput` object. `STUDENT_PROFILE` gains `Synthetic`. Student-table evidence levels are
+  0..3 with the per-skill maximum checked at runtime (C-9). Column names stay unquoted, and each one is
+  its record key in lower case, so the adapter maps rows with `key.lower()`. Master data keeps integer ids.
+- **Alternatives:** Integer ids in the database with a slug-to-id map at the API edge (touches every
+  fixture and every adapter call). Quoted camelCase identifiers (exact case, but every hand-written query
+  must quote every name). Snake_case columns (needs a per-column mapping table).
+- **Consequences:** No id translation anywhere, and the persona fixtures load into Aurora as they are.
+  The schema enforces the contract enums and ranges with CHECK constraints. The cost: `schema.sql` and
+  `seed.sql` changed shape, and anything written against the PR #13 integer ids must change (nothing was).
+  Seeded rows are proven against the contract on PostgreSQL 16; the adapter must still pass the store
+  contract suite against a live cluster.
+
 ### ADR template
 
 ```
@@ -1133,4 +1159,5 @@ session on 2026-11-04 and are **Proposed** until the team reviews them.
 | 2026-11-04 | #11 | Added 11 diagrams (safety, validator, routing, checkpoint status, fallback, Passive pipeline, personas, help ladder, stacks and CI/CD, demo scenes, secrets). Fixed a syntax error in the system context diagram. All 15 diagrams parse. |
 | 2026-11-04 | #11 | Added 1.8 Seams, contracts and modes, ADR-014, and Task 0.5, to support parallel work by component with integration checkpoints. |
 | 2026-11-04 | (domain core PR) | Added ADR-015 (Python backend) and ADR-016 (Aurora system of record). Noted C-30 governs the front end only. Aurora note on ADR-012. The 2.9 Database and 2.11 IaC rewrites and the data-model diagram come in the Aurora data PR. |
+| 2026-11-04 | (Task 4.6 PR) | Reconciled `infra/`: one DataStack, plus the `DbLoader` schema and master-data loader, a Data API access policy, a VPC flow log and IAM DB auth (0 cdk-nag findings). Added ADR-017. Rewrote the 2.9 note: the Aurora adapter is unblocked by the schema reconciliation. |
 | 2026-11-04 | (Aurora data PR) | Rewrote 2.9 Database and 2.11 IaC for Aurora + Python; replaced DynamoDB references with Aurora; marked Task 0 IAM/model checks verified; updated database/data-model.mmd with the C-8 student-state tables (discrepancy item 3). Added the `infra/` CDK DataStack (synth-verified, 0 nag findings) and the `backend/store/` adapters. |

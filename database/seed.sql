@@ -19,12 +19,12 @@ INSERT INTO COMPETENCE_LEVELS_MASTER (LevelId, LevelName, Rubric, ThresholdInMCQ
 INSERT INTO COMPETENCE_LEVELS_MASTER (LevelId, LevelName, Rubric, ThresholdInMCQ) VALUES (4, 'Master', 'Applies the skill flawlessly and goes deeper on the same objective.', 100);
 
 -- SKILLS: 6 rows
-INSERT INTO SKILLS (SkillId, CourseId, Title, Description, LessonObjective) VALUES (1, 1, 'Page Skeleton', 'Doctype, the html element, head vs body, the title element and closing tags.', 'Explain that HTML describes the structure and meaning of content, not its appearance. Build a valid page and mark up text, lists, links and images with the right elements.');
-INSERT INTO SKILLS (SkillId, CourseId, Title, Description, LessonObjective) VALUES (2, 1, 'Headings, Paragraphs and Emphasis', 'The h1 to h6 hierarchy, p, strong vs b, em vs i, and meaning vs appearance.', 'Explain that HTML describes the structure and meaning of content, not its appearance. Build a valid page and mark up text, lists, links and images with the right elements.');
-INSERT INTO SKILLS (SkillId, CourseId, Title, Description, LessonObjective) VALUES (3, 1, 'Lists', 'ul, ol, li and nesting.', 'Build a valid page and mark up text, lists, links and images with the right elements.');
-INSERT INTO SKILLS (SkillId, CourseId, Title, Description, LessonObjective) VALUES (4, 1, 'Links', 'The a element, href, absolute vs relative URLs and descriptive link text.', 'Build a valid page and mark up text, lists, links and images with the right elements.');
-INSERT INTO SKILLS (SkillId, CourseId, Title, Description, LessonObjective) VALUES (5, 1, 'Images and Alt Text', 'img, src, alt text and decorative images.', 'Build a valid page and mark up text, lists, links and images with the right elements.');
-INSERT INTO SKILLS (SkillId, CourseId, Title, Description, LessonObjective) VALUES (6, 1, 'Semantic Page Layout', 'header, nav, main, section, footer, and div vs semantic elements.', 'Choose semantic elements to organize a page into meaningful regions.');
+INSERT INTO SKILLS (SkillId, CourseId, Slug, Title, Description, LessonObjective) VALUES (1, 1, 'page-skeleton', 'Page Skeleton', 'Doctype, the html element, head vs body, the title element and closing tags.', 'Explain that HTML describes the structure and meaning of content, not its appearance. Build a valid page and mark up text, lists, links and images with the right elements.');
+INSERT INTO SKILLS (SkillId, CourseId, Slug, Title, Description, LessonObjective) VALUES (2, 1, 'headings-paragraphs-emphasis', 'Headings, Paragraphs and Emphasis', 'The h1 to h6 hierarchy, p, strong vs b, em vs i, and meaning vs appearance.', 'Explain that HTML describes the structure and meaning of content, not its appearance. Build a valid page and mark up text, lists, links and images with the right elements.');
+INSERT INTO SKILLS (SkillId, CourseId, Slug, Title, Description, LessonObjective) VALUES (3, 1, 'lists', 'Lists', 'ul, ol, li and nesting.', 'Build a valid page and mark up text, lists, links and images with the right elements.');
+INSERT INTO SKILLS (SkillId, CourseId, Slug, Title, Description, LessonObjective) VALUES (4, 1, 'links', 'Links', 'The a element, href, absolute vs relative URLs and descriptive link text.', 'Build a valid page and mark up text, lists, links and images with the right elements.');
+INSERT INTO SKILLS (SkillId, CourseId, Slug, Title, Description, LessonObjective) VALUES (5, 1, 'images-alt-text', 'Images and Alt Text', 'img, src, alt text and decorative images.', 'Build a valid page and mark up text, lists, links and images with the right elements.');
+INSERT INTO SKILLS (SkillId, CourseId, Slug, Title, Description, LessonObjective) VALUES (6, 1, 'semantic-page-layout', 'Semantic Page Layout', 'header, nav, main, section, footer, and div vs semantic elements.', 'Choose semantic elements to organize a page into meaningful regions.');
 
 -- SKILL_TIER_CONTENT: 18 rows
 INSERT INTO SKILL_TIER_CONTENT (TierContentId, SkillId, Tier, Title, Instructions, StarterCode, Hints) VALUES (1, 1, 'core', 'Your first page', 'Build a page whose browser tab says ''My First Page'' and whose body shows the text ''Hello, world!''.', '<!-- Start here -->
@@ -312,14 +312,14 @@ INSERT INTO LEARNING_EXAMPLES (ExampleId, SkillId, Example) VALUES (12, 6, '<!--
 
 -- ---------------------------------------------------------------------------
 -- Course 2: Hour of AI 2026 - Adaptive (generated from database/sample-skilltree.json)
--- Skill ids 7, 8, 9 map to the tree skill slugs build, language, debug.
+-- Skill ids 7, 8, 9 carry the tree skill slugs build, language, debug in SKILLS.Slug.
 -- ---------------------------------------------------------------------------
 -- COURSE: 1 row
 INSERT INTO COURSE (CourseId, CourseTitle) VALUES (2, 'Hour of AI 2026 - Adaptive');
 -- SKILLS: 3 rows
-INSERT INTO SKILLS (SkillId, CourseId, Title, Description, LessonObjective) VALUES (7, 2, 'Build with AI', 'Steering AI toward what you intend, and deciding what to do with what comes back.', 'Steer AI toward an intended design by writing specific prompts and refining them based on what comes back. Judge AI output against your own intent, and decide when to accept, redirect, or override it. Use the vocabulary of web design (hero, feature cards, interactive canvas, call-to-action) to analyze what makes a page effective and to describe what you want built. Describe a problem with enough context for AI to give a useful explanation and fix. Verify an AI-proposed fix before trusting it, confirming the problem is resolved and nothing new broke.');
-INSERT INTO SKILLS (SkillId, CourseId, Title, Description, LessonObjective) VALUES (8, 2, 'Language of web dev', 'Naming the parts of a page and understanding how they work.', 'Steer AI toward an intended design by writing specific prompts and refining them based on what comes back. Judge AI output against your own intent, and decide when to accept, redirect, or override it. Use the vocabulary of web design (hero, feature cards, interactive canvas, call-to-action) to analyze what makes a page effective and to describe what you want built. Describe a problem with enough context for AI to give a useful explanation and fix. Verify an AI-proposed fix before trusting it, confirming the problem is resolved and nothing new broke.');
-INSERT INTO SKILLS (SkillId, CourseId, Title, Description, LessonObjective) VALUES (9, 2, 'Debug with AI', 'Describing a problem so AI can help, and checking that the fix worked.', 'Steer AI toward an intended design by writing specific prompts and refining them based on what comes back. Judge AI output against your own intent, and decide when to accept, redirect, or override it. Use the vocabulary of web design (hero, feature cards, interactive canvas, call-to-action) to analyze what makes a page effective and to describe what you want built. Describe a problem with enough context for AI to give a useful explanation and fix. Verify an AI-proposed fix before trusting it, confirming the problem is resolved and nothing new broke.');
+INSERT INTO SKILLS (SkillId, CourseId, Slug, Title, Description, LessonObjective) VALUES (7, 2, 'build', 'Build with AI', 'Steering AI toward what you intend, and deciding what to do with what comes back.', 'Steer AI toward an intended design by writing specific prompts and refining them based on what comes back. Judge AI output against your own intent, and decide when to accept, redirect, or override it. Use the vocabulary of web design (hero, feature cards, interactive canvas, call-to-action) to analyze what makes a page effective and to describe what you want built. Describe a problem with enough context for AI to give a useful explanation and fix. Verify an AI-proposed fix before trusting it, confirming the problem is resolved and nothing new broke.');
+INSERT INTO SKILLS (SkillId, CourseId, Slug, Title, Description, LessonObjective) VALUES (8, 2, 'language', 'Language of web dev', 'Naming the parts of a page and understanding how they work.', 'Steer AI toward an intended design by writing specific prompts and refining them based on what comes back. Judge AI output against your own intent, and decide when to accept, redirect, or override it. Use the vocabulary of web design (hero, feature cards, interactive canvas, call-to-action) to analyze what makes a page effective and to describe what you want built. Describe a problem with enough context for AI to give a useful explanation and fix. Verify an AI-proposed fix before trusting it, confirming the problem is resolved and nothing new broke.');
+INSERT INTO SKILLS (SkillId, CourseId, Slug, Title, Description, LessonObjective) VALUES (9, 2, 'debug', 'Debug with AI', 'Describing a problem so AI can help, and checking that the fix worked.', 'Steer AI toward an intended design by writing specific prompts and refining them based on what comes back. Judge AI output against your own intent, and decide when to accept, redirect, or override it. Use the vocabulary of web design (hero, feature cards, interactive canvas, call-to-action) to analyze what makes a page effective and to describe what you want built. Describe a problem with enough context for AI to give a useful explanation and fix. Verify an AI-proposed fix before trusting it, confirming the problem is resolved and nothing new broke.');
 -- SKILL_LEVEL_DESCRIPTOR (evidence levels of the tree skills)
 INSERT INTO SKILL_LEVEL_DESCRIPTOR (SkillId, LevelId, Descriptor) VALUES (7, 0, 'Writes vague one-line prompts with no goal, constraint or edge case, accepts whatever comes back, and cannot say why a prompt produced its result.');
 INSERT INTO SKILL_LEVEL_DESCRIPTOR (SkillId, LevelId, Descriptor) VALUES (7, 1, 'States a basic goal in the prompt, notices obvious mismatches with intent when they are visible or pointed out, and revises broadly, asking the AI to fix it or make it better.');
@@ -497,60 +497,62 @@ INSERT INTO MEASURE (MeasureId, StepId, SkillId, QuestionName, EvidenceMap) VALU
 INSERT INTO MEASURE (MeasureId, StepId, SkillId, QuestionName, EvidenceMap) VALUES (2, 'intro-web-dev', 8, 'intro-knowledge-cards', '{"a":1,"b":1,"c":2,"d":2,"e":0}');
 INSERT INTO MEASURE (MeasureId, StepId, SkillId, QuestionName, EvidenceMap) VALUES (3, 'intro-web-dev', 9, 'intro-knowledge-error', '{"a":0,"b":1,"c":1,"d":2,"e":0}');
 -- (62 steps)
--- STUDENT_PROFILE: 2 rows
-INSERT INTO STUDENT_PROFILE (StudentId, Name) VALUES (1, 'test-student-1');
-INSERT INTO STUDENT_PROFILE (StudentId, Name) VALUES (2, 'test-student-2');
-
+-- STUDENT_PROFILE: 2 rows. Synthetic demo students; ids match the persona fixtures
+-- in shared/contracts/fixtures/personas (Task 4.6, ADR-017).
+INSERT INTO STUDENT_PROFILE (StudentId, DisplayName, Synthetic) VALUES ('stu-quick', 'Quick Quinn', TRUE);
+INSERT INTO STUDENT_PROFILE (StudentId, DisplayName, Synthetic) VALUES ('stu-slow', 'Steady Sam', TRUE);
 -- STUDENT_ENROLLED_COURSES: 2 rows
-INSERT INTO STUDENT_ENROLLED_COURSES (StudentId, CourseId) VALUES (1, 1);
-INSERT INTO STUDENT_ENROLLED_COURSES (StudentId, CourseId) VALUES (2, 1);
-
+INSERT INTO STUDENT_ENROLLED_COURSES (StudentId, CourseId) VALUES ('stu-quick', 1);
+INSERT INTO STUDENT_ENROLLED_COURSES (StudentId, CourseId) VALUES ('stu-slow', 1);
 -- STUDENT: 3 rows
-INSERT INTO STUDENT (StudentId, SkillId, CompetenceLevel, McqScore, CreatedAt, UpdatedAt) VALUES (1, 1, 3, 90, '2026-11-03 09:05:00', '2026-11-03 09:12:00');
-INSERT INTO STUDENT (StudentId, SkillId, CompetenceLevel, McqScore, CreatedAt, UpdatedAt) VALUES (1, 2, 2, 60, '2026-11-03 09:13:00', '2026-11-03 09:20:00');
-INSERT INTO STUDENT (StudentId, SkillId, CompetenceLevel, McqScore, CreatedAt, UpdatedAt) VALUES (1, 4, 1, 40, '2026-11-03 09:28:00', '2026-11-03 09:30:00');
+INSERT INTO STUDENT (StudentId, SkillId, CompetenceLevel, McqScore, CreatedAt, UpdatedAt) VALUES ('stu-quick', 1, 3, 90, '2026-11-03 09:05:00', '2026-11-03 09:12:00');
+INSERT INTO STUDENT (StudentId, SkillId, CompetenceLevel, McqScore, CreatedAt, UpdatedAt) VALUES ('stu-quick', 2, 2, 60, '2026-11-03 09:13:00', '2026-11-03 09:20:00');
+INSERT INTO STUDENT (StudentId, SkillId, CompetenceLevel, McqScore, CreatedAt, UpdatedAt) VALUES ('stu-quick', 4, 1, 40, '2026-11-03 09:28:00', '2026-11-03 09:30:00');
 
 -- ---------------------------------------------------------------------------
 -- Sample transactional state. Authored for the hackathon: synthetic students,
--- not real data. Student 1 is a quick learner, student 2 a slow learner.
+-- not real data. stu-quick is a quick learner, stu-slow a slow learner.
+-- Values follow shared/contracts/schemas/records.schema.json.
 -- ---------------------------------------------------------------------------
 -- TEACHER, TEACHER_CONFIG
-INSERT INTO TEACHER (TeacherId, Name) VALUES (1, 'test-teacher-1');
-INSERT INTO TEACHER_CONFIG (TeacherId, AnswerTimeoutSeconds) VALUES (1, 180);
+INSERT INTO TEACHER (TeacherId, DisplayName) VALUES ('tch-demo', 'Demo Teacher');
+INSERT INTO TEACHER_CONFIG (TeacherId, AnswerTimeoutSeconds) VALUES ('tch-demo', 180);
 -- STUDENT_ENROLLED_COURSES (course 2)
-INSERT INTO STUDENT_ENROLLED_COURSES (StudentId, CourseId) VALUES (1, 2);
-INSERT INTO STUDENT_ENROLLED_COURSES (StudentId, CourseId) VALUES (2, 2);
+INSERT INTO STUDENT_ENROLLED_COURSES (StudentId, CourseId) VALUES ('stu-quick', 2);
+INSERT INTO STUDENT_ENROLLED_COURSES (StudentId, CourseId) VALUES ('stu-slow', 2);
 -- STUDENT_SKILL_EVIDENCE
-INSERT INTO STUDENT_SKILL_EVIDENCE (EvidenceId, StudentId, SkillId, Level, SourceStepId, CreatedAt) VALUES (1, 1, 7, 2, 'intro-web-dev', '2026-11-04 09:10:00');
-INSERT INTO STUDENT_SKILL_EVIDENCE (EvidenceId, StudentId, SkillId, Level, SourceStepId, CreatedAt) VALUES (2, 1, 8, 2, 'intro-web-dev', '2026-11-04 09:10:00');
-INSERT INTO STUDENT_SKILL_EVIDENCE (EvidenceId, StudentId, SkillId, Level, SourceStepId, CreatedAt) VALUES (3, 2, 7, 0, 'steer-it-project', '2026-11-04 09:20:00');
-INSERT INTO STUDENT_SKILL_EVIDENCE (EvidenceId, StudentId, SkillId, Level, SourceStepId, CreatedAt) VALUES (4, 2, 7, 0, 'steer-it-project', '2026-11-04 09:26:00');
+INSERT INTO STUDENT_SKILL_EVIDENCE (StudentId, SkillId, Level, SourceStepId, CreatedAt) VALUES ('stu-quick', 'build', 2, 'intro-web-dev', '2026-11-04 09:10:00');
+INSERT INTO STUDENT_SKILL_EVIDENCE (StudentId, SkillId, Level, SourceStepId, CreatedAt) VALUES ('stu-quick', 'language', 2, 'intro-web-dev', '2026-11-04 09:10:00');
+INSERT INTO STUDENT_SKILL_EVIDENCE (StudentId, SkillId, Level, SourceStepId, CreatedAt) VALUES ('stu-slow', 'build', 0, 'steer-it-project', '2026-11-04 09:20:00');
+INSERT INTO STUDENT_SKILL_EVIDENCE (StudentId, SkillId, Level, SourceStepId, CreatedAt) VALUES ('stu-slow', 'build', 0, 'steer-it-project', '2026-11-04 09:26:00');
 -- STEP_ATTEMPT
-INSERT INTO STEP_ATTEMPT (AttemptId, StudentId, StepId, InputText, ProjectSnapshotRef, EvidenceLevel, Confidence, PromptVersion, CreatedAt) VALUES ('sample-attempt-1', 1, 'intro-plan', 'A site about my school robotics club, for new students who want to join.', NULL, NULL, NULL, NULL, '2026-11-04 09:05:00');
-INSERT INTO STEP_ATTEMPT (AttemptId, StudentId, StepId, InputText, ProjectSnapshotRef, EvidenceLevel, Confidence, PromptVersion, CreatedAt) VALUES ('sample-attempt-2', 2, 'steer-it-project', 'make it better', 'snapshots/student-2/attempt-2', 0, 0.9, 'validator-v1', '2026-11-04 09:20:00');
-INSERT INTO STEP_ATTEMPT (AttemptId, StudentId, StepId, InputText, ProjectSnapshotRef, EvidenceLevel, Confidence, PromptVersion, CreatedAt) VALUES ('sample-attempt-3', 2, 'steer-it-project', 'make it look nicer', 'snapshots/student-2/attempt-3', 0, 0.85, 'validator-v1', '2026-11-04 09:26:00');
+INSERT INTO STEP_ATTEMPT (AttemptId, StudentId, StepId, InputText, ProjectSnapshotRef, EvidenceLevel, Confidence, PromptVersion, CreatedAt) VALUES ('att-sample-01', 'stu-quick', 'intro-plan', 'A site about my school robotics club, for new students who want to join.', NULL, NULL, NULL, NULL, '2026-11-04 09:05:00');
+INSERT INTO STEP_ATTEMPT (AttemptId, StudentId, StepId, InputText, ProjectSnapshotRef, EvidenceLevel, Confidence, PromptVersion, CreatedAt) VALUES ('att-sample-02', 'stu-slow', 'steer-it-project', 'make it better', 'snap-sample-02', 0, 0.9, 'validator-v1', '2026-11-04 09:20:00');
+INSERT INTO STEP_ATTEMPT (AttemptId, StudentId, StepId, InputText, ProjectSnapshotRef, EvidenceLevel, Confidence, PromptVersion, CreatedAt) VALUES ('att-sample-03', 'stu-slow', 'steer-it-project', 'make it look nicer', 'snap-sample-03', 0, 0.85, 'validator-v1', '2026-11-04 09:26:00');
 -- CHECKPOINT_PROGRESS
-INSERT INTO CHECKPOINT_PROGRESS (StudentId, CheckpointId, Status, UpdatedAt) VALUES (1, 'intro', 'completed', '2026-11-04 09:10:00');
-INSERT INTO CHECKPOINT_PROGRESS (StudentId, CheckpointId, Status, UpdatedAt) VALUES (1, 'steer-it', 'tested_out', '2026-11-04 09:10:00');
-INSERT INTO CHECKPOINT_PROGRESS (StudentId, CheckpointId, Status, UpdatedAt) VALUES (1, 'use-the-lingo', 'tested_out', '2026-11-04 09:10:00');
-INSERT INTO CHECKPOINT_PROGRESS (StudentId, CheckpointId, Status, UpdatedAt) VALUES (1, 'keep-or-redirect', 'current', '2026-11-04 09:10:00');
-INSERT INTO CHECKPOINT_PROGRESS (StudentId, CheckpointId, Status, UpdatedAt) VALUES (1, 'give-context', 'available', '2026-11-04 09:10:00');
-INSERT INTO CHECKPOINT_PROGRESS (StudentId, CheckpointId, Status, UpdatedAt) VALUES (2, 'intro', 'completed', '2026-11-04 09:12:00');
-INSERT INTO CHECKPOINT_PROGRESS (StudentId, CheckpointId, Status, UpdatedAt) VALUES (2, 'steer-it', 'current', '2026-11-04 09:12:00');
-INSERT INTO CHECKPOINT_PROGRESS (StudentId, CheckpointId, Status, UpdatedAt) VALUES (2, 'use-the-lingo', 'available', '2026-11-04 09:12:00');
+INSERT INTO CHECKPOINT_PROGRESS (StudentId, CheckpointId, Status, UpdatedAt) VALUES ('stu-quick', 'intro', 'completed', '2026-11-04 09:10:00');
+INSERT INTO CHECKPOINT_PROGRESS (StudentId, CheckpointId, Status, UpdatedAt) VALUES ('stu-quick', 'steer-it', 'tested_out', '2026-11-04 09:10:00');
+INSERT INTO CHECKPOINT_PROGRESS (StudentId, CheckpointId, Status, UpdatedAt) VALUES ('stu-quick', 'use-the-lingo', 'tested_out', '2026-11-04 09:10:00');
+INSERT INTO CHECKPOINT_PROGRESS (StudentId, CheckpointId, Status, UpdatedAt) VALUES ('stu-quick', 'keep-or-redirect', 'current', '2026-11-04 09:10:00');
+INSERT INTO CHECKPOINT_PROGRESS (StudentId, CheckpointId, Status, UpdatedAt) VALUES ('stu-quick', 'give-context', 'available', '2026-11-04 09:10:00');
+INSERT INTO CHECKPOINT_PROGRESS (StudentId, CheckpointId, Status, UpdatedAt) VALUES ('stu-slow', 'intro', 'completed', '2026-11-04 09:12:00');
+INSERT INTO CHECKPOINT_PROGRESS (StudentId, CheckpointId, Status, UpdatedAt) VALUES ('stu-slow', 'steer-it', 'current', '2026-11-04 09:12:00');
+INSERT INTO CHECKPOINT_PROGRESS (StudentId, CheckpointId, Status, UpdatedAt) VALUES ('stu-slow', 'use-the-lingo', 'available', '2026-11-04 09:12:00');
 -- REMEDIATION_FLAG
-INSERT INTO REMEDIATION_FLAG (FlagId, StudentId, SkillId, Reason, Severity, CreatedAt, ResolvedAt) VALUES (1, 2, 7, 'Two consecutive misses on Build with AI', 'normal', '2026-11-04 09:26:00', NULL);
+INSERT INTO REMEDIATION_FLAG (StudentId, SkillId, Reason, Severity, CreatedAt, ResolvedAt) VALUES ('stu-slow', 'build', 'Two consecutive misses on Build with AI', 'normal', '2026-11-04 09:26:00', NULL);
+-- TEACHER_INPUT: the standing hold on stu-slow
+INSERT INTO TEACHER_INPUT (StudentId, Mode, CheckpointId, UpdatedAt) VALUES ('stu-slow', 'hold', NULL, '2026-11-04 09:27:00');
 -- ROUTING_DECISION
-INSERT INTO ROUTING_DECISION (DecisionId, StudentId, TeacherId, ProposedCheckpointId, TeacherInput, AppliedCheckpointId, Reason, CreatedAt) VALUES ('sample-decision-1', 1, NULL, 'keep-or-redirect', 'auto', 'keep-or-redirect', 'Build and Language evidence met the targets for steer-it and use-the-lingo, so both were tested out. keep-or-redirect has the largest remaining gap.', '2026-11-04 09:10:00');
-INSERT INTO ROUTING_DECISION (DecisionId, StudentId, TeacherId, ProposedCheckpointId, TeacherInput, AppliedCheckpointId, Reason, CreatedAt) VALUES ('sample-decision-2', 2, 1, 'use-the-lingo', 'hold', 'steer-it', 'Teacher held the student on steer-it. Auto routing would have proposed use-the-lingo.', '2026-11-04 09:27:00');
+INSERT INTO ROUTING_DECISION (DecisionId, StudentId, ProposedCheckpointId, TeacherInput, AppliedCheckpointId, Reason, CreatedAt) VALUES ('dec-sample-01', 'stu-quick', 'keep-or-redirect', '{"mode":"auto"}', 'keep-or-redirect', 'Build and Language evidence met the targets for steer-it and use-the-lingo, so both were tested out. keep-or-redirect has the largest remaining gap.', '2026-11-04 09:10:00');
+INSERT INTO ROUTING_DECISION (DecisionId, StudentId, ProposedCheckpointId, TeacherInput, AppliedCheckpointId, Reason, CreatedAt) VALUES ('dec-sample-02', 'stu-slow', 'use-the-lingo', '{"mode":"hold"}', 'steer-it', 'Teacher held the student on steer-it. Auto routing would have proposed use-the-lingo.', '2026-11-04 09:27:00');
 -- FALLBACK_EVENT
-INSERT INTO FALLBACK_EVENT (FallbackEventId, StudentId, StepId, Component, Error, CreatedAt) VALUES (1, 2, 'steer-it-project', 'validation', 'Validator confidence 0.52 is below 0.6', '2026-11-04 09:21:00');
+INSERT INTO FALLBACK_EVENT (StudentId, StepId, Component, Error, CreatedAt) VALUES ('stu-slow', 'steer-it-project', 'validation', 'low_confidence', '2026-11-04 09:21:00');
 -- PASSIVE_SIGNAL
-INSERT INTO PASSIVE_SIGNAL (SignalId, StudentId, Signal, HintStyle, AngleToTry, Reason, EvidenceRefs, Confidence, FeaturesHash, ModelId, PromptVersion, CreatedAt) VALUES ('sample-signal-1', 1, 'speed_up', 'guiding_question', NULL, 'Evidence met the targets on the first tries with no hints.', '["sample-attempt-1"]', 0.9, 'sample-hash-1', NULL, 'rules-v1', '2026-11-04 09:10:00');
-INSERT INTO PASSIVE_SIGNAL (SignalId, StudentId, Signal, HintStyle, AngleToTry, Reason, EvidenceRefs, Confidence, FeaturesHash, ModelId, PromptVersion, CreatedAt) VALUES ('sample-signal-2', 2, 'slow_down', 'example', 'analogy', 'Two prompts in a row had no specific details. An example comes before an analogy.', '["sample-attempt-2","sample-attempt-3"]', 0.8, 'sample-hash-2', NULL, 'rules-v1', '2026-11-04 09:26:00');
+INSERT INTO PASSIVE_SIGNAL (SignalId, StudentId, Signal, HintStyle, AngleToTry, Reason, EvidenceRefs, Confidence, FeaturesHash, ModelId, PromptVersion, CreatedAt) VALUES ('sig-sample-01', 'stu-quick', 'speed_up', 'guiding_question', NULL, 'Evidence met the targets on the first tries with no hints.', '["att-sample-01"]', 0.9, '0a1b2c3d4e5f6789', 'rules', 'rules-v1', '2026-11-04 09:10:00');
+INSERT INTO PASSIVE_SIGNAL (SignalId, StudentId, Signal, HintStyle, AngleToTry, Reason, EvidenceRefs, Confidence, FeaturesHash, ModelId, PromptVersion, CreatedAt) VALUES ('sig-sample-02', 'stu-slow', 'slow_down', 'example', 'analogy', 'Two prompts in a row had no specific details. An example comes before an analogy.', '["att-sample-02","att-sample-03"]', 0.8, '9f8e7d6c5b4a3210', 'rules', 'rules-v1', '2026-11-04 09:26:00');
 -- HINT_EVENT
-INSERT INTO HINT_EVENT (HintEventId, StudentId, StepId, HintStyle, Angle, CreatedAt) VALUES (1, 2, 'steer-it-project', 'guiding_question', 'specific details', '2026-11-04 09:22:00');
-INSERT INTO HINT_EVENT (HintEventId, StudentId, StepId, HintStyle, Angle, CreatedAt) VALUES (2, 2, 'steer-it-project', 'example', 'before and after prompt', '2026-11-04 09:27:00');
+INSERT INTO HINT_EVENT (HintId, StudentId, StepId, Style, Angle, CreatedAt) VALUES ('hint-sample-01', 'stu-slow', 'steer-it-project', 'guiding_question', 'specific details', '2026-11-04 09:22:00');
+INSERT INTO HINT_EVENT (HintId, StudentId, StepId, Style, Angle, CreatedAt) VALUES ('hint-sample-02', 'stu-slow', 'steer-it-project', 'example', 'before and after prompt', '2026-11-04 09:27:00');
 -- Advance the identity sequences past the ids inserted above.
 SELECT setval(pg_get_serial_sequence('course', 'courseid'), (SELECT max(courseid) FROM course));
 SELECT setval(pg_get_serial_sequence('skills', 'skillid'), (SELECT max(skillid) FROM skills));
@@ -559,10 +561,4 @@ SELECT setval(pg_get_serial_sequence('learning_examples', 'exampleid'), (SELECT 
 SELECT setval(pg_get_serial_sequence('skill_tier_content', 'tiercontentid'), (SELECT max(tiercontentid) FROM skill_tier_content));
 SELECT setval(pg_get_serial_sequence('skill_rubric_criteria', 'criterionid'), (SELECT max(criterionid) FROM skill_rubric_criteria));
 SELECT setval(pg_get_serial_sequence('measure', 'measureid'), (SELECT max(measureid) FROM measure));
-SELECT setval(pg_get_serial_sequence('student_profile', 'studentid'), (SELECT max(studentid) FROM student_profile));
-SELECT setval(pg_get_serial_sequence('teacher', 'teacherid'), (SELECT max(teacherid) FROM teacher));
-SELECT setval(pg_get_serial_sequence('student_skill_evidence', 'evidenceid'), (SELECT max(evidenceid) FROM student_skill_evidence));
-SELECT setval(pg_get_serial_sequence('remediation_flag', 'flagid'), (SELECT max(flagid) FROM remediation_flag));
-SELECT setval(pg_get_serial_sequence('fallback_event', 'fallbackeventid'), (SELECT max(fallbackeventid) FROM fallback_event));
-SELECT setval(pg_get_serial_sequence('hint_event', 'hinteventid'), (SELECT max(hinteventid) FROM hint_event));
 COMMIT;
