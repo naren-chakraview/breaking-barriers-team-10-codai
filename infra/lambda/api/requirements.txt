@@ -1,0 +1,4 @@
+# Runtime deps the API Lambda handler imports (backend/api). Pinned to match
+# requirements-dev.txt so the bundle matches what the tests run against.
+jsonschema==4.23.0
+referencing==0.36.2

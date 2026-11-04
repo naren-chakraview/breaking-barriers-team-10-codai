@@ -6,44 +6,46 @@ import * as logs from 'aws-cdk-lib/aws-logs'
 import { NagSuppressions } from 'cdk-nag'
 import { Construct } from 'constructs'
 import * as path from 'path'
+import { execSync } from 'child_process'
 import * as fs from 'fs'
 
 /**
  * CodeAI REST API (architecture 2.2, C-29).
  *
- * This stack owns the API *infrastructure* only: the REST API, a prod stage with
- * throttling and a usage plan (spend protection, ADR-012), the C-29 routes, the P-1.4
- * header pass-through, and least-privilege roles. Every route is wired to a shared
- * placeholder Lambda that returns a canned, schema-valid contract fixture tagged
- * source:"stub". The real handlers (Task 6 invoke, Task 7 submit orchestration) replace
- * the placeholder per route without reshaping this stack.
+ * Wires API Gateway to the Track D Python backend (`backend/api/lambda_handler.handler`),
+ * which is a single proxy-integration router that dispatches the C-29 routes internally
+ * (Task 7). This stack owns the API infrastructure: the REST API, a prod stage with
+ * throttling and a usage plan (spend protection, ADR-012), a {proxy+} catch-all so the
+ * router sees every path, the P-1.4 CORS headers, and the Lambda's log group / env.
  *
- * Deliberately NOT here: submit orchestration, store access, model calls. Those are
- * blocked on the schema reconciliation (Task 4.6) and the AI track.
+ * Runtime defaults are safe: MODEL_MODE=stub and STORE_MODE=json, so the deployed API runs
+ * end to end with no model calls and no database (the Aurora adapter is deferred, Task 4.6).
+ * The handler fails fast if asked for bedrock/aurora before those land.
  */
 export class ApiStack extends cdk.Stack {
   constructor(scope: Construct, id: string, props?: cdk.StackProps) {
     super(scope, id, props)
 
-    const placeholderCode = this.bundlePlaceholder()
-
-    const makeHandler = (route: string): lambda.Function =>
-      new lambda.Function(this, `Fn${route}`, {
-        runtime: lambda.Runtime.PYTHON_3_12, // backend tier is Python (ADR-015)
-        handler: 'handler.handler',
-        code: placeholderCode,
-        timeout: Duration.seconds(10), // adaptive-call budget (C-22, C-29)
-        memorySize: 256,
-        environment: { ROUTE: route },
-        logGroup: new logs.LogGroup(this, `Lg${route}`, {
-          retention: logs.RetentionDays.TWO_WEEKS, // no student text in logs (ADR-011)
-          removalPolicy: cdk.RemovalPolicy.DESTROY,
-        }),
-      })
+    const fn = new lambda.Function(this, 'ApiFn', {
+      runtime: lambda.Runtime.PYTHON_3_12, // backend tier is Python (ADR-015)
+      handler: 'backend.api.lambda_handler.handler',
+      code: this.bundleBackend(),
+      timeout: Duration.seconds(10), // adaptive-call budget (C-22, C-29)
+      memorySize: 512,
+      environment: {
+        MODEL_MODE: 'stub', // no Bedrock until Task 6; StubModel from fixtures
+        STORE_MODE: 'json', // Aurora adapter deferred (Task 4.6)
+        PYTHONPATH: '/var/task',
+      },
+      logGroup: new logs.LogGroup(this, 'ApiFnLogs', {
+        retention: logs.RetentionDays.TWO_WEEKS, // no student text in logs (ADR-011)
+        removalPolicy: cdk.RemovalPolicy.DESTROY,
+      }),
+    })
 
     const api = new apigw.RestApi(this, 'Api', {
       restApiName: 'codeai-api',
-      description: 'CodeAI REST API (C-29). Placeholder handlers until Tasks 6/7.',
+      description: 'CodeAI REST API (C-29), proxied to the Track D Python router.',
       deployOptions: {
         stageName: 'prod',
         // Spend protection: cap request rate/burst at the stage (ADR-012).
@@ -59,37 +61,11 @@ export class ApiStack extends cdk.Stack {
       },
     })
 
-    // Routes (C-29 + P-11). Each maps to a placeholder handler by name.
-    const integration = (route: string) => new apigw.LambdaIntegration(makeHandler(route))
-
-    // P-11 platform endpoints
-    const courses = api.root.addResource('courses')
-    courses.addMethod('GET', integration('getCourses'))
-    const course = courses.addResource('{course_id}')
-    course.addMethod('GET', integration('getCourse'))
-    const lessons = course.addResource('lessons').addResource('{lesson_id}')
-    lessons.addMethod('GET', integration('getLesson'))
-    lessons.addMethod('POST', integration('postLessonProgress'))
-
-    // Adaptive endpoints
-    const steps = api.root.addResource('steps').addResource('{step_id}')
-    steps.addResource('submit').addMethod('POST', integration('submitStep'))
-
-    const prompts = api.root.addResource('prompts')
-    prompts.addResource('verify').addMethod('POST', integration('verifyPrompt'))
-    prompts.addResource('generate').addMethod('POST', integration('generate'))
-
-    api.root.addResource('tutor').addResource('ask').addMethod('POST', integration('askTutor'))
-
-    const teacher = api.root.addResource('teacher')
-    teacher.addResource('students').addMethod('GET', integration('getTeacherRoster'))
-    teacher
-      .resourceForPath('students')
-      .addResource('{id}')
-      .addResource('routing')
-      .addMethod('POST', integration('setTeacherInput'))
-
-    api.root.addResource('health').addMethod('GET', integration('health'))
+    // Proxy integration: the Python router owns dispatch for every C-29 and P-11 route,
+    // so the stack does not duplicate the route table (single source of truth is http.py).
+    const proxy = new apigw.LambdaIntegration(fn, { proxy: true })
+    api.root.addMethod('ANY', proxy) // root (e.g. unknown -> router's 404)
+    api.root.addProxy({ defaultIntegration: proxy, anyMethod: true })
 
     // Usage plan: one more spend guard (ADR-012). A demo API key is an identifier, not a
     // secret (it ships in the browser); protection is the rate cap + per-student cap (handler).
@@ -105,37 +81,57 @@ export class ApiStack extends cdk.Stack {
   }
 
   /**
-   * Bundle the placeholder Lambda, copying the shared contract fixtures in so the handler
-   * returns real contract shapes. Falls back to a plain asset if bundling tooling is
-   * unavailable, so `cdk synth` never hard-fails on environment differences.
+   * Bundle the Python backend into a Lambda asset: the `backend/` and `shared/` packages
+   * (handler, router, domain core, store, contracts schemas + fixtures) plus the pip deps
+   * the handler imports (`jsonschema`, `referencing`).
+   *
+   * Prefers Docker (`bundlingImage`) for a clean, reproducible build. Falls back to a local
+   * build when Docker is unavailable and a compatible `pip`/`python3` is on PATH, so a dev
+   * box without Docker can still `cdk synth`/`deploy`.
    */
-  private bundlePlaceholder(): lambda.Code {
-    const src = path.join(__dirname, '..', 'lambda', 'placeholder')
-    const fixture = path.join(
-      __dirname,
-      '..',
-      '..',
-      'shared',
-      'contracts',
-      'fixtures',
-      'services',
-      'responses.json',
-    )
-    return lambda.Code.fromAsset(src, {
+  private bundleBackend(): lambda.Code {
+    const repoRoot = path.join(__dirname, '..', '..')
+    const reqFile = path.join(__dirname, '..', 'lambda', 'api', 'requirements.txt')
+
+    const copyPackages = (outputDir: string) => {
+      for (const pkg of ['backend', 'shared']) {
+        fs.cpSync(path.join(repoRoot, pkg), path.join(outputDir, pkg), {
+          recursive: true,
+          filter: (s) => !s.includes('__pycache__') && !s.endsWith('.pyc'),
+        })
+      }
+    }
+
+    return lambda.Code.fromAsset(repoRoot, {
       bundling: {
         image: lambda.Runtime.PYTHON_3_12.bundlingImage,
-        local: {
-          tryBundle(outputDir: string): boolean {
-            fs.cpSync(src, outputDir, { recursive: true })
-            fs.copyFileSync(fixture, path.join(outputDir, 'responses.json'))
-            return true
-          },
-        },
         command: [
           'bash',
           '-c',
-          `cp -r /asset-input/* /asset-output/ && cp ${fixture} /asset-output/responses.json`,
+          [
+            'cp -r /asset-input/backend /asset-output/backend',
+            'cp -r /asset-input/shared /asset-output/shared',
+            `pip install -r /asset-input/infra/lambda/api/requirements.txt -t /asset-output -q`,
+            'find /asset-output -name __pycache__ -type d -prune -exec rm -rf {} +',
+          ].join(' && '),
         ],
+        local: {
+          tryBundle(outputDir: string): boolean {
+            try {
+              copyPackages(outputDir)
+              execSync(`pip install -r "${reqFile}" -t "${outputDir}" -q`, { stdio: 'ignore' })
+              // Match the Docker path: drop __pycache__ so the asset hash is deterministic.
+              execSync(
+                `find "${outputDir}" -name __pycache__ -type d -prune -exec rm -rf {} +`,
+                { stdio: 'ignore' },
+              )
+              return true
+            } catch {
+              // No local pip/python compatible — let CDK fall back to Docker bundling.
+              return false
+            }
+          },
+        },
       },
     })
   }
@@ -147,7 +143,7 @@ export class ApiStack extends cdk.Stack {
         {
           id: 'AwsSolutions-APIG2',
           reason:
-            'Request validation is handled in the Lambda handlers against the merged JSON Schemas (seam 1), not at the API Gateway model layer.',
+            'Request validation is in the Python router against the merged JSON Schemas (seam 1, schema_validate.py), not at the API Gateway model layer.',
         },
         {
           id: 'AwsSolutions-APIG4',
@@ -162,12 +158,11 @@ export class ApiStack extends cdk.Stack {
       ],
       true,
     )
-    // Placeholder Lambdas use the CDK-managed basic-execution role; acceptable for stubs.
     NagSuppressions.addStackSuppressions(this, [
       {
         id: 'AwsSolutions-IAM4',
         reason:
-          'Placeholder handlers use AWSLambdaBasicExecutionRole. Real handlers get scoped per-function roles in Tasks 6/7.',
+          'The API Lambda uses AWSLambdaBasicExecutionRole for CloudWatch Logs. Scoped resource permissions (Aurora Data API, SSM, Bedrock) are added as those integrations land (Tasks 4.6, 6).',
       },
     ])
   }
