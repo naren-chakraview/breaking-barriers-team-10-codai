@@ -22,11 +22,13 @@ from typing import Any, Mapping, Optional
 
 from .repository import DEFAULT_ANSWER_TIMEOUT_SECONDS
 
-# The DDL column names as written (camelCase). Postgres folds them to lowercase in result
-# sets, so the adapter receives 'studentid' and maps it back to 'studentId' using this
-# set. Every student-state column must be listed here; a missing entry means the adapter
-# returns a lowercase key, which would fail the contract schema.
-_CAMEL = {n.lower(): n for n in [
+# The DDL writes columns in PascalCase (StudentId); Postgres folds them to lowercase in
+# result sets, so the adapter receives 'studentid'. The contract records use lower-camelCase
+# ('studentId', records.schema.json), so we map each lowercase column back to lower-camelCase
+# (first letter lowered), NOT the PascalCase DDL spelling. Every student-state column must be
+# listed here; a missing entry means the adapter returns a lowercase key, which fails the
+# contract schema.
+_CAMEL = {n.lower(): n[0].lower() + n[1:] for n in [
     "StudentId", "DisplayName", "Synthetic",
     "EvidenceId", "SkillId", "Level", "SourceStepId", "CreatedAt",
     "AttemptId", "StepId", "InputText", "ProjectSnapshotRef", "EvidenceLevel",
@@ -119,7 +121,7 @@ class AuroraRepository:
             for col, field in zip(cols, record):
                 val = _field_value(field)
                 # JSONB columns come back as strings; parse them.
-                if col in ("TeacherInput", "EvidenceRefs") and isinstance(val, str):
+                if col in ("teacherInput", "evidenceRefs") and isinstance(val, str):
                     try:
                         val = json.loads(val)
                     except (json.JSONDecodeError, TypeError):
@@ -169,7 +171,7 @@ class AuroraRepository:
             "WHERE StudentId = :sid GROUP BY SkillId",
             [_param("sid", student_id)],
         )
-        return {r["SkillId"]: int(r["Level"]) for r in self._rows(resp)}
+        return {r["skillId"]: int(r["level"]) for r in self._rows(resp)}
 
     # ---- progress ----
     def get_progress(self, student_id: str) -> dict[str, str]:
@@ -177,7 +179,7 @@ class AuroraRepository:
             "SELECT CheckpointId, Status FROM CHECKPOINT_PROGRESS WHERE StudentId = :sid",
             [_param("sid", student_id)],
         )
-        return {r["CheckpointId"]: r["Status"] for r in self._rows(resp)}
+        return {r["checkpointId"]: r["status"] for r in self._rows(resp)}
 
     def upsert_progress(self, row: Mapping[str, Any]) -> dict[str, Any]:
         self._execute(
@@ -365,9 +367,9 @@ class AuroraRepository:
         if not rows:
             return {"mode": "auto"}
         r = rows[0]
-        out: dict[str, Any] = {"mode": r["Mode"]}
-        if r.get("CheckpointId"):
-            out["checkpointId"] = r["CheckpointId"]
+        out: dict[str, Any] = {"mode": r["mode"]}
+        if r.get("checkpointId"):
+            out["checkpointId"] = r["checkpointId"]
         return out
 
     def set_teacher_input(self, student_id: str, teacher_input: Mapping[str, Any]) -> dict[str, Any]:
