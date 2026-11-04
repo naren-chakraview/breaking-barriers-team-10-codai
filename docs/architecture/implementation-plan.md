@@ -136,7 +136,7 @@ never stalls the others.
 - [ ] One `curl` to `POST /steps/{id}/submit` returns evidence, next checkpoint and the reason, with
   `MODEL_MODE=stub`
 - [ ] `step_attempt`, `routing_decision` and `fallback_event` rows are written through the store
-- [ ] The store contract suite passes on the JSON adapter, and on Aurora if Task 0 allowed a deploy
+- [x] The store contract suite passes on the JSON adapter and on Aurora (live cluster, `test_aurora_live.py`, 2026-11-04)
 - [ ] The UI can flip `VITE_SERVICE_MODE=http` for the non-model calls
 - Fallback if missed: stay on the JSON adapter and run the API locally. Revisit Aurora after IC3.
 
