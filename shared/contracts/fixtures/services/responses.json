@@ -70,6 +70,14 @@
         "passive": { "signal": "redirect", "hintStyle": "guiding_question", "reason": "Target reached, then repeated color and font edits with flat evidence.", "confidence": 0.74, "createdAt": "2026-11-04T13:33:05Z" },
         "lastRouting": null,
         "teacherInput": { "mode": "hold" }
+      },
+      {
+        "studentId": "stu-away", "displayName": "Drifting Drew", "synthetic": true, "currentCheckpointId": "steer-it",
+        "mastery": [ { "skillId": "build", "level": 0, "max": 2, "display": 0 }, { "skillId": "language", "level": 0, "max": 3, "display": 0 }, { "skillId": "debug", "level": 0, "max": 3, "display": 0 } ],
+        "flags": [],
+        "passive": { "signal": "reengage", "hintStyle": "guiding_question", "reason": "Low-effort submits with long gaps between them; inferred from content and timing only.", "confidence": 0.55, "createdAt": "2026-11-04T12:10:05Z" },
+        "lastRouting": null,
+        "teacherInput": { "mode": "auto" }
       }
     ],
     "correlationId": "corr-roster-0001"
