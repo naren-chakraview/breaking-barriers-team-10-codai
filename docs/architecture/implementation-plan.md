@@ -416,19 +416,23 @@ the whole contract with no AWS.
 **Demo:** `STORE_MODE=aurora` serves the same submit flow as `STORE_MODE=json`.
 
 ### Task 5: Safety module and Guardrail (MVP)
-Owner: ____ · Serves: C-25, C-26, P-18 · Discrepancy item 10 · Architecture: 2.3 · Blocked by: Task 4.5
+Owner: ____ · Serves: C-25, C-26, P-18 · Discrepancy item 10 · Architecture: 2.3
 
-- [ ] Guardrail in `AgentsSafetyStack`: content filters, prompt-attack filter, PII filter, K-12 strengths
-- [ ] Pinned numbered Guardrail version (never `DRAFT`)
-- [ ] `screenInput` using `ApplyGuardrail`
-- [ ] `guardContent` wrapping for all untrusted text
-- [ ] `screenOutput` before display
-- [ ] Fail closed: block, write `fallback_event` (safety), keep the lesson running
-- [ ] `trace` disabled
-- [ ] Red-team fixture set (injection, age-inappropriate, PII)
+- [x] Guardrail in `infra/GuardrailStack`: content filters (HIGH), prompt-attack, PII block, K-12 strengths
+- [x] Pinned numbered Guardrail version (never `DRAFT`), id+version published to SSM
+- [x] `screen_input` using `ApplyGuardrail` (`backend/ai/safety.py`)
+- [x] `wrap_untrusted` builds `guardContent` blocks for all untrusted text
+- [x] `screen_output` before display
+- [x] Fail closed: block on error, never raise, safe replacement, lesson continues
+- [x] `BedrockModelPort` skeleton fills seam 3; `invoke`/`validate_project` raise until built
+- [ ] Wire `fallback_event` (safety) write at the call site (belongs with the `invoke`/submit path)
+- [ ] `trace` disabled on the live `guardrailConfig` path (set when `invoke` adds Converse)
+- [ ] Red-team fixture set (injection, age-inappropriate, PII) run against the live Guardrail
+- [ ] Live `ApplyGuardrail` smoke test after deploy
 
-**Tests:** mocked-client tests for block, pass and error. **Demo:** an unsafe prompt yields a safe
-replacement and the lesson continues.
+**Tests:** `pytest backend/ai` -> 15 passing; fake-client block/pass/PII/error paths, each validated
+against `ScreenResult`. Guardrail `cdk synth` clean (0 nag findings). **Demo:** an unsafe prompt yields a
+safe replacement and the lesson continues (once wired into `invoke`/submit).
 
 ### Task 6: `invoke` wrapper and model Lambdas (MVP)
 Owner: ____ · Serves: C-14, C-27, P-7.2 · Discrepancy item 11 · Architecture: 2.4, 2.5, 2.8
