@@ -17,7 +17,10 @@
 body {
   margin: 0;
   font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
-  background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+  /* Neutral page background. Each screen paints its own backdrop; keeping the
+     body light means a screen that doesn't fill the viewport can never reveal a
+     dark band behind it. The login screen keeps the dark gradient via .page. */
+  background: #f4f5f7;
   color: var(--text);
 }
 
@@ -26,6 +29,7 @@ body {
   display: grid;
   place-items: center;
   padding: 24px;
+  background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
 }
 
 .card {
