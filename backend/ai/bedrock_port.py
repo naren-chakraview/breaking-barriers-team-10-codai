@@ -100,9 +100,10 @@ class BedrockModelPort:
         descriptors = self._descriptors_for(request["skillId"])
         return _validate_project(request, invoke=self.invoke, evidence_descriptors=descriptors)
 
-    # ---- Passive reasoner (built; not part of the ModelPort protocol — Passive is produced
-    # out-of-band, not in the submit request/response path). A caller holding the port can use
-    # this; the submit-flow integration (persisting passive_signal + fallback_event) is Track D.
+    # ---- Passive reasoner (not part of the ModelPort protocol — Passive is produced
+    # out-of-band, not in the submit request/response contract). The submit flow consumes it
+    # by capability detection (backend/api/passive.py: hasattr(model, "reason_passive")), so a
+    # port without this method (e.g. StubModel) runs the deterministic rule baseline instead.
     def reason_passive(
         self,
         features: Any,
