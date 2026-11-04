@@ -444,19 +444,23 @@ safe replacement and the lesson continues (once wired into `invoke`/submit).
 ### Task 6: `invoke` wrapper and model Lambdas (MVP)
 Owner: ____ · Serves: C-14, C-27, P-7.2 · Discrepancy item 11 · Architecture: 2.4, 2.5, 2.8
 
-- [ ] `invoke(task, prompt)` is the only Bedrock caller
-- [ ] Model ids read through `getConfig` from SSM (Haiku 4.5 for verify/validate/Passive, Sonnet 4.5 for
-  codegen/hints), never hard-coded (Task 4.5)
-- [ ] `maxTokens` and a 10 s timeout on every call
-- [ ] `guardrailConfig` on every call
-- [ ] Verify and codegen use different models
-- [ ] Runtime IAM allows only the two profiles (inference-profile ARN and wildcard-region model ARN)
-- [ ] Decision log per call: correlation id, task, model id, prompt hash, Guardrail version, latency,
-  tokens, and no student text
-- [ ] Verifier, Codegen, Validator and Active Lambdas
+- [x] `invoke(task, prompt, opts)` is the only Bedrock caller (`backend/ai/invoke.py`)
+- [x] Model ids from config per tier (fast for verify/validate/passive, strong for codegen/tutor);
+  `create_bedrock_port(get_config)` reads SSM keys `model.fast`/`model.strong`, never hard-coded
+- [x] `maxTokens` always set and a 10 s read timeout on every call
+- [x] `guardrailConfig` (pinned id+version, `trace: disabled`) on every call; `untrusted` text wrapped in `guardContent`
+- [x] Verify and codegen resolve to different models (P-7.2)
+- [x] Decision log per call: correlation id, task, model id, prompt version, guardrail version/action,
+  latency, tokens — and no student text (ADR-011)
+- [x] Returns the `InvokeResult` contract; never raises a provider error (maps to the C-29 error envelope)
+- [x] Wired into the API via `build_app(model=create_bedrock_port(...))` for `MODEL_MODE=bedrock`
+- [ ] `validate_project` LLM judge (C-14) — still raises; separate task
+- [ ] Runtime IAM scoped to the two inference profiles (with the DataStack/Bedrock role work)
+- [ ] Live Bedrock smoke test (verify → generate round-trip) after deploy
 
-**Tests:** wrapper tests for timeout, throttle and guardrail block. **Demo:** a prompt goes through
-verify, generate and validate.
+**Tests:** `pytest backend/ai` → 34 passing; fake-client coverage of fast/strong routing, guardrail
+intervention, throttle/timeout/access-denied mapping, no-text-leak, and build_app integration.
+**Demo:** flip `MODEL_MODE=bedrock` with the injected port (needs a live Bedrock run to confirm).
 
 ### Task 7: API stack and submit orchestration (MVP)
 Owner: Track D · Serves: C-24, C-29, P-11, P-1.4 · Architecture: 2.2

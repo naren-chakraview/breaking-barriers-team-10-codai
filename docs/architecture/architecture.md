@@ -304,7 +304,9 @@ flowchart TD
 
 ### 2.4 Model access (`invoke`)
 
-**Status:** Proposed. **Serves:** C-27, P-7.2, P-15.3, P-16.
+**Status:** Built (wrapper + port wiring; live smoke test pending a Bedrock run).
+**Serves:** C-27, P-7.2, P-15.3, P-16. **Code:** `backend/ai/invoke.py`, `backend/ai/bedrock_port.py`,
+`backend/ai/factory.py`.
 
 One wrapper, `invoke(task, prompt)`, is the only code that calls Bedrock.
 
@@ -1165,3 +1167,4 @@ session on 2026-11-04 and are **Proposed** until the team reviews them.
 | 2026-11-04 | (Aurora data PR) | Rewrote 2.9 Database and 2.11 IaC for Aurora + Python; replaced DynamoDB references with Aurora; marked Task 0 IAM/model checks verified; updated database/data-model.mmd with the C-8 student-state tables (discrepancy item 3). Added the `infra/` CDK DataStack (synth-verified, 0 nag findings) and the `backend/store/` adapters. |
 | 2026-11-04 | (Safety PR) | Built the content-safety module (`backend/ai/safety.py`, C-25/C-26) with a `BedrockModelPort` skeleton (seam 3), and the K-12 `infra/GuardrailStack` (synth-verified, 0 nag findings). Marked 2.3 Built. `invoke`/validator still pending. |
 | 2026-11-04 | (routing policy PR) | Issue #24 q2: changed C-19.3 from "largest gap" to **stay-on-current** (stay on the current checkpoint while available, else first in JSON order). Updated routing prose + diagram. Fixed the `distracted-detail` persona (evidence capped at 1 so steer-it does not test out). The q1 None-routing bug is fixed separately in #26. |
+| 2026-11-04 | (invoke PR) | Built the `invoke` wrapper (C-27): `backend/ai/invoke.py` + `BedrockModelPort.invoke` + `create_bedrock_port` factory. Task→tier model routing (verify≠codegen, P-7.2), `maxTokens`+10s timeout, pinned guardrail, error-envelope on failure (never raises), decision log with no student text. Marked 2.4 Built. Validator (C-14) still pending; live smoke test pending a Bedrock run. |
