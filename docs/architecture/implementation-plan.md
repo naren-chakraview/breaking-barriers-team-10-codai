@@ -125,6 +125,8 @@ Owner: ____ · Serves: C-35, C-36, C-37, C-38 · Discrepancy items 1, 2
 - [ ] GitHub Actions workflow on PRs: lint, test, `vite build`
 - [ ] `.env.local` is in `.gitignore` (the `.env.*` rule already covers it)
 - [ ] Add `!.env.example` to `.gitignore` and commit an `.env.example` with variable **names** only
+- [ ] Docs check in CI: parse every ```` ```mermaid ```` block in `docs/` so a broken diagram fails the PR
+  (a syntax error in the system context diagram was caught by hand on 2026-11-04)
 - [ ] Secret scanning in CI: gitleaks on every PR, failing the build on a finding
 - [ ] GitHub secret scanning and push protection enabled on the repo (needs repo admin)
 - [ ] Scan the existing history once for leaked keys or the AWS account id and report the result

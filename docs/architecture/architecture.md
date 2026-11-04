@@ -68,23 +68,23 @@ handling come first (P-18, P-13).
 
 ```mermaid
 flowchart LR
-  S[Student browser] --> UI
-  T[Teacher browser] --> UI
-  subgraph Client
-    UI[React 18 + Vite UI<br/>services layer: mock | HTTP]
+  S["Student browser"] --> UI
+  T["Teacher browser"] --> UI
+  subgraph Client["Client"]
+    UI["React 18 and Vite UI<br/>services layer: mock or HTTP"]
   end
-  UI -->|HTTPS + Authorization, X-User-Id, X-Role| APIGW[API Gateway REST<br/>throttle + usage plan]
-  subgraph AWS us-west-2
-    APIGW --> API[API Lambdas]
-    API --> SAFE[Safety module]
-    SAFE --> INV[invoke wrapper]
-    INV --> BR[(Amazon Bedrock<br/>Haiku 4.5, Sonnet 4.5<br/>Guardrail)]
-    API --> ROUTE[route pure function]
-    API --> PAS[Passive]
-    API --> DDB[(DynamoDB, KMS)]
-    API --> OBS[CloudWatch logs, metrics,<br/>X-Ray/OTEL, alarms]
+  UI -- "HTTPS with Authorization, X-User-Id, X-Role" --> APIGW["API Gateway REST<br/>throttle and usage plan"]
+  subgraph AWS["AWS us-west-2"]
+    APIGW --> API["API Lambdas"]
+    API --> SAFE["Safety module"]
+    SAFE --> INV["invoke wrapper"]
+    INV --> BR[("Amazon Bedrock<br/>Haiku 4.5, Sonnet 4.5<br/>Guardrail")]
+    API --> ROUTE["route pure function"]
+    API --> PAS["Passive"]
+    API --> DDB[("DynamoDB, KMS")]
+    API --> OBS["CloudWatch logs, metrics,<br/>X-Ray and OTEL, alarms"]
   end
-  TREE[(sample-skilltree.json<br/>bundled with the API)] --> API
+  TREE[("sample-skilltree.json<br/>bundled with the API")] --> API
   TREE --> UI
 ```
 
@@ -231,6 +231,24 @@ fixtures (section 3, Task 5).
 **Privacy:** Guardrail masking changes only the API response. Raw text still reaches CloudWatch if
 model-invocation logging is on, so full-body invocation logging stays **off** (ADR-011).
 
+```mermaid
+flowchart TD
+  IN["Student free text"] --> PRE{"ApplyGuardrail<br/>input pre-screen"}
+  PRE -- "error" --> FC1["Block and write fallback_event safety"]
+  PRE -- "blocked" --> RP["Safe replacement message"]
+  PRE -- "clean" --> WRAP["Wrap untrusted text in guardContent"]
+  WRAP --> CALL["invoke: Converse with guardrailConfig<br/>pinned version, trace off"]
+  CALL -- "intervened" --> RP
+  CALL -- "error or timeout" --> FC2["Write fallback_event and use the fallback path"]
+  CALL -- "ok" --> OUT{"Output screening"}
+  OUT -- "flagged" --> RP
+  OUT -- "filter error" --> FC1
+  OUT -- "clean" --> SHOW["Deliver to the student"]
+  FC1 --> KEEP["Content blocked, lesson keeps running"]
+  RP --> KEEP
+  FC2 --> KEEP
+```
+
 ### 2.4 Model access (`invoke`)
 
 **Status:** Proposed. **Serves:** C-27, P-7.2, P-15.3, P-16.
@@ -275,6 +293,23 @@ One wrapper, `invoke(task, prompt)`, is the only code that calls Bedrock.
   within-1 agreement and quadratic weighted kappa. Default gate: kappa ≥ 0.70. A CI job on `main`
   re-runs the golden set on the pinned model and prompt version and fails below the gate.
 
+```mermaid
+flowchart TD
+  SUB["Submit step"] --> K{"Step kind"}
+  K -- "panels, free response without measures,<br/>intro-starter, show-it-off" --> REC["Record completion only"]
+  K -- "multiple choice with<br/>measures.evidenceLevels" --> MAP["Map choice to level<br/>no model call"]
+  K -- "project step" --> JUDGE["LLM judge: condition, rubric,<br/>prompts, before and after summary"]
+  JUDGE --> PARSE{"Valid JSON per schema?"}
+  PARSE -- "no, first attempt" --> REPAIR["One repair retry"]
+  REPAIR --> PARSE
+  PARSE -- "no, after retry" --> FB["Fallback: write fallback_event validation"]
+  PARSE -- "yes" --> CONF{"confidence at least 0.6?"}
+  CONF -- "no" --> FB
+  CONF -- "yes" --> EV["Record evidence level"]
+  MAP --> EV
+  EV --> NEXT["Passive, then route()"]
+```
+
 ### 2.6 Routing and fallback
 
 **Status:** Proposed. **Serves:** C-18 to C-23, P-8, P-20, P-21.
@@ -298,12 +333,57 @@ Returned ids must exist in the tree (C-20). Mastery is the per-skill evidence le
 decreases (C-9, C-10). A checkpoint completes when its project step is validated at or above target
 (default target 1, C-12).
 
+```mermaid
+flowchart TD
+  S["route: tree, progress, evidence, teacherInput"] --> A["Available = not completed and every<br/>requires is completed or tested out"]
+  A --> T["After intro: test out skippable checkpoints<br/>whose target is already met"]
+  T --> P["Proposal = available checkpoint with the<br/>largest skill gap, ties by JSON order"]
+  P --> M{"teacherInput.mode"}
+  M -- "auto" --> R1["Apply the proposal"]
+  M -- "hold" --> R2["Stay on the current checkpoint"]
+  M -- "assign" --> AV{"Assigned checkpoint available?"}
+  AV -- "yes" --> R3["Apply the assigned checkpoint"]
+  AV -- "no" --> R4["Apply the proposal and say why"]
+  R1 --> OUT["Return checkpointId and reason<br/>write routing_decision"]
+  R2 --> OUT
+  R3 --> OUT
+  R4 --> OUT
+```
+
+C-19 does not say what happens when a teacher assigns a checkpoint that is not available. The diagram
+shows the proposed behavior (keep the proposal and record why in `reason`). **The team should
+confirm this**, and the answer goes into C-19 or an ADR.
+
+Checkpoint status in `checkpoint_progress`:
+
+```mermaid
+stateDiagram-v2
+  [*] --> locked
+  locked --> available: every requires is completed or tested out
+  available --> current: routed to the student
+  available --> tested_out: skippable and target met by diagnostic
+  current --> completed: project step validated at or above target
+  completed --> available: teacher reset only
+```
+
 **Fallback** (C-21 to C-23):
 - Linear path: JSON checkpoint order, respecting `requires`, no skipping, pre-authored steps only.
 - Triggers: validation error, timeout (10 s) or low confidence; routing error or timeout; generation
   failure; safety service error; Passive reasoner failure (rules take over).
 - Each trigger writes a `fallback_event` and shows the notice. The UI re-checks health every 30 s or
   less and resumes adaptive mode.
+
+```mermaid
+stateDiagram-v2
+  [*] --> Adaptive
+  Adaptive --> Fallback: validation, routing, generation or safety error, 10 s timeout, confidence under 0.6
+  Fallback --> Fallback: health check fails, retry within 30 s
+  Fallback --> Adaptive: health check passes
+  note right of Fallback
+    Linear JSON order, pre-authored steps,
+    notice shown, fallback_event written
+  end note
+```
 
 ### 2.7 Passive
 
@@ -333,6 +413,22 @@ the hint log. Output, schema-validated and restricted to enums:
   and writes `fallback_event` with component `passive`. The rule version is also the CI baseline.
 - The model cannot return a checkpoint id. Routing consumes only evidence and teacher input.
 
+```mermaid
+flowchart LR
+  EV["Attempts, hint log,<br/>server timestamps"] --> F["Feature extractor<br/>deterministic"]
+  F --> H{"features_hash + prompt_version<br/>in cache?"}
+  H -- "yes" --> SIG["Signal"]
+  H -- "no" --> M["Haiku reasoner<br/>temperature 0"]
+  M --> V{"Schema valid and<br/>confidence at least 0.6?"}
+  V -- "yes" --> SIG
+  V -- "no or error" --> R["Rule-based signal<br/>write fallback_event passive"]
+  R --> SIG
+  SIG --> W["Write passive_signal"]
+  W --> ACT["Active: hint style and angle"]
+  W --> TCH["Teacher roster chip"]
+  W --> RF["remediation_flag on repeated misses"]
+```
+
 **Effects (the visible adaptation, P-5.3):**
 - `speed_up`: fewer scaffolds, guiding questions. The existing test-out rule (not Passive) is what
   skips checkpoints. The teacher sees a "suggest assign" hint.
@@ -352,6 +448,27 @@ teacher as an observation, not a flag.
 Real Passive reasoning runs over them. An LLM student simulator is a stretch goal. Synthetic histories
 are labeled as such on screen.
 
+```mermaid
+flowchart TD
+  I["intro diagnostic"] --> Q["Quick learner"]
+  I --> SL["Slow learner"]
+  I --> D["Distracted learner"]
+  Q --> Q1["Evidence at or above target on first tries, fast, no hints"]
+  Q1 --> Q2["route: tests out steer-it and use-the-lingo"]
+  Q1 --> Q3["Passive: speed_up"]
+  Q2 --> Q4["Lands on keep-or-redirect<br/>guiding questions, fewer scaffolds"]
+  Q3 --> Q4
+  SL --> S1["Repeated misses on build"]
+  S1 --> S2["Passive: slow_down"]
+  S2 --> S3["2nd miss: remediation_flag<br/>4th miss: high severity, teacher alerted"]
+  S3 --> S4["Examples, then analogy, then step by step<br/>always an angle not yet used"]
+  D --> D1{"Pattern in the history"}
+  D1 -- "obsessed with a detail" --> D2["Many cosmetic edits, flat evidence"]
+  D2 --> D3["Passive: redirect<br/>visible nudge, 60 s cooldown"]
+  D1 -- "inattentive" --> D4["Long gaps, rapid low-effort submits"]
+  D4 --> D5["Passive: reengage<br/>gentle check-in, shown as an observation"]
+```
+
 ### 2.8 Active agent (tutor, hints, help ladder)
 
 **Status:** Proposed. **Serves:** C-27, C-34, P-5, P-10, diagrams 5, 6, 10, 13.
@@ -365,6 +482,25 @@ Active is the only voice the student hears. For Wednesday it is **not** a tool-u
   after the timeout, then an iteration step. The timeout comes from `teacher_config`
   (default 180 s). The teacher can reveal now or send a custom hint.
 - Deferred: a Strands tool-using tutor on AgentCore Harness, with Memory (ADR-002).
+
+```mermaid
+stateDiagram-v2
+  [*] --> InlineHint: wrong run
+  InlineHint --> PointToPreview: still stuck
+  PointToPreview --> ExtraHint: still stuck
+  ExtraHint --> SeeAnswerVisible: escalation step done
+  SeeAnswerVisible --> AnswerRevealed: student clicks or timeout expires
+  AnswerRevealed --> IterationStep: offer an iteration module
+  InlineHint --> Solved: correct run
+  PointToPreview --> Solved: correct run
+  ExtraHint --> Solved: correct run
+  SeeAnswerVisible --> Solved: correct run
+  Solved --> [*]
+  IterationStep --> [*]
+```
+
+At any rung the teacher can reveal the answer now or send a custom hint. "See the answer" stays hidden
+until the escalation step has happened (P-10.5).
 
 ### 2.9 Database
 
@@ -523,6 +659,22 @@ small, so a single-table design is not needed.
 - CDK needs `cdk bootstrap` in `us-west-2` first, which creates IAM roles. It runs only after explicit
   confirmation and a successful permissions check.
 
+```mermaid
+flowchart LR
+  subgraph Stacks["CDK stacks"]
+    D["DataStack<br/>tables, KMS"] --> AS["AgentsSafetyStack<br/>Guardrail, model Lambdas, IAM"]
+    D --> API["ApiStack<br/>REST API, handlers"]
+    AS --> API
+    D --> OBS["ObservabilityStack<br/>dashboard, alarms"]
+    API --> OBS
+    API --> WEB["WebStack, stretch"]
+  end
+  PR["Pull request"] --> CI["GitHub Actions CI<br/>lint, test, build, cdk synth, cdk-nag, gitleaks"]
+  CI -- "merge to main" --> GATE["Golden-set kappa gate<br/>main only"]
+  GATE --> DEP["Deploy: CDK Pipelines with approval,<br/>or GitHub Actions with OIDC, stretch"]
+  DEP --> Stacks
+```
+
 ### 2.12 Security and privacy (cross-cutting)
 
 **Serves:** P-13, P-18.5.
@@ -556,6 +708,17 @@ Requirements: a scene index with fixed timings, `temperature 0`, a pre-warmed ca
 that shows when cached results are used, an on-screen "synthetic student histories" label, and a
 pre-recording checklist (reset state, warm cache, no credentials on screen).
 
+```mermaid
+flowchart LR
+  A["1 Roster of three"] --> B["2 Quick learner"]
+  B --> C["3 Slow learner"]
+  C --> D["4 Distracted learner"]
+  D --> E["5 Unsafe prompt blocked"]
+  E --> F["6 Outage and recovery"]
+  F --> G["7 Dashboard and trace"]
+  G --> H["8 Kappa number"]
+```
+
 ### 2.14 Configuration and secrets
 
 **Status:** Proposed. **Serves:** P-13.4, C-26, C-38, ADR-013. **Related:** 2.4, 2.11, 2.12.
@@ -583,6 +746,18 @@ Anything that varies by environment or that we may need to change lives in AWS.
 | JWT signing key, third-party tokens | Secret | Secrets Manager | Only needed with real authentication (FULL, Task 19) |
 | Password hashes | Data | DynamoDB, salted one-way hash (P-13.4) | Not a secrets-store item |
 | GitHub connection for CDK Pipelines | Managed | AWS CodeConnections | Authorized by hand in the console |
+
+```mermaid
+flowchart LR
+  CODE["Repo: CDK and app code<br/>no secret values, no account id"] --> DEPLOY["cdk deploy<br/>account and region from the environment"]
+  DEV["Developer or CI<br/>shell or SSO, OIDC, no stored keys"] --> DEPLOY
+  DEPLOY --> SSM["SSM parameters<br/>model ids, Guardrail id and version"]
+  DEPLOY --> SM["Secrets Manager<br/>generated values, only if needed"]
+  KMS["KMS key"] -. "encrypts" .-> SM
+  LAM["Lambda<br/>env vars hold names and ARNs only"] -- "GetParameter, exact ARN" --> SSM
+  LAM -- "GetSecretValue and Decrypt, exact ARN" --> SM
+  BROWSER["Browser bundle<br/>VITE_ public config only"] -. "never reads" .-> SM
+```
 
 **Rules:**
 1. The repo holds no secret values and no AWS account ids. The account and region come from the
@@ -830,3 +1005,4 @@ session on 2026-11-04 and are **Proposed** until the team reviews them.
 |---|---|---|
 | 2026-11-04 | (initial) | First draft from the planning session. All designs Proposed, ADR-001 to ADR-012 Proposed. |
 | 2026-11-04 | #11 | Redacted the AWS account id. Added 2.14 Configuration and secrets, ADR-013, and Task 4.5. |
+| 2026-11-04 | #11 | Added 10 diagrams (safety, validator, routing, checkpoint status, fallback, Passive pipeline, personas, help ladder, stacks and CI/CD, demo scenes, secrets). Fixed a syntax error in the system context diagram. All 15 diagrams parse. |
