@@ -57,10 +57,9 @@ export class ApiStack extends cdk.Stack {
       memorySize: 512,
       environment: {
         MODEL_MODE: 'stub', // no Bedrock until Task 6; StubModel from fixtures
-        // The Aurora adapter is built (ADR-017). STORE_MODE stays 'json' as the safe default;
-        // flip to 'aurora' to run the backend on the deployed cluster. The AURORA_* coordinates
-        // below are what backend/store/factory.py reads, so flipping is a one-value change.
-        STORE_MODE: 'json',
+        // The Aurora adapter is built (ADR-017); the API runs on the deployed shared cluster.
+        // The AURORA_* coordinates below are what backend/store/factory.py reads.
+        STORE_MODE: 'aurora',
         AURORA_CLUSTER_ARN: props.clusterArn,
         AURORA_SECRET_ARN: props.secretArn,
         AURORA_DATABASE_NAME: props.databaseName,

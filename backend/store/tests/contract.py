@@ -13,14 +13,25 @@ from backend.store.repository import REPOSITORY_METHODS, DEFAULT_ANSWER_TIMEOUT_
 
 
 def check_repository(make_repo: Callable[[], Any]) -> None:
-    _implements_every_method(make_repo())
-    _evidence_is_monotonic(make_repo())
-    _history_is_time_ordered(make_repo())
-    _progress_upsert_idempotent(make_repo())
-    _teacher_config_default(make_repo())
-    _fallback_accepts_passive(make_repo())
-    _passive_cache_lookup(make_repo())
-    _open_flags_exclude_resolved(make_repo())
+    _implements_every_method(_seeded(make_repo))
+    _evidence_is_monotonic(_seeded(make_repo))
+    _history_is_time_ordered(_seeded(make_repo))
+    _progress_upsert_idempotent(_seeded(make_repo))
+    _teacher_config_default(_seeded(make_repo))
+    _fallback_accepts_passive(_seeded(make_repo))
+    _passive_cache_lookup(_seeded(make_repo))
+    _open_flags_exclude_resolved(_seeded(make_repo))
+
+
+# The test writes student-state rows for "stu-x". A relational adapter (Aurora) enforces the
+# StudentId -> STUDENT_PROFILE foreign key, so the student must exist before any child row.
+# The JSON adapter has no FKs and simply records it. Seeding through put_student (part of the
+# repository interface) keeps this adapter-agnostic. The referenced skill slug, step and
+# checkpoints come from the loaded master data (seed.sql); only the synthetic student is ours.
+def _seeded(make_repo: Callable[[], Any]) -> Any:
+    repo = make_repo()
+    repo.put_student({"studentId": "stu-x", "displayName": "Test Student", "synthetic": True})
+    return repo
 
 
 def _implements_every_method(repo: Any) -> None:
@@ -65,14 +76,17 @@ def _fallback_accepts_passive(repo: Any) -> None:
 
 
 def _passive_cache_lookup(repo: Any) -> None:
+    # featuresHash must be a real hex hash in the schema (CHECK ~ '^[a-f0-9]{8,64}$'); use a
+    # valid value so the contract exercises the same shape both adapters see in production.
+    features_hash = "abc12345"
     sig = {"signalId": "sig-1", "studentId": "stu-x", "signal": "steady",
            "hintStyle": "guiding_question", "angleToTry": None, "reason": "ok",
-           "evidenceRefs": [], "confidence": 0.7, "featuresHash": "abc123",
+           "evidenceRefs": [], "confidence": 0.7, "featuresHash": features_hash,
            "modelId": "rules", "promptVersion": "p1", "createdAt": "2026-11-04T10:00:00Z"}
     repo.write_passive_signal(sig)
-    hit = repo.get_cached_passive_signal("stu-x", "abc123", "p1")
+    hit = repo.get_cached_passive_signal("stu-x", features_hash, "p1")
     assert hit is not None and hit["signalId"] == "sig-1"
-    assert repo.get_cached_passive_signal("stu-x", "nope", "p1") is None
+    assert repo.get_cached_passive_signal("stu-x", "deadbeef", "p1") is None
 
 
 def _open_flags_exclude_resolved(repo: Any) -> None:

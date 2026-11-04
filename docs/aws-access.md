@@ -31,13 +31,19 @@ Each person uses their **own** temporary credentials. Nobody shares keys.
 - Copy `.env.example` to `.env.local` (gitignored) and set the mode switches. Most work needs no
   AWS at all: the defaults (`VITE_SERVICE_MODE=mock`, `MODEL_MODE=stub`, `STORE_MODE=json`) run the
   whole student loop on stubs (architecture 1.8).
-- **Store direction:** the deployed Aurora cluster is the backend's system of record, and the Aurora
-  store adapter is now built (`backend/store/aurora_repository.py`, ADR-017). Set `STORE_MODE=aurora`
-  to run the backend on the cluster via the Data API; it reads `AURORA_CLUSTER_ARN`, `AURORA_SECRET_ARN`,
-  and `AURORA_DATABASE_NAME` from the environment (the `ApiStack` Lambda already has these and the Data
-  API IAM wired). `STORE_MODE=json` remains the no-AWS default for local/demo work. The adapter passes
-  the same store contract suite as the JSON adapter; the live contract test (`test_aurora_live.py`) runs
-  post-deploy against the cluster when those two ARNs are set.
+- **Store direction:** the deployed Aurora cluster is the backend's system of record. The deployed
+  API (`CodeAI-ApiStack`) runs on it — `STORE_MODE=aurora`, with `AURORA_CLUSTER_ARN`,
+  `AURORA_SECRET_ARN`, `AURORA_DATABASE_NAME` and the Data API IAM policy wired in by the stack. The
+  adapter (`backend/store/aurora_repository.py`, ADR-017) passes the same store contract suite as the
+  JSON adapter, verified against the live cluster (`test_aurora_live.py`). `STORE_MODE=json` remains
+  the no-AWS default for isolated local/demo work.
+- **One shared Aurora cluster — do not deploy your own.** There is exactly one cluster
+  (`CodeAI-DataStack`); everyone points at it. Only the infra owner runs `cdk deploy CodeAI-DataStack`
+  (a second deploy of the same stack clobbers the first). To run the backend against it locally, read
+  the ARNs from the stack outputs into your gitignored `.env.local` (`STORE_MODE=aurora` plus the three
+  `AURORA_*` vars) — never a literal ARN in the repo (ADR-013). It is **shared state**: everyone's
+  reads and writes land in the same tables, so prefer `STORE_MODE=json` for isolated work, and do not
+  run the live contract test against it casually (it writes under the synthetic id `stu-x`).
 
 ## 3. Reaching the deployed resources
 
