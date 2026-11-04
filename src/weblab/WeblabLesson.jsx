@@ -3,6 +3,8 @@ import { LESSON, FIRST_LEVEL_ID, getLevel } from './courseData.js'
 import { validateSubmission, routeNextLevel, buildNudge } from './engine.js'
 import Preview from './Preview.jsx'
 import Tutor from './Tutor.jsx'
+import CodeHint from './CodeHint.jsx'
+import CodeHintCard from './CodeHintCard.jsx'
 
 // Adaptive Web Lab, styled to match the CodeAI studio layout:
 //  top bar  — CODE∆I logo, skill-tree / project pills, user menu
@@ -30,6 +32,18 @@ export default function WeblabLesson({ user, onExit, onViewSkillTree }) {
   const [banner, setBanner] = useState(null)
   const [nudge, setNudge] = useState(null)
   const [menuOpen, setMenuOpen] = useState(false)
+  const [showWhere, setShowWhere] = useState(false)
+  // Target of the hint step the student is currently viewing (from the
+  // tutor). When set, the inline arrow/comment auto-follows the hint step.
+  const [activeStepTarget, setActiveStepTarget] = useState(null)
+  const [editorScrollTop, setEditorScrollTop] = useState(0)
+  // Undo history (snapshots of {html, css}) and the code the current level
+  // started from, so the student can step back or clear their changes.
+  const [undoStack, setUndoStack] = useState([])
+  const [levelStart, setLevelStart] = useState({
+    html: level.starter?.html ?? '',
+    css: level.starter?.css ?? '',
+  })
 
   const [seconds, setSeconds] = useState(0)
   useEffect(() => {
@@ -45,13 +59,27 @@ export default function WeblabLesson({ user, onExit, onViewSkillTree }) {
     return () => clearTimeout(idleRef.current)
   }, [levelId, phase, nudge, level])
 
+  // When the active hint step points at a specific file, switch the editor to
+  // that file so the inline arrow is visible on the right tab.
+  useEffect(() => {
+    const f = activeStepTarget?.code?.file
+    if (f && f !== activeFile) setActiveFile(f)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeStepTarget])
+
   function loadLevel(next, reason) {
     setLevelId(next.id)
     setHistory((h) => [...h, next.id])
+    // Determine the code this level starts from: fresh starter if provided,
+    // otherwise the code carried forward from the previous level.
+    const startHtml = next.starter ? (next.starter.html ?? '') : html
+    const startCss = next.starter ? (next.starter.css ?? '') : css
     if (next.starter) {
-      setHtml(next.starter.html ?? '')
-      setCss(next.starter.css ?? '')
+      setHtml(startHtml)
+      setCss(startCss)
     }
+    setLevelStart({ html: startHtml, css: startCss })
+    setUndoStack([])
     setPhase('working')
     setNudge(null)
     const labels = {
@@ -93,11 +121,43 @@ export default function WeblabLesson({ user, onExit, onViewSkillTree }) {
 
   const activeCode = activeFile === 'styles.css' ? css : html
   const setActiveCode = (val) => {
+    // Snapshot current buffers for undo (cap history to keep memory bounded).
+    setUndoStack((st) => [...st.slice(-49), { html, css }])
     if (activeFile === 'styles.css') setCss(val)
     else setHtml(val)
     setOutOfDate(true)
   }
+
+  function undo() {
+    setUndoStack((st) => {
+      if (st.length === 0) return st
+      const prev = st[st.length - 1]
+      setHtml(prev.html)
+      setCss(prev.css)
+      setOutOfDate(true)
+      return st.slice(0, -1)
+    })
+  }
+
+  function resetLevel() {
+    setHtml(levelStart.html)
+    setCss(levelStart.css)
+    setUndoStack([])
+    setOutOfDate(true)
+  }
+
+  const canUndo = undoStack.length > 0
+  const isDirty = html !== levelStart.html || css !== levelStart.css
   const lineCount = activeCode.split('\n').length
+  // The active hint step's target (if the student is viewing a hint) takes
+  // priority and auto-shows; otherwise the manual "Show me where" toggle shows
+  // the level's default target.
+  const stepCode = activeStepTarget?.code || null
+  const stepWeb = activeStepTarget?.web || null
+  const codeTarget = stepCode
+    ? (stepCode.file === activeFile ? stepCode : null)
+    : (showWhere && level.targets?.code?.file === activeFile ? level.targets.code : null)
+  const webHighlight = stepWeb || (showWhere ? level.targets?.web : null)
 
   if (phase === 'complete') {
     return (
@@ -154,6 +214,7 @@ export default function WeblabLesson({ user, onExit, onViewSkillTree }) {
           onDismissNudge={() => setNudge(null)}
           onHintRevealed={() => setHintsUsed((n) => n + 1)}
           onBackToMap={onExit}
+          onActiveStepTarget={setActiveStepTarget}
         />
 
         <main className="ca-workspace">
@@ -201,12 +262,44 @@ export default function WeblabLesson({ user, onExit, onViewSkillTree }) {
                       spellCheck={false}
                       value={activeCode}
                       onChange={(e) => setActiveCode(e.target.value)}
+                      onScroll={(e) => setEditorScrollTop(e.target.scrollTop)}
                     />
+                    {codeTarget && (
+                      <CodeHint code={activeCode} target={codeTarget} scrollTop={editorScrollTop} />
+                    )}
                   </div>
+                  {codeTarget && <CodeHintCard target={codeTarget} />}
                   <div className="ca-runbar">
                     <button type="button" className="ca-btn ca-btn--outline ca-btn--sm" onClick={run} disabled={busy}>▸ Run</button>
                     <button type="button" className="ca-btn ca-btn--primary ca-btn--sm" onClick={submit} disabled={busy}>
                       {phase === 'validating' ? 'Checking…' : phase === 'routing' ? 'Finding next step…' : 'Submit & continue'}
+                    </button>
+                    <button
+                      type="button"
+                      className={`ca-btn ca-btn--sm ${showWhere ? 'ca-btn--primary' : 'ca-btn--outline'}`}
+                      onClick={() => setShowWhere((v) => !v)}
+                      aria-pressed={showWhere}
+                    >
+                      {showWhere ? '✓ Showing where' : '📍 Show me where'}
+                    </button>
+                    <span className="ca-runbar-sep" aria-hidden="true" />
+                    <button
+                      type="button"
+                      className="ca-btn ca-btn--ghost ca-btn--sm"
+                      onClick={undo}
+                      disabled={!canUndo || busy}
+                      title="Step back one change"
+                    >
+                      ↶ Undo
+                    </button>
+                    <button
+                      type="button"
+                      className="ca-btn ca-btn--ghost ca-btn--sm"
+                      onClick={() => { if (window.confirm('Clear your changes and start this step from the beginning?')) resetLevel() }}
+                      disabled={!isDirty || busy}
+                      title="Clear your changes and restore the starting code"
+                    >
+                      ⟲ Reset
                     </button>
                     {busy && <span className="ca-run-status">{phase === 'validating' ? 'AI is checking your work…' : 'Choosing your next step…'}</span>}
                   </div>
@@ -215,7 +308,7 @@ export default function WeblabLesson({ user, onExit, onViewSkillTree }) {
             )}
 
             {workspaceView !== 'code' && (
-              <Preview html={rendered.html} css={rendered.css} onRun={run} outOfDate={outOfDate} />
+              <Preview html={rendered.html} css={rendered.css} onRun={run} outOfDate={outOfDate} highlight={webHighlight} />
             )}
           </div>
         </main>

@@ -17,6 +17,7 @@ export default function Tutor({
   onDismissNudge,
   onHintRevealed,
   onBackToMap,
+  onActiveStepTarget,
 }) {
   const [messages, setMessages] = useState([
     {
@@ -33,6 +34,15 @@ export default function Tutor({
   useEffect(() => {
     setHint(null)
   }, [level.id])
+
+  // Report the currently-revealed hint step's target up to the lesson so the
+  // inline arrow/comment auto-follows each hint step. Null when no hint shown.
+  useEffect(() => {
+    if (!onActiveStepTarget) return
+    if (!hint) { onActiveStepTarget(null); return }
+    const t = level.hint?.stepTargets?.[hint.revealed - 1] || null
+    onActiveStepTarget(t)
+  }, [hint, level.id, onActiveStepTarget])
 
   function startHint(h) {
     if (!h) return
