@@ -8,7 +8,29 @@ import { getObjective } from './courseData.js'
 export default function LearnCard({ objectiveId, objective, projectTitle, onStart }) {
   const obj = objective || getObjective(objectiveId)
   const lesson = obj?.lesson
-  if (!obj || !lesson) return null
+  // With no teach-first content, show a minimal intro + start button rather than
+  // rendering nothing (which would blank the center column for tree-driven objectives).
+  if (!lesson) {
+    return (
+      <section className="wf-learn2" aria-labelledby="wf-learn2-title">
+        <div className="wf-learn2-head">
+          <span className="wf-learn2-eyebrow"><span aria-hidden="true">📘</span> Learn this first</span>
+          <h2 id="wf-learn2-title" className="wf-learn2-title">{obj?.title || 'Your next skill'}</h2>
+          {projectTitle && (
+            <p className="wf-learn2-project">
+              <span aria-hidden="true">🎯</span> You'll use this on <strong>{projectTitle}</strong>.
+            </p>
+          )}
+        </div>
+        <p className="wf-learn2-intro">Ready when you are — jump into the task and use the AI Tutor for a hint anytime.</p>
+        <div className="wf-learn2-actions">
+          <button type="button" className="wf-btn wf-btn--blue" onClick={onStart}>
+            Start the task →
+          </button>
+        </div>
+      </section>
+    )
+  }
 
   return (
     <section className="wf-learn2" aria-labelledby="wf-learn2-title">
