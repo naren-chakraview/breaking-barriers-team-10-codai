@@ -23,6 +23,11 @@ from typing import Any, Callable, Mapping, Optional, Sequence
 
 CONFIDENCE_MIN = 0.6  # C-16 / P-19.4
 
+# The contract caps evidence at 240 (C-16); the success path truncates to it. This is a
+# much larger sanity ceiling: past it the output is garbage (the model dumped the project),
+# which is a real validity failure rather than a chatty-but-usable judgment.
+_EVIDENCE_HARD_MAX = 4000
+
 _FALLBACK_COMPONENT = "validation"
 
 
@@ -55,7 +60,8 @@ def build_judge_prompt(
         "Return ONLY a JSON object with exactly these keys and no prose:\n"
         '{"skillId": string, "evidenceLevel": integer 0..' + str(max_level) + ", "
         '"conditionMet": boolean, "confidence": number 0..1, "evidence": string <=240 chars}\n'
-        "Base the level on the evidence descriptors. Set confidence to how sure you are."
+        "Base the level on the evidence descriptors. Set confidence to how sure you are. "
+        "Keep \"evidence\" to one short sentence, well under 240 characters."
     )
     user = "Grade the submission described in the provided material."
     untrusted: list[str] = []
@@ -106,8 +112,14 @@ def _well_formed(output: Mapping[str, Any], skill_id: str, max_level: int) -> Op
     conf = output["confidence"]
     if not isinstance(conf, (int, float)) or isinstance(conf, bool) or not (0 <= conf <= 1):
         return "confidence not in 0..1"
-    if not isinstance(output["evidence"], str) or len(output["evidence"]) > 240:
-        return "evidence missing or too long"
+    # Evidence must be a string. Length is NOT a validity gate: the contract caps it at 240
+    # (C-16) and the success path truncates to 240, so a slightly chatty justification is
+    # trimmed, not thrown away. Only a pathological blob (e.g. the model echoed the whole
+    # project) is rejected, which also guards the repair path.
+    if not isinstance(output["evidence"], str):
+        return "evidence missing"
+    if len(output["evidence"]) > _EVIDENCE_HARD_MAX:
+        return "evidence absurdly long"
     return None
 
 
@@ -164,7 +176,8 @@ def validate_project(
         repair_prompt = dict(prompt)
         repair_prompt["user"] = (
             "Your previous reply was not valid. Return ONLY the JSON object with the required "
-            "keys and nothing else."
+            "keys and nothing else. Keep the \"evidence\" value to one short sentence, "
+            "well under 240 characters."
         )
         res2 = _call(repair_prompt, "validate@1-repair")
         if not res2.get("ok"):
