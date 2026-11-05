@@ -23,9 +23,16 @@ const dataStack = new DataStack(app, 'CodeAI-DataStack', {
     'CodeAI student-state store: Aurora Serverless v2 (PostgreSQL, scale-to-zero, Data API) + KMS (ADR-016).',
 })
 
-// Pass the data-tier resources to the API by reference (CloudFormation exports/imports),
-// never as literal ARNs in the repo (ADR-013). CDK adds the cross-stack dependency so
-// DataStack deploys first.
+// The Guardrail is created before the API so the API can be granted kms:Decrypt on the
+// guardrail's CMK (required for Converse with the guardrail attached).
+const guardrailStack = new GuardrailStack(app, 'CodeAI-GuardrailStack', {
+  env,
+  description: 'CodeAI Bedrock Guardrail for K-12 content safety (C-25, P-18).',
+})
+
+// Pass the data-tier resources and the guardrail key to the API by reference (CloudFormation
+// exports/imports), never as literal ARNs in the repo (ADR-013). CDK adds the cross-stack
+// dependencies so DataStack and GuardrailStack deploy first.
 new ApiStack(app, 'CodeAI-ApiStack', {
   env,
   description:
@@ -34,11 +41,7 @@ new ApiStack(app, 'CodeAI-ApiStack', {
   databaseName: dataStack.dbName,
   secretArn: dataStack.cluster.secret!.secretArn,
   dataApiAccessPolicy: dataStack.dataApiAccessPolicy,
-})
-
-new GuardrailStack(app, 'CodeAI-GuardrailStack', {
-  env,
-  description: 'CodeAI Bedrock Guardrail for K-12 content safety (C-25, P-18).',
+  guardrailKey: guardrailStack.guardrailKey,
 })
 
 // cdk-nag runs on every synth (architecture 2.11). Findings are surfaced, not silently passed.

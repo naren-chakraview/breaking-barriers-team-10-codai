@@ -2,6 +2,7 @@ import * as cdk from 'aws-cdk-lib'
 import { Duration } from 'aws-cdk-lib'
 import * as apigw from 'aws-cdk-lib/aws-apigateway'
 import * as iam from 'aws-cdk-lib/aws-iam'
+import * as kms from 'aws-cdk-lib/aws-kms'
 import * as lambda from 'aws-cdk-lib/aws-lambda'
 import * as logs from 'aws-cdk-lib/aws-logs'
 import { NagSuppressions } from 'cdk-nag'
@@ -22,6 +23,11 @@ export interface ApiStackProps extends cdk.StackProps {
   readonly secretArn: string
   /** The DataStack managed policy granting rds-data:*, GetSecretValue, kms:Decrypt. */
   readonly dataApiAccessPolicy: iam.IManagedPolicy
+  /**
+   * The GuardrailStack CMK that encrypts the Guardrail config. The Lambda needs kms:Decrypt
+   * on it so Converse/ApplyGuardrail with the guardrail attached is not rejected by Bedrock.
+   */
+  readonly guardrailKey: kms.IKey
 }
 
 /**
@@ -81,7 +87,7 @@ export class ApiStack extends cdk.Stack {
     // source of truth for data-tier access, so the API and agents stay in sync.
     fn.role!.addManagedPolicy(props.dataApiAccessPolicy)
 
-    this.grantModelAccess(fn)
+    this.grantModelAccess(fn, props.guardrailKey)
 
     // Access log: request metadata only (standard fields: ip, method, path, status, latency).
     // API Gateway access logs never include request or response bodies, so no student text
@@ -139,7 +145,7 @@ export class ApiStack extends cdk.Stack {
    *   - Read the model ids + guardrail id/version from SSM at cold start (architecture 2.14).
    * Account/region come from the stack env, never the repo (ADR-013).
    */
-  private grantModelAccess(fn: lambda.Function): void {
+  private grantModelAccess(fn: lambda.Function, guardrailKey: kms.IKey): void {
     const { account, region } = cdk.Stack.of(this)
 
     fn.addToRolePolicy(
@@ -168,6 +174,12 @@ export class ApiStack extends cdk.Stack {
         resources: [`arn:aws:ssm:${region}:${account}:parameter/codeai/*`],
       }),
     )
+    // The Guardrail config is encrypted with the GuardrailStack CMK. When Converse runs with
+    // the guardrail attached, Bedrock decrypts that config as the caller, so the Lambda role
+    // needs kms:Decrypt on the key — otherwise Converse fails with "You do not have access to
+    // the guardrail's KMS key" and the invoke wrapper falls back to the rule baseline (C-22).
+    // grantDecrypt adds kms:Decrypt (+ DescribeKey) scoped to this key and updates its policy.
+    guardrailKey.grantDecrypt(fn)
   }
 
   /**
@@ -275,7 +287,7 @@ export class ApiStack extends cdk.Stack {
       {
         id: 'AwsSolutions-IAM5',
         reason:
-          'Bedrock model access (Task 6, C-27) is scoped by service and resource type but keeps a resource wildcard within it: bedrock:InvokeModel on foundation-model/* and this account/region inference-profile/* (the models are chosen at runtime from SSM, so the exact id is not known at synth), ApplyGuardrail on this account/region guardrail/*, and ssm:GetParameter on parameter/codeai/* (the config namespace this app owns). No cross-account or cross-service wildcard.',
+          'Bedrock model access (Task 6, C-27) is scoped by service and resource type but keeps a resource wildcard within it: bedrock:InvokeModel on foundation-model/* and this account/region inference-profile/* (the models are chosen at runtime from SSM, so the exact id is not known at synth), ApplyGuardrail on this account/region guardrail/*, and ssm:GetParameter on parameter/codeai/* (the config namespace this app owns). kms:Decrypt is scoped to the single GuardrailStack key ARN (required so Converse can decrypt the guardrail config). No cross-account or cross-service wildcard.',
       },
     ])
   }
