@@ -46,6 +46,15 @@ def submit_step(deps: "Deps", args: Mapping[str, Any], ctx: Mapping[str, Any]) -
     if not student_id:
         return _fallback_response(step_id, correlation_id)
 
+    # Ensure a STUDENT_PROFILE row exists before any attempt/evidence write: the
+    # student-state tables FK to it (step_attempt_studentid_fkey). A first-time student
+    # (any id not pre-seeded) would otherwise fail the insert. Idempotent upsert (C-24).
+    repo.put_student({
+        "studentId": student_id,
+        "displayName": ctx.get("displayName") or student_id,
+        "synthetic": False,
+    })
+
     found = find_step(tree, step_id)
     if not found:
         return _recorded_response(step_id, correlation_id, next_=None, source="none")
