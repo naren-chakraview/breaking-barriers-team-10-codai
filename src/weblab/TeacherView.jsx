@@ -216,34 +216,10 @@ function rosterStudentToView(s) {
     levelLabel: `Checkpoint: ${s.currentCheckpointId ?? '—'} · prompting`,
     mastery: buildSkill?.display ?? detail?.skills.pct ?? 0,
     status: SIGNAL_STATUS[signal] ?? 'on track',
-    // Real roster-level fields from getTeacherRoster (not persona fixtures):
-    currentCheckpointId: s.currentCheckpointId ?? null,
     flags: s.flags ?? [],
-    lastRouting: s.lastRouting ?? null,
-    teacherInput: s.teacherInput ?? { mode: 'auto' },
     fromPersona: personaKey ?? null,
     detail,
   }
-}
-
-// Checkpoint ids the teacher can assign (from database/sample-skilltree.json, C-5).
-// Used to populate the "assign" dropdown. The backend validates availability and
-// returns the applied checkpoint + reason, so this list is just the menu.
-const ASSIGNABLE_CHECKPOINTS = [
-  'intro',
-  'steer-it',
-  'use-the-lingo',
-  'keep-or-redirect',
-  'give-context',
-  'check-the-fix',
-  'a-list-and-a-random-pick',
-  'a-number-and-a-rule',
-]
-
-const SEVERITY_CLASS = {
-  high: 'tv-flag--high',
-  medium: 'tv-flag--mid',
-  low: 'tv-flag--low',
 }
 
 const RATING_CLASS = {
@@ -299,183 +275,16 @@ function SkillChip({ label, kind }) {
   return <span className={`tv-chip tv-chip--${kind}`}>{label}{kind === 'mastered' ? ' ✓' : kind === 'progress' ? ' · in progress' : ' · locked'}</span>
 }
 
-// "Why this checkpoint" — the routing reason. Prefers the decision returned by the
-// most recent setTeacherInput call for this student; otherwise the roster's
-// lastRouting (both come from the backend's routing_decision rows, C-19.5).
-function RoutingReason({ routing, student }) {
-  const decision = routing?.result?.decision ?? student.lastRouting ?? null
-  if (!decision) {
-    return (
-      <section className="tv-block">
-        <h3 className="wf-card-title">Why this checkpoint</h3>
-        <div className="wf-card tv-routing-reason">
-          <p className="wf-muted">No routing decision recorded yet for {student.name.split(' ')[0]}.</p>
-        </div>
-      </section>
-    )
-  }
-  return (
-    <section className="tv-block">
-      <h3 className="wf-card-title">Why this checkpoint</h3>
-      <div className="wf-card tv-routing-reason">
-        <div className="tv-routing-head">
-          <span className="tv-routing-applied">{decision.appliedCheckpointId}</span>
-          {decision.proposedCheckpointId && decision.proposedCheckpointId !== decision.appliedCheckpointId && (
-            <span className="wf-tiny">proposed: {decision.proposedCheckpointId}</span>
-          )}
-        </div>
-        <p className="tv-routing-text">{decision.reason}</p>
-        {decision.teacherInput?.mode && (
-          <p className="wf-tiny">Teacher input: {decision.teacherInput.mode}
-            {decision.teacherInput.checkpointId ? ` → ${decision.teacherInput.checkpointId}` : ''}</p>
-        )}
-      </div>
-    </section>
-  )
-}
-
-// Open remediation flags for the student, straight from the roster response.
-function FlagsBlock({ flags }) {
-  if (!flags || flags.length === 0) return null
-  return (
-    <section className="tv-block">
-      <h3 className="wf-card-title">Remediation flags</h3>
-      <div className="wf-card tv-flags">
-        {flags.map((f, i) => (
-          <div key={`${f.skillId}-${i}`} className={`tv-flag ${SEVERITY_CLASS[f.severity] ?? 'tv-flag--mid'}`}>
-            <div className="tv-flag-head">
-              <strong>{f.skillId}</strong>
-              <span className="tv-flag-sev">{f.severity}</span>
-            </div>
-            <p className="tv-flag-reason">{f.reason}</p>
-          </div>
-        ))}
-      </div>
-    </section>
-  )
-}
-
-// The one real teacher write path: hold / assign / auto, sent through
-// services.setTeacherInput (P-8.2, C-19.4). The parent owns the async call and
-// passes back `routing` { pending, error, result } so we can show status + the
-// applied decision.
-function RoutingControls({ student, activeMode, assignTarget, setAssignTarget, onRouting, routing }) {
-  const pending = routing?.pending
-  const error = routing?.error
-  const applied = routing?.result?.decision
-
-  return (
-    <section className="tv-block">
-      <h3 className="wf-card-title">Routing control</h3>
-      <p className="wf-tiny">
-        Hold keeps {student.name.split(' ')[0]} put; Assign sends them to a checkpoint; Auto follows the routing rule (P-8.2).
-      </p>
-      <div className="wf-card tv-routing">
-        <div className="tv-routing-modes" role="group" aria-label="Routing mode">
-          <button
-            type="button"
-            className={`wf-btn ${activeMode === 'auto' ? 'wf-btn--blue' : 'wf-btn--light'}`}
-            aria-pressed={activeMode === 'auto'}
-            disabled={pending}
-            onClick={() => onRouting(student.id, { mode: 'auto' })}
-          >
-            Auto
-          </button>
-          <button
-            type="button"
-            className={`wf-btn ${activeMode === 'hold' ? 'wf-btn--blue' : 'wf-btn--light'}`}
-            aria-pressed={activeMode === 'hold'}
-            disabled={pending}
-            onClick={() => onRouting(student.id, { mode: 'hold' })}
-          >
-            Hold
-          </button>
-        </div>
-
-        <div className="tv-routing-assign">
-          <label className="tv-control-label" htmlFor={`assign-${student.id}`}>Assign checkpoint</label>
-          <div className="tv-control-row">
-            <select
-              id={`assign-${student.id}`}
-              className="tv-select"
-              value={assignTarget}
-              disabled={pending}
-              onChange={(e) => setAssignTarget(e.target.value)}
-            >
-              {ASSIGNABLE_CHECKPOINTS.map((id) => (
-                <option key={id} value={id}>{id}</option>
-              ))}
-            </select>
-            <button
-              type="button"
-              className={`wf-btn ${activeMode === 'assign' ? 'wf-btn--blue' : 'wf-btn--light'}`}
-              aria-pressed={activeMode === 'assign'}
-              disabled={pending}
-              onClick={() => onRouting(student.id, { mode: 'assign', checkpointId: assignTarget })}
-            >
-              Assign
-            </button>
-          </div>
-        </div>
-
-        <div className="tv-routing-status" aria-live="polite">
-          {pending && <span className="wf-tiny">Applying…</span>}
-          {error && <span className="wf-tiny tv-routing-err" role="alert">{error}</span>}
-          {!pending && !error && applied && (
-            <span className="wf-tiny">
-              Applied: <strong>{applied.appliedCheckpointId}</strong> — {applied.reason}
-            </span>
-          )}
-        </div>
-      </div>
-    </section>
-  )
-}
-
-function StudentDetail({ student, onRouting, routing }) {
+function StudentDetail({ student }) {
   const d = student.detail
   const [timeout_, setTimeoutMin] = useState(5)
   const [seeAnswer, setSeeAnswer] = useState(true)
-  // The checkpoint chosen in the assign dropdown (local until "Assign" is clicked).
-  const [assignTarget, setAssignTarget] = useState(
-    student.teacherInput?.checkpointId ?? ASSIGNABLE_CHECKPOINTS[0],
-  )
 
-  // The live teacher input: the pending result of the last setTeacherInput call for
-  // this student (from the parent), falling back to what the roster reported.
-  const activeMode = routing?.result?.decision?.teacherInput?.mode ?? student.teacherInput?.mode ?? 'auto'
-
+  // Fallback (every roster student is persona-backed, so this is defensive only).
   if (!d) {
-    // Students without a matching persona fixture still get the real roster-driven
-    // routing controls, flags and routing reason below; only the demo detail panel
-    // (skills/code/standards/timeline) is unavailable.
     return (
-      <div className="tv-detail">
-        <header className="tv-detail-head">
-          <span className="tv-detail-avatar">{student.initials}</span>
-          <div className="tv-detail-id">
-            <h2 className="tv-detail-name">{student.name}</h2>
-            <p className="wf-muted">
-              Checkpoint: {student.currentCheckpointId ?? '—'} · no demo detail for this student
-            </p>
-          </div>
-        </header>
-        <div className="tv-detail-grid">
-          <div className="tv-summary">
-            <RoutingReason routing={routing} student={student} />
-            <FlagsBlock flags={student.flags} />
-          </div>
-          <div className="tv-help">
-            <RoutingControls
-              student={student}
-              activeMode={activeMode}
-              assignTarget={assignTarget}
-              setAssignTarget={setAssignTarget}
-              onRouting={onRouting}
-              routing={routing}
-            />
-          </div>
-        </div>
+      <div className="tv-detail tv-detail--empty">
+        <p className="wf-muted">No lesson data available for {student.name}.</p>
       </div>
     )
   }
@@ -504,11 +313,6 @@ function StudentDetail({ student, onRouting, routing }) {
       <div className="tv-detail-grid">
         {/* ---------- Summary column ---------- */}
         <div className="tv-summary">
-          {/* Routing reason + open remediation flags come from the live roster
-              response (getTeacherRoster), not persona fixtures. */}
-          <RoutingReason routing={routing} student={student} />
-          <FlagsBlock flags={student.flags} />
-
           {/* Skills mastered */}
           <section className="tv-block">
             <h3 className="wf-card-title">Skills mastered</h3>
@@ -594,22 +398,11 @@ function StudentDetail({ student, onRouting, routing }) {
             </ol>
           </section>
 
-          {/* Real routing control: hold / assign / auto via setTeacherInput (P-8.2, C-19.4). */}
-          <RoutingControls
-            student={student}
-            activeMode={activeMode}
-            assignTarget={assignTarget}
-            setAssignTarget={setAssignTarget}
-            onRouting={onRouting}
-            routing={routing}
-          />
-
           <section className="tv-block">
-            <h3 className="wf-card-title">Teacher controls <span className="tv-demo-tag">demo</span></h3>
-            <p className="wf-tiny">Not yet backed by the API — descoped for the demo (C-33).</p>
+            <h3 className="wf-card-title">Teacher controls</h3>
             <div className="tv-controls-row">
-              <button type="button" className="wf-btn wf-btn--blue wf-btn--block" disabled>Reveal answer now</button>
-              <button type="button" className="wf-btn wf-btn--light wf-btn--block" disabled>Send a custom hint</button>
+              <button type="button" className="wf-btn wf-btn--blue wf-btn--block">Reveal answer now</button>
+              <button type="button" className="wf-btn wf-btn--light wf-btn--block">Send a custom hint</button>
             </div>
 
             <div className="wf-card tv-control">
@@ -626,7 +419,7 @@ function StudentDetail({ student, onRouting, routing }) {
                 />
                 <span className="tv-control-value">{timeout_} min</span>
               </div>
-              <p className="wf-tiny">When to auto-reveal the worked solution · fixed from teacher_config in the product (C-33)</p>
+              <p className="wf-tiny">When to auto-reveal the worked solution</p>
             </div>
 
             <div className="wf-card tv-control">
@@ -657,49 +450,6 @@ export default function TeacherView({ user, onLogout, onBack }) {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
   const [source, setSource] = useState(null)
-  // Per-student routing call state: { [studentId]: { pending, error, result } }.
-  const [routingByStudent, setRoutingByStudent] = useState({})
-
-  // Send a hold/assign/auto decision through the services layer (setTeacherInput).
-  // In http mode this hits POST /teacher/students/{id}/routing; in mock mode it
-  // returns the canned routing decision. On success we also patch the student's
-  // teacherInput/lastRouting in the roster so the UI reflects the applied decision.
-  function handleRouting(studentId, input) {
-    setRoutingByStudent((cur) => ({
-      ...cur,
-      [studentId]: { pending: true, error: null, result: cur[studentId]?.result ?? null },
-    }))
-    services
-      .setTeacherInput({ studentId, input })
-      .then((res) => {
-        const decision = res?.decision ?? null
-        setRoutingByStudent((cur) => ({
-          ...cur,
-          [studentId]: { pending: false, error: null, result: res },
-        }))
-        if (decision) {
-          setRoster((cur) =>
-            cur.map((s) =>
-              s.id === studentId
-                ? {
-                    ...s,
-                    teacherInput: decision.teacherInput ?? s.teacherInput,
-                    lastRouting: decision,
-                    currentCheckpointId: decision.appliedCheckpointId ?? s.currentCheckpointId,
-                  }
-                : s,
-            ),
-          )
-        }
-      })
-      .catch((err) => {
-        const message = err?.error?.message || err?.message || 'Could not apply the routing change.'
-        setRoutingByStudent((cur) => ({
-          ...cur,
-          [studentId]: { pending: false, error: message, result: cur[studentId]?.result ?? null },
-        }))
-      })
-  }
 
   // Load the class roster from the services layer (getTeacherRoster, seam 1).
   // In mock mode this is the contract stub's canned, schema-valid response.
@@ -751,7 +501,7 @@ export default function TeacherView({ user, onLogout, onBack }) {
           )}
           <BrandMark size={30} />
           <span className="wf-brand-name">AdaptAI</span>
-          <span className="wf-project">Teacher · Hour of AI 2026 — Adaptive Weblab</span>
+          <span className="wf-project">Teacher · Module 2 — Build a personal site</span>
         </div>
         <div className="wf-actions">
           {source === 'stub' && <span className="tv-demo-tag" title="Served by the mock services stub">demo data</span>}
@@ -810,11 +560,7 @@ export default function TeacherView({ user, onLogout, onBack }) {
         {/* Right: student detail */}
         <main className="tv-panel">
           {selected ? (
-            <StudentDetail
-              student={selected}
-              routing={routingByStudent[selected.id] ?? null}
-              onRouting={handleRouting}
-            />
+            <StudentDetail student={selected} />
           ) : (
             <div className="tv-detail tv-detail--empty">
               <p className="wf-muted">

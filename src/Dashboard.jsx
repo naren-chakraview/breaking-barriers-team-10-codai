@@ -4,6 +4,9 @@ import TeacherClasses from './TeacherClasses.jsx'
 import TeacherView from './weblab/TeacherView.jsx'
 
 export default function Dashboard({ user, onLogout, onContinueLesson, onStartLesson, onViewCourse }) {
+  // Teacher flow: the classes landing page first, then the classroom dashboard.
+  const [teacherView, setTeacherView] = useState('classes')
+
   if (user.role === 'student') {
     return (
       <StudentDashboard
@@ -16,7 +19,8 @@ export default function Dashboard({ user, onLogout, onContinueLesson, onStartLes
     )
   }
 
-  // Teacher: classes landing page -> classroom dashboard.
+  // Teacher: classes landing page -> classroom dashboard (persona-driven
+  // mock-data TeacherView). Back returns to the landing page.
   if (teacherView === 'course') {
     return (
       <TeacherView
