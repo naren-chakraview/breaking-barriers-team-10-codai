@@ -18,6 +18,14 @@ import { Construct } from 'constructs'
  * Lambda role is wired (invoke task).
  */
 export class GuardrailStack extends cdk.Stack {
+  /**
+   * The CMK that encrypts the Guardrail config. A caller that runs Converse/ApplyGuardrail
+   * with this guardrail must be granted kms:Decrypt on it, or Bedrock rejects the call with
+   * "You do not have access to the guardrail's KMS key". Exposed so ApiStack can grant its
+   * Lambda role that access (wired in bin/codeai.ts).
+   */
+  public readonly guardrailKey: kms.IKey
+
   constructor(scope: Construct, id: string, props?: cdk.StackProps) {
     super(scope, id, props)
 
@@ -26,6 +34,7 @@ export class GuardrailStack extends cdk.Stack {
       enableKeyRotation: true,
       removalPolicy: RemovalPolicy.DESTROY, // hackathon teardown
     })
+    this.guardrailKey = key
 
     // HIGH strength on every harmful category for both input and output — a minors'
     // audience warrants the strictest content filtering (P-18.4). PROMPT_ATTACK is
