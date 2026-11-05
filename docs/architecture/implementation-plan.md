@@ -268,7 +268,7 @@ Owner: ____ · Serves: C-35, C-36, C-37, C-38 · Discrepancy items 1, 2
 - [x] `.gitattributes` with `* text=auto eol=lf` pushed to `main` (`f67c681`)
 - [x] Confirmed no CRLF churn in this checkout (`git add --renormalize .` is a no-op here)
 - [ ] Teammates with CRLF churn have synced (`git diff --ignore-cr-at-eol` is empty, then discard)
-- [ ] Rename `package.json` `name` from `login-app` to `codeai-adaptive` (**still `login-app`**)
+- [x] Rename `package.json` `name` from `login-app` to `codeai-adaptive`
 - [x] Add Vitest and a first passing test (vitest suite: 139 tests)
 - [ ] Add lint (ESLint) and a `npm run lint` script
 - [x] GitHub Actions workflow on PRs: JS, Python, `cdk synth` (`.github/workflows/ci.yml`, #28)
@@ -279,7 +279,7 @@ Owner: ____ · Serves: C-35, C-36, C-37, C-38 · Discrepancy items 1, 2
 - [ ] Secret scanning in CI: gitleaks on every PR, failing the build on a finding
 - [ ] GitHub secret scanning and push protection enabled on the repo (needs repo admin)
 - [ ] Scan the existing history once for leaked keys or the AWS account id and report the result
-- [ ] Add a `LICENSE` (default MIT-0) before judging
+- [x] Add a `LICENSE` (MIT-0) before judging
 - [ ] Branch protection expectations agreed (one review, squash merge)
 
 **Tests:** the workflow passes on a trivial test. **Demo:** a PR with a green check.
