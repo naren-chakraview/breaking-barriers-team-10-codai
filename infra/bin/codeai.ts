@@ -26,7 +26,12 @@ const dataStack = new DataStack(app, 'CodeAI-DataStack', {
 // Pass the data-tier resources to the API by reference (CloudFormation exports/imports),
 // never as literal ARNs in the repo (ADR-013). CDK adds the cross-stack dependency so
 // DataStack deploys first.
-new ApiStack(app, 'CodeAI-ApiStack', {
+const guardrailStack = new GuardrailStack(app, 'CodeAI-GuardrailStack', {
+  env,
+  description: 'CodeAI Bedrock Guardrail for K-12 content safety (C-25, P-18).',
+})
+
+const apiStack = new ApiStack(app, 'CodeAI-ApiStack', {
   env,
   description:
     'CodeAI REST API (C-29): routes, throttling, usage plan, Python router on Bedrock + Aurora.',
@@ -36,10 +41,12 @@ new ApiStack(app, 'CodeAI-ApiStack', {
   dataApiAccessPolicy: dataStack.dataApiAccessPolicy,
 })
 
-new GuardrailStack(app, 'CodeAI-GuardrailStack', {
-  env,
-  description: 'CodeAI Bedrock Guardrail for K-12 content safety (C-25, P-18).',
-})
+// The API Lambda reads the Guardrail + model ids from SSM (/codeai/*) at cold start. That is
+// a runtime read, not a CloudFormation reference, so CDK would not otherwise order the stacks.
+// Declare it explicitly so `cdk deploy --all` always lands GuardrailStack (which writes those
+// params) before the API that reads them. (DataStack ordering is already handled by the
+// cross-stack refs above.)
+apiStack.addDependency(guardrailStack)
 
 // cdk-nag runs on every synth (architecture 2.11). Findings are surfaced, not silently passed.
 Aspects.of(app).add(new AwsSolutionsChecks({ verbose: true }))
