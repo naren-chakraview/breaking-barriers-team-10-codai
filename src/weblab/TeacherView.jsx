@@ -3,6 +3,8 @@ import './teacherView.css'
 import { BrandMark } from '../Brand.jsx'
 import { personas } from '../../shared/contracts/fixtures/index.js'
 import { createServices } from '../services/provider.js'
+import PersonaReplay from './PersonaReplay.jsx'
+import { REPLAYS_BY_STUDENT, SIGNAL_INFO, nudgesFor } from './adaptation.js'
 
 // Build the seam-1 services object from the active mode (VITE_SERVICE_MODE).
 // Uses the team's provider (src/services/provider.js); mock mode returns the
@@ -30,14 +32,8 @@ const STATUS = {
   behind: { dot: '#ef4444', ink: '#b91c1c', label: 'behind' },
 }
 
-// The Passive agent's signal, shown to the teacher as an observation (not a verdict).
-const SIGNAL_INFO = {
-  speed_up: { label: 'Speed up', tone: 'good', hint: 'Breezing through — ready for a deeper challenge.' },
-  slow_down: { label: 'Slow down', tone: 'low', hint: 'Repeated misses on the same skill — needs more scaffolding.' },
-  redirect: { label: 'Redirect', tone: 'mid', hint: 'Over-focused on cosmetic detail — nudge back to the goal.' },
-  reengage: { label: 'Re-engage', tone: 'mid', hint: 'Low-effort submits with long gaps — gently re-engage.' },
-  steady: { label: 'Steady', tone: 'good', hint: 'On a healthy pace.' },
-}
+// The Passive agent's signal (SIGNAL_INFO, adaptation.js) is shown to the teacher as an
+// observation, not a verdict.
 
 // Build a detail object (the shape StudentDetail renders) from a persona fixture
 // in shared/contracts/fixtures. This surfaces the real synthetic persona data —
@@ -221,6 +217,9 @@ function rosterStudentToView(s) {
     flags: s.flags ?? [],
     lastRouting: s.lastRouting ?? null,
     teacherInput: s.teacherInput ?? { mode: 'auto' },
+    passive: s.passive ?? null,
+    evidence: s.mastery ?? [],
+    synthetic: Boolean(s.synthetic),
     fromPersona: personaKey ?? null,
     detail,
   }
@@ -290,8 +289,32 @@ function RosterRow({ student, selected, onOpen }) {
           </span>
         </span>
         <StatusPill status={student.status} />
+        <RosterChips student={student} />
       </button>
     </li>
+  )
+}
+
+// Roster chips (Task 8c): the Passive signal, its reason and the evidence behind it, so
+// the teacher sees each student's adaptation at a glance without opening the detail.
+function RosterChips({ student }) {
+  const p = student.passive
+  const info = p ? SIGNAL_INFO[p.signal] : null
+  const high = student.flags.some((f) => f.severity === 'high')
+  return (
+    <span className="tv-row-chips">
+      <span className="tv-row-chipline">
+        {info && <span className={`tv-chip-signal tv-chip-signal--${info.tone}`} title={p.reason}>{info.label}</span>}
+        {p && nudgesFor(p.signal) && <span className="tv-chip-mini">nudge</span>}
+        {student.flags.length > 0 && (
+          <span className={`tv-chip-mini tv-chip-mini--flag ${high ? 'is-high' : ''}`}>⚑ {student.flags[0].skillId}{high ? ' · high' : ''}</span>
+        )}
+        {student.evidence.map((e) => (
+          <span key={e.skillId} className="tv-chip-mini" title={`${e.skillId} evidence level ${e.level} of ${e.max}`}>{e.skillId} {e.level}/{e.max}</span>
+        ))}
+      </span>
+      {p?.reason && <span className="tv-row-reason">{p.reason}</span>}
+    </span>
   )
 }
 
@@ -434,6 +457,8 @@ function RoutingControls({ student, activeMode, assignTarget, setAssignTarget, o
 
 function StudentDetail({ student, onRouting, routing }) {
   const d = student.detail
+  const replay = REPLAYS_BY_STUDENT[student.id] ?? null
+  const [tab, setTab] = useState('overview')
   const [timeout_, setTimeoutMin] = useState(5)
   const [seeAnswer, setSeeAnswer] = useState(true)
   // The checkpoint chosen in the assign dropdown (local until "Assign" is clicked).
@@ -501,6 +526,14 @@ function StudentDetail({ student, onRouting, routing }) {
         <button type="button" className="wf-btn wf-btn--light">Message student</button>
       </header>
 
+      {replay && (
+        <div className="tv-tabs" role="tablist" aria-label="Student detail views">
+          <button type="button" role="tab" aria-selected={tab === 'overview'} className={`tv-tab ${tab === 'overview' ? 'is-on' : ''}`} onClick={() => setTab('overview')}>Overview</button>
+          <button type="button" role="tab" aria-selected={tab === 'replay'} className={`tv-tab ${tab === 'replay' ? 'is-on' : ''}`} onClick={() => setTab('replay')}>▶ Replay history</button>
+        </div>
+      )}
+
+      {replay && tab === 'replay' ? <PersonaReplay replay={replay} /> : (
       <div className="tv-detail-grid">
         {/* ---------- Summary column ---------- */}
         <div className="tv-summary">
@@ -646,6 +679,7 @@ function StudentDetail({ student, onRouting, routing }) {
           </section>
         </div>
       </div>
+      )}
     </div>
   )
 }
@@ -761,6 +795,12 @@ export default function TeacherView({ user, onLogout, onBack }) {
         </div>
       </header>
 
+      {roster.some((s) => s.synthetic) && (
+        <div className="tv-synthetic-banner" role="note">
+          <strong>Synthetic student histories.</strong> These students are hand-authored personas (quick, slow, two distracted variants), not real student data. Open one and choose “Replay history” to step through how the engine adapted.
+        </div>
+      )}
+
       <div className="tv-body">
         {/* Left: roster */}
         <aside className="tv-roster">
@@ -811,6 +851,7 @@ export default function TeacherView({ user, onLogout, onBack }) {
         <main className="tv-panel">
           {selected ? (
             <StudentDetail
+              key={selected.id}
               student={selected}
               routing={routingByStudent[selected.id] ?? null}
               onRouting={handleRouting}

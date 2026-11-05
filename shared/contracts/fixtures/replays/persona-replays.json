@@ -1,0 +1,1756 @@
+{
+  "generatedBy": "PYTHONPATH=. python -m shared.core.replay --write",
+  "synthetic": true,
+  "personas": {
+    "quick": {
+      "persona": "quick",
+      "student": {
+        "studentId": "stu-quick",
+        "displayName": "Quick Quinn",
+        "synthetic": true
+      },
+      "description": "Quick learner. Strong diagnostic (level 2 on every skill), first-try success, no hints. The three skippable checkpoints are tested out after intro, so the student moves ahead to keep-or-redirect. Synthetic: no real student data. Track G refines the wording; ids and levels must stay valid (tests/fixtures.test.js).",
+      "targets": {
+        "build": 2,
+        "language": 2,
+        "debug": 2
+      },
+      "expected": {
+        "signal": "speed_up",
+        "hintStyle": "guiding_question",
+        "testedOut": [
+          "steer-it",
+          "use-the-lingo",
+          "give-context"
+        ],
+        "nextAfterIntro": "keep-or-redirect"
+      },
+      "frames": [
+        {
+          "index": 0,
+          "event": {
+            "kind": "attempt",
+            "id": "att-quick-01",
+            "at": "2026-11-04T10:00:40Z",
+            "stepId": "intro-website",
+            "checkpointId": "intro",
+            "text": "A site for my robotics club so new kids can see what we build and sign up.",
+            "evidenceLevel": null
+          },
+          "evidence": {},
+          "progress": {
+            "intro": "completed"
+          },
+          "testedOut": [],
+          "route": {
+            "phase": "diagnostic",
+            "checkpointId": "intro",
+            "reason": "Diagnostic in progress; routing starts once the skill check is complete (C-19.2)."
+          },
+          "signal": {
+            "signal": "steady",
+            "hintStyle": "guiding_question",
+            "reason": "On track; no change to guidance.",
+            "evidenceRefs": [],
+            "confidence": 0.7
+          },
+          "anglesTried": [],
+          "flags": [],
+          "timing": {
+            "maxGapSeconds": null,
+            "rapidSubmits": 0,
+            "cosmeticEditShare": 0.0,
+            "projectSubmits": 0
+          }
+        },
+        {
+          "index": 1,
+          "event": {
+            "kind": "attempt",
+            "id": "att-quick-02",
+            "at": "2026-11-04T10:01:30Z",
+            "stepId": "skill-check-web-dev",
+            "checkpointId": "skill-check",
+            "text": "q103:b",
+            "evidenceLevel": 2
+          },
+          "evidence": {
+            "build": 2
+          },
+          "progress": {
+            "intro": "completed",
+            "skill-check": "current"
+          },
+          "testedOut": [],
+          "route": {
+            "phase": "diagnostic",
+            "checkpointId": "skill-check",
+            "reason": "Diagnostic in progress; routing starts once the skill check is complete (C-19.2)."
+          },
+          "signal": {
+            "signal": "steady",
+            "hintStyle": "guiding_question",
+            "reason": "On track; no change to guidance.",
+            "evidenceRefs": [
+              "att-quick-02"
+            ],
+            "confidence": 0.7
+          },
+          "anglesTried": [],
+          "flags": [],
+          "timing": {
+            "maxGapSeconds": 50.0,
+            "rapidSubmits": 0,
+            "cosmeticEditShare": 0.0,
+            "projectSubmits": 0
+          }
+        },
+        {
+          "index": 2,
+          "event": {
+            "kind": "attempt",
+            "id": "att-quick-03",
+            "at": "2026-11-04T10:02:10Z",
+            "stepId": "skill-check-web-dev",
+            "checkpointId": "skill-check",
+            "text": "q104:c",
+            "evidenceLevel": 2
+          },
+          "evidence": {
+            "build": 2,
+            "language": 2
+          },
+          "progress": {
+            "intro": "completed",
+            "skill-check": "current"
+          },
+          "testedOut": [],
+          "route": {
+            "phase": "diagnostic",
+            "checkpointId": "skill-check",
+            "reason": "Diagnostic in progress; routing starts once the skill check is complete (C-19.2)."
+          },
+          "signal": {
+            "signal": "steady",
+            "hintStyle": "guiding_question",
+            "reason": "On track; no change to guidance.",
+            "evidenceRefs": [
+              "att-quick-02",
+              "att-quick-03"
+            ],
+            "confidence": 0.7
+          },
+          "anglesTried": [],
+          "flags": [],
+          "timing": {
+            "maxGapSeconds": 50.0,
+            "rapidSubmits": 0,
+            "cosmeticEditShare": 0.0,
+            "projectSubmits": 0
+          }
+        },
+        {
+          "index": 3,
+          "event": {
+            "kind": "attempt",
+            "id": "att-quick-04",
+            "at": "2026-11-04T10:02:50Z",
+            "stepId": "skill-check-web-dev",
+            "checkpointId": "skill-check",
+            "text": "q105:d",
+            "evidenceLevel": 2
+          },
+          "evidence": {
+            "build": 2,
+            "language": 2,
+            "debug": 2
+          },
+          "progress": {
+            "intro": "completed",
+            "skill-check": "completed",
+            "steer-it": "tested_out",
+            "use-the-lingo": "tested_out",
+            "give-context": "tested_out"
+          },
+          "testedOut": [
+            "steer-it",
+            "use-the-lingo",
+            "give-context"
+          ],
+          "route": {
+            "phase": "taught",
+            "checkpointId": "keep-or-redirect",
+            "reason": "keep-or-redirect is the first available checkpoint in lesson order."
+          },
+          "signal": {
+            "signal": "steady",
+            "hintStyle": "guiding_question",
+            "reason": "On track; no change to guidance.",
+            "evidenceRefs": [
+              "att-quick-02",
+              "att-quick-03",
+              "att-quick-04"
+            ],
+            "confidence": 0.7
+          },
+          "anglesTried": [],
+          "flags": [],
+          "timing": {
+            "maxGapSeconds": 50.0,
+            "rapidSubmits": 0,
+            "cosmeticEditShare": 0.0,
+            "projectSubmits": 0
+          }
+        },
+        {
+          "index": 4,
+          "event": {
+            "kind": "attempt",
+            "id": "att-quick-05",
+            "at": "2026-11-04T10:09:00Z",
+            "stepId": "keep-or-redirect-project",
+            "checkpointId": "keep-or-redirect",
+            "text": "My plan: make the sign-up button stand out. The AI turned the whole page orange, so I will redirect: keep the layout and heading, and change only the button back to blue.",
+            "evidenceLevel": 2
+          },
+          "evidence": {
+            "build": 2,
+            "language": 2,
+            "debug": 2
+          },
+          "progress": {
+            "intro": "completed",
+            "skill-check": "completed",
+            "steer-it": "tested_out",
+            "use-the-lingo": "tested_out",
+            "give-context": "tested_out",
+            "keep-or-redirect": "current"
+          },
+          "testedOut": [
+            "steer-it",
+            "use-the-lingo",
+            "give-context"
+          ],
+          "route": {
+            "phase": "taught",
+            "checkpointId": "keep-or-redirect",
+            "reason": "Continue on keep-or-redirect; its target is not yet met."
+          },
+          "signal": {
+            "signal": "speed_up",
+            "hintStyle": "guiding_question",
+            "angleToTry": "ask for the trade-off behind a choice",
+            "reason": "At or above target on every skill with no hints used; reduce scaffolding.",
+            "evidenceRefs": [
+              "att-quick-03",
+              "att-quick-04",
+              "att-quick-05"
+            ],
+            "confidence": 0.8
+          },
+          "anglesTried": [],
+          "flags": [],
+          "timing": {
+            "maxGapSeconds": 370.0,
+            "rapidSubmits": 0,
+            "cosmeticEditShare": 1.0,
+            "projectSubmits": 1
+          }
+        }
+      ]
+    },
+    "slow": {
+      "persona": "slow",
+      "student": {
+        "studentId": "stu-slow",
+        "displayName": "Steady Sam",
+        "synthetic": true
+      },
+      "description": "Slow learner. Weak diagnostic, then repeated misses on steer-it-project (build target is 2). Two consecutive misses raise a remediation flag and the fifth makes it high severity. Two explanation angles were already tried, so Passive should pick one that was not. The skill level never drops. Synthetic.",
+      "targets": {
+        "build": 2,
+        "language": 2,
+        "debug": 2
+      },
+      "expected": {
+        "signal": "slow_down",
+        "hintStyle": "step_by_step",
+        "angleNotYetTried": true,
+        "remediationFlag": {
+          "skillId": "build",
+          "severity": "high"
+        },
+        "nextAfterIntro": "steer-it"
+      },
+      "frames": [
+        {
+          "index": 0,
+          "event": {
+            "kind": "attempt",
+            "id": "att-slow-01",
+            "at": "2026-11-04T09:00:50Z",
+            "stepId": "intro-website",
+            "checkpointId": "intro",
+            "text": "a website",
+            "evidenceLevel": null
+          },
+          "evidence": {},
+          "progress": {
+            "intro": "completed"
+          },
+          "testedOut": [],
+          "route": {
+            "phase": "diagnostic",
+            "checkpointId": "intro",
+            "reason": "Diagnostic in progress; routing starts once the skill check is complete (C-19.2)."
+          },
+          "signal": {
+            "signal": "steady",
+            "hintStyle": "guiding_question",
+            "reason": "On track; no change to guidance.",
+            "evidenceRefs": [],
+            "confidence": 0.7
+          },
+          "anglesTried": [],
+          "flags": [],
+          "timing": {
+            "maxGapSeconds": null,
+            "rapidSubmits": 0,
+            "cosmeticEditShare": 0.0,
+            "projectSubmits": 0
+          }
+        },
+        {
+          "index": 1,
+          "event": {
+            "kind": "attempt",
+            "id": "att-slow-02",
+            "at": "2026-11-04T09:02:10Z",
+            "stepId": "skill-check-web-dev",
+            "checkpointId": "skill-check",
+            "text": "q103:c",
+            "evidenceLevel": 0
+          },
+          "evidence": {
+            "build": 0
+          },
+          "progress": {
+            "intro": "completed",
+            "skill-check": "current"
+          },
+          "testedOut": [],
+          "route": {
+            "phase": "diagnostic",
+            "checkpointId": "skill-check",
+            "reason": "Diagnostic in progress; routing starts once the skill check is complete (C-19.2)."
+          },
+          "signal": {
+            "signal": "steady",
+            "hintStyle": "guiding_question",
+            "reason": "On track; no change to guidance.",
+            "evidenceRefs": [
+              "att-slow-02"
+            ],
+            "confidence": 0.7
+          },
+          "anglesTried": [],
+          "flags": [],
+          "timing": {
+            "maxGapSeconds": 80.0,
+            "rapidSubmits": 0,
+            "cosmeticEditShare": 0.0,
+            "projectSubmits": 0
+          }
+        },
+        {
+          "index": 2,
+          "event": {
+            "kind": "attempt",
+            "id": "att-slow-03",
+            "at": "2026-11-04T09:03:40Z",
+            "stepId": "skill-check-web-dev",
+            "checkpointId": "skill-check",
+            "text": "q104:a",
+            "evidenceLevel": 1
+          },
+          "evidence": {
+            "build": 0,
+            "language": 1
+          },
+          "progress": {
+            "intro": "completed",
+            "skill-check": "current"
+          },
+          "testedOut": [],
+          "route": {
+            "phase": "diagnostic",
+            "checkpointId": "skill-check",
+            "reason": "Diagnostic in progress; routing starts once the skill check is complete (C-19.2)."
+          },
+          "signal": {
+            "signal": "steady",
+            "hintStyle": "guiding_question",
+            "reason": "On track; no change to guidance.",
+            "evidenceRefs": [
+              "att-slow-02",
+              "att-slow-03"
+            ],
+            "confidence": 0.7
+          },
+          "anglesTried": [],
+          "flags": [],
+          "timing": {
+            "maxGapSeconds": 90.0,
+            "rapidSubmits": 0,
+            "cosmeticEditShare": 0.0,
+            "projectSubmits": 0
+          }
+        },
+        {
+          "index": 3,
+          "event": {
+            "kind": "attempt",
+            "id": "att-slow-04",
+            "at": "2026-11-04T09:05:00Z",
+            "stepId": "skill-check-web-dev",
+            "checkpointId": "skill-check",
+            "text": "q105:e",
+            "evidenceLevel": 0
+          },
+          "evidence": {
+            "build": 0,
+            "language": 1,
+            "debug": 0
+          },
+          "progress": {
+            "intro": "completed",
+            "skill-check": "completed"
+          },
+          "testedOut": [],
+          "route": {
+            "phase": "taught",
+            "checkpointId": "steer-it",
+            "reason": "steer-it is the first available checkpoint in lesson order."
+          },
+          "signal": {
+            "signal": "steady",
+            "hintStyle": "guiding_question",
+            "reason": "On track; no change to guidance.",
+            "evidenceRefs": [
+              "att-slow-02",
+              "att-slow-03",
+              "att-slow-04"
+            ],
+            "confidence": 0.7
+          },
+          "anglesTried": [],
+          "flags": [],
+          "timing": {
+            "maxGapSeconds": 90.0,
+            "rapidSubmits": 0,
+            "cosmeticEditShare": 0.0,
+            "projectSubmits": 0
+          }
+        },
+        {
+          "index": 4,
+          "event": {
+            "kind": "attempt",
+            "id": "att-slow-05",
+            "at": "2026-11-04T09:12:00Z",
+            "stepId": "steer-it-project",
+            "checkpointId": "steer-it",
+            "text": "make it better",
+            "evidenceLevel": 0
+          },
+          "evidence": {
+            "build": 0,
+            "language": 1,
+            "debug": 0
+          },
+          "progress": {
+            "intro": "completed",
+            "skill-check": "completed",
+            "steer-it": "current"
+          },
+          "testedOut": [],
+          "route": {
+            "phase": "taught",
+            "checkpointId": "steer-it",
+            "reason": "Continue on steer-it; its target is not yet met."
+          },
+          "signal": {
+            "signal": "steady",
+            "hintStyle": "guiding_question",
+            "reason": "On track; no change to guidance.",
+            "evidenceRefs": [
+              "att-slow-03",
+              "att-slow-04",
+              "att-slow-05"
+            ],
+            "confidence": 0.7
+          },
+          "anglesTried": [],
+          "flags": [],
+          "timing": {
+            "maxGapSeconds": 420.0,
+            "rapidSubmits": 0,
+            "cosmeticEditShare": 0.0,
+            "projectSubmits": 1
+          }
+        },
+        {
+          "index": 5,
+          "event": {
+            "kind": "hint",
+            "id": "hint-slow-01",
+            "at": "2026-11-04T09:12:40Z",
+            "stepId": "steer-it-project",
+            "checkpointId": "steer-it",
+            "style": "example",
+            "text": "worked example of a two-detail prompt"
+          },
+          "evidence": {
+            "build": 0,
+            "language": 1,
+            "debug": 0
+          },
+          "progress": {
+            "intro": "completed",
+            "skill-check": "completed",
+            "steer-it": "current"
+          },
+          "testedOut": [],
+          "route": {
+            "phase": "taught",
+            "checkpointId": "steer-it",
+            "reason": "Continue on steer-it; its target is not yet met."
+          },
+          "signal": {
+            "signal": "steady",
+            "hintStyle": "guiding_question",
+            "reason": "On track; no change to guidance.",
+            "evidenceRefs": [
+              "att-slow-03",
+              "att-slow-04",
+              "att-slow-05"
+            ],
+            "confidence": 0.7
+          },
+          "anglesTried": [
+            "example"
+          ],
+          "flags": [],
+          "timing": {
+            "maxGapSeconds": 420.0,
+            "rapidSubmits": 0,
+            "cosmeticEditShare": 0.0,
+            "projectSubmits": 1
+          }
+        },
+        {
+          "index": 6,
+          "event": {
+            "kind": "attempt",
+            "id": "att-slow-06",
+            "at": "2026-11-04T09:15:30Z",
+            "stepId": "steer-it-project",
+            "checkpointId": "steer-it",
+            "text": "make a cool website about stuff",
+            "evidenceLevel": 0
+          },
+          "evidence": {
+            "build": 0,
+            "language": 1,
+            "debug": 0
+          },
+          "progress": {
+            "intro": "completed",
+            "skill-check": "completed",
+            "steer-it": "current"
+          },
+          "testedOut": [],
+          "route": {
+            "phase": "taught",
+            "checkpointId": "steer-it",
+            "reason": "Continue on steer-it; its target is not yet met."
+          },
+          "signal": {
+            "signal": "slow_down",
+            "hintStyle": "step_by_step",
+            "angleToTry": "step_by_step",
+            "reason": "2 consecutive misses; slow the pace and try the step by step angle, which has not been used yet.",
+            "evidenceRefs": [
+              "att-slow-04",
+              "att-slow-05",
+              "att-slow-06"
+            ],
+            "confidence": 0.75
+          },
+          "anglesTried": [
+            "example"
+          ],
+          "flags": [
+            {
+              "skillId": "build",
+              "stepId": "steer-it-project",
+              "severity": "normal",
+              "reason": "2 attempts below target on steer-it-project."
+            }
+          ],
+          "timing": {
+            "maxGapSeconds": 420.0,
+            "rapidSubmits": 0,
+            "cosmeticEditShare": 0.0,
+            "projectSubmits": 2
+          }
+        },
+        {
+          "index": 7,
+          "event": {
+            "kind": "hint",
+            "id": "hint-slow-02",
+            "at": "2026-11-04T09:16:10Z",
+            "stepId": "steer-it-project",
+            "checkpointId": "steer-it",
+            "style": "analogy",
+            "text": "ordering a sandwich with specifics"
+          },
+          "evidence": {
+            "build": 0,
+            "language": 1,
+            "debug": 0
+          },
+          "progress": {
+            "intro": "completed",
+            "skill-check": "completed",
+            "steer-it": "current"
+          },
+          "testedOut": [],
+          "route": {
+            "phase": "taught",
+            "checkpointId": "steer-it",
+            "reason": "Continue on steer-it; its target is not yet met."
+          },
+          "signal": {
+            "signal": "slow_down",
+            "hintStyle": "step_by_step",
+            "angleToTry": "step_by_step",
+            "reason": "2 consecutive misses; slow the pace and try the step by step angle, which has not been used yet.",
+            "evidenceRefs": [
+              "att-slow-04",
+              "att-slow-05",
+              "att-slow-06"
+            ],
+            "confidence": 0.75
+          },
+          "anglesTried": [
+            "analogy",
+            "example"
+          ],
+          "flags": [
+            {
+              "skillId": "build",
+              "stepId": "steer-it-project",
+              "severity": "normal",
+              "reason": "2 attempts below target on steer-it-project."
+            }
+          ],
+          "timing": {
+            "maxGapSeconds": 420.0,
+            "rapidSubmits": 0,
+            "cosmeticEditShare": 0.0,
+            "projectSubmits": 2
+          }
+        },
+        {
+          "index": 8,
+          "event": {
+            "kind": "attempt",
+            "id": "att-slow-07",
+            "at": "2026-11-04T09:20:00Z",
+            "stepId": "steer-it-project",
+            "checkpointId": "steer-it",
+            "text": "make the heading bigger",
+            "evidenceLevel": 1
+          },
+          "evidence": {
+            "build": 1,
+            "language": 1,
+            "debug": 0
+          },
+          "progress": {
+            "intro": "completed",
+            "skill-check": "completed",
+            "steer-it": "current"
+          },
+          "testedOut": [],
+          "route": {
+            "phase": "taught",
+            "checkpointId": "steer-it",
+            "reason": "Continue on steer-it; its target is not yet met."
+          },
+          "signal": {
+            "signal": "slow_down",
+            "hintStyle": "step_by_step",
+            "angleToTry": "step_by_step",
+            "reason": "3 consecutive misses; slow the pace and try the step by step angle, which has not been used yet.",
+            "evidenceRefs": [
+              "att-slow-05",
+              "att-slow-06",
+              "att-slow-07"
+            ],
+            "confidence": 0.75
+          },
+          "anglesTried": [
+            "analogy",
+            "example"
+          ],
+          "flags": [
+            {
+              "skillId": "build",
+              "stepId": "steer-it-project",
+              "severity": "normal",
+              "reason": "3 attempts below target on steer-it-project."
+            }
+          ],
+          "timing": {
+            "maxGapSeconds": 420.0,
+            "rapidSubmits": 0,
+            "cosmeticEditShare": 0.0,
+            "projectSubmits": 3
+          }
+        },
+        {
+          "index": 9,
+          "event": {
+            "kind": "attempt",
+            "id": "att-slow-08",
+            "at": "2026-11-04T09:24:30Z",
+            "stepId": "steer-it-project",
+            "checkpointId": "steer-it",
+            "text": "make it look nicer",
+            "evidenceLevel": 0
+          },
+          "evidence": {
+            "build": 1,
+            "language": 1,
+            "debug": 0
+          },
+          "progress": {
+            "intro": "completed",
+            "skill-check": "completed",
+            "steer-it": "current"
+          },
+          "testedOut": [],
+          "route": {
+            "phase": "taught",
+            "checkpointId": "steer-it",
+            "reason": "Continue on steer-it; its target is not yet met."
+          },
+          "signal": {
+            "signal": "slow_down",
+            "hintStyle": "step_by_step",
+            "angleToTry": "step_by_step",
+            "reason": "4 consecutive misses; slow the pace and try the step by step angle, which has not been used yet.",
+            "evidenceRefs": [
+              "att-slow-06",
+              "att-slow-07",
+              "att-slow-08"
+            ],
+            "confidence": 0.75
+          },
+          "anglesTried": [
+            "analogy",
+            "example"
+          ],
+          "flags": [
+            {
+              "skillId": "build",
+              "stepId": "steer-it-project",
+              "severity": "high",
+              "reason": "4 attempts below target on steer-it-project."
+            }
+          ],
+          "timing": {
+            "maxGapSeconds": 420.0,
+            "rapidSubmits": 0,
+            "cosmeticEditShare": 0.0,
+            "projectSubmits": 4
+          }
+        },
+        {
+          "index": 10,
+          "event": {
+            "kind": "attempt",
+            "id": "att-slow-09",
+            "at": "2026-11-04T09:29:00Z",
+            "stepId": "steer-it-project",
+            "checkpointId": "steer-it",
+            "text": "add a picture",
+            "evidenceLevel": 1
+          },
+          "evidence": {
+            "build": 1,
+            "language": 1,
+            "debug": 0
+          },
+          "progress": {
+            "intro": "completed",
+            "skill-check": "completed",
+            "steer-it": "current"
+          },
+          "testedOut": [],
+          "route": {
+            "phase": "taught",
+            "checkpointId": "steer-it",
+            "reason": "Continue on steer-it; its target is not yet met."
+          },
+          "signal": {
+            "signal": "slow_down",
+            "hintStyle": "step_by_step",
+            "angleToTry": "step_by_step",
+            "reason": "5 consecutive misses; slow the pace and try the step by step angle, which has not been used yet.",
+            "evidenceRefs": [
+              "att-slow-07",
+              "att-slow-08",
+              "att-slow-09"
+            ],
+            "confidence": 0.75
+          },
+          "anglesTried": [
+            "analogy",
+            "example"
+          ],
+          "flags": [
+            {
+              "skillId": "build",
+              "stepId": "steer-it-project",
+              "severity": "high",
+              "reason": "5 attempts below target on steer-it-project."
+            }
+          ],
+          "timing": {
+            "maxGapSeconds": 420.0,
+            "rapidSubmits": 0,
+            "cosmeticEditShare": 0.0,
+            "projectSubmits": 5
+          }
+        }
+      ]
+    },
+    "distracted-detail": {
+      "persona": "distracted-detail",
+      "student": {
+        "studentId": "stu-detail",
+        "displayName": "Detail Dana",
+        "synthetic": true
+      },
+      "description": "Distracted learner, variant 1: over-focused on a non-essential detail. The student keeps tweaking colors and fonts on steer-it-project; evidence stays flat at level 1 (below the build target of 2), so steer-it does NOT test out and they stay on it. Passive should redirect with a visible change in guidance (P-5.3). Synthetic.",
+      "targets": {
+        "build": 2,
+        "language": 2,
+        "debug": 2
+      },
+      "expected": {
+        "signal": "redirect",
+        "hintStyle": "guiding_question",
+        "cosmeticEditShareAtLeast": 0.7,
+        "nextAfterIntro": "steer-it"
+      },
+      "frames": [
+        {
+          "index": 0,
+          "event": {
+            "kind": "attempt",
+            "id": "att-detail-01",
+            "at": "2026-11-04T13:00:30Z",
+            "stepId": "intro-website",
+            "checkpointId": "intro",
+            "text": "A fan page for my cat Biscuit with photos and facts.",
+            "evidenceLevel": null
+          },
+          "evidence": {},
+          "progress": {
+            "intro": "completed"
+          },
+          "testedOut": [],
+          "route": {
+            "phase": "diagnostic",
+            "checkpointId": "intro",
+            "reason": "Diagnostic in progress; routing starts once the skill check is complete (C-19.2)."
+          },
+          "signal": {
+            "signal": "steady",
+            "hintStyle": "guiding_question",
+            "reason": "On track; no change to guidance.",
+            "evidenceRefs": [],
+            "confidence": 0.7
+          },
+          "anglesTried": [],
+          "flags": [],
+          "timing": {
+            "maxGapSeconds": null,
+            "rapidSubmits": 0,
+            "cosmeticEditShare": 0.0,
+            "projectSubmits": 0
+          }
+        },
+        {
+          "index": 1,
+          "event": {
+            "kind": "attempt",
+            "id": "att-detail-02",
+            "at": "2026-11-04T13:01:40Z",
+            "stepId": "skill-check-web-dev",
+            "checkpointId": "skill-check",
+            "text": "q103:a",
+            "evidenceLevel": 1
+          },
+          "evidence": {
+            "build": 1
+          },
+          "progress": {
+            "intro": "completed",
+            "skill-check": "current"
+          },
+          "testedOut": [],
+          "route": {
+            "phase": "diagnostic",
+            "checkpointId": "skill-check",
+            "reason": "Diagnostic in progress; routing starts once the skill check is complete (C-19.2)."
+          },
+          "signal": {
+            "signal": "steady",
+            "hintStyle": "guiding_question",
+            "reason": "On track; no change to guidance.",
+            "evidenceRefs": [
+              "att-detail-02"
+            ],
+            "confidence": 0.7
+          },
+          "anglesTried": [],
+          "flags": [],
+          "timing": {
+            "maxGapSeconds": 70.0,
+            "rapidSubmits": 0,
+            "cosmeticEditShare": 0.0,
+            "projectSubmits": 0
+          }
+        },
+        {
+          "index": 2,
+          "event": {
+            "kind": "attempt",
+            "id": "att-detail-03",
+            "at": "2026-11-04T13:02:30Z",
+            "stepId": "skill-check-web-dev",
+            "checkpointId": "skill-check",
+            "text": "q104:b",
+            "evidenceLevel": 1
+          },
+          "evidence": {
+            "build": 1,
+            "language": 1
+          },
+          "progress": {
+            "intro": "completed",
+            "skill-check": "current"
+          },
+          "testedOut": [],
+          "route": {
+            "phase": "diagnostic",
+            "checkpointId": "skill-check",
+            "reason": "Diagnostic in progress; routing starts once the skill check is complete (C-19.2)."
+          },
+          "signal": {
+            "signal": "steady",
+            "hintStyle": "guiding_question",
+            "reason": "On track; no change to guidance.",
+            "evidenceRefs": [
+              "att-detail-02",
+              "att-detail-03"
+            ],
+            "confidence": 0.7
+          },
+          "anglesTried": [],
+          "flags": [],
+          "timing": {
+            "maxGapSeconds": 70.0,
+            "rapidSubmits": 0,
+            "cosmeticEditShare": 0.0,
+            "projectSubmits": 0
+          }
+        },
+        {
+          "index": 3,
+          "event": {
+            "kind": "attempt",
+            "id": "att-detail-04",
+            "at": "2026-11-04T13:03:20Z",
+            "stepId": "skill-check-web-dev",
+            "checkpointId": "skill-check",
+            "text": "q105:b",
+            "evidenceLevel": 1
+          },
+          "evidence": {
+            "build": 1,
+            "language": 1,
+            "debug": 1
+          },
+          "progress": {
+            "intro": "completed",
+            "skill-check": "completed"
+          },
+          "testedOut": [],
+          "route": {
+            "phase": "taught",
+            "checkpointId": "steer-it",
+            "reason": "steer-it is the first available checkpoint in lesson order."
+          },
+          "signal": {
+            "signal": "steady",
+            "hintStyle": "guiding_question",
+            "reason": "On track; no change to guidance.",
+            "evidenceRefs": [
+              "att-detail-02",
+              "att-detail-03",
+              "att-detail-04"
+            ],
+            "confidence": 0.7
+          },
+          "anglesTried": [],
+          "flags": [],
+          "timing": {
+            "maxGapSeconds": 70.0,
+            "rapidSubmits": 0,
+            "cosmeticEditShare": 0.0,
+            "projectSubmits": 0
+          }
+        },
+        {
+          "index": 4,
+          "event": {
+            "kind": "attempt",
+            "id": "att-detail-05",
+            "at": "2026-11-04T13:10:00Z",
+            "stepId": "steer-it-project",
+            "checkpointId": "steer-it",
+            "text": "make the background teal",
+            "evidenceLevel": 1
+          },
+          "evidence": {
+            "build": 1,
+            "language": 1,
+            "debug": 1
+          },
+          "progress": {
+            "intro": "completed",
+            "skill-check": "completed",
+            "steer-it": "current"
+          },
+          "testedOut": [],
+          "route": {
+            "phase": "taught",
+            "checkpointId": "steer-it",
+            "reason": "Continue on steer-it; its target is not yet met."
+          },
+          "signal": {
+            "signal": "steady",
+            "hintStyle": "guiding_question",
+            "reason": "On track; no change to guidance.",
+            "evidenceRefs": [
+              "att-detail-03",
+              "att-detail-04",
+              "att-detail-05"
+            ],
+            "confidence": 0.7
+          },
+          "anglesTried": [],
+          "flags": [],
+          "timing": {
+            "maxGapSeconds": 400.0,
+            "rapidSubmits": 0,
+            "cosmeticEditShare": 1.0,
+            "projectSubmits": 1
+          }
+        },
+        {
+          "index": 5,
+          "event": {
+            "kind": "attempt",
+            "id": "att-detail-06",
+            "at": "2026-11-04T13:14:00Z",
+            "stepId": "steer-it-project",
+            "checkpointId": "steer-it",
+            "text": "actually make it navy, #0a3d62, and keep the cat photo at the top",
+            "evidenceLevel": 1
+          },
+          "evidence": {
+            "build": 1,
+            "language": 1,
+            "debug": 1
+          },
+          "progress": {
+            "intro": "completed",
+            "skill-check": "completed",
+            "steer-it": "current"
+          },
+          "testedOut": [],
+          "route": {
+            "phase": "taught",
+            "checkpointId": "steer-it",
+            "reason": "Continue on steer-it; its target is not yet met."
+          },
+          "signal": {
+            "signal": "slow_down",
+            "hintStyle": "step_by_step",
+            "angleToTry": "step_by_step",
+            "reason": "2 consecutive misses; slow the pace and try the step by step angle, which has not been used yet.",
+            "evidenceRefs": [
+              "att-detail-04",
+              "att-detail-05",
+              "att-detail-06"
+            ],
+            "confidence": 0.75
+          },
+          "anglesTried": [],
+          "flags": [
+            {
+              "skillId": "build",
+              "stepId": "steer-it-project",
+              "severity": "normal",
+              "reason": "2 attempts below target on steer-it-project."
+            }
+          ],
+          "timing": {
+            "maxGapSeconds": 400.0,
+            "rapidSubmits": 0,
+            "cosmeticEditShare": 1.0,
+            "projectSubmits": 2
+          }
+        },
+        {
+          "index": 6,
+          "event": {
+            "kind": "attempt",
+            "id": "att-detail-07",
+            "at": "2026-11-04T13:18:30Z",
+            "stepId": "steer-it-project",
+            "checkpointId": "steer-it",
+            "text": "change the font to Comic Sans, keep the navy background",
+            "evidenceLevel": 1
+          },
+          "evidence": {
+            "build": 1,
+            "language": 1,
+            "debug": 1
+          },
+          "progress": {
+            "intro": "completed",
+            "skill-check": "completed",
+            "steer-it": "current"
+          },
+          "testedOut": [],
+          "route": {
+            "phase": "taught",
+            "checkpointId": "steer-it",
+            "reason": "Continue on steer-it; its target is not yet met."
+          },
+          "signal": {
+            "signal": "redirect",
+            "hintStyle": "guiding_question",
+            "angleToTry": "name the one visitor action that matters most",
+            "reason": "100% of recent project edits were cosmetic with no gain in evidence; redirect from styling to purpose.",
+            "evidenceRefs": [
+              "att-detail-05",
+              "att-detail-06",
+              "att-detail-07"
+            ],
+            "confidence": 0.7
+          },
+          "anglesTried": [],
+          "flags": [
+            {
+              "skillId": "build",
+              "stepId": "steer-it-project",
+              "severity": "normal",
+              "reason": "3 attempts below target on steer-it-project."
+            }
+          ],
+          "timing": {
+            "maxGapSeconds": 400.0,
+            "rapidSubmits": 0,
+            "cosmeticEditShare": 1.0,
+            "projectSubmits": 3
+          }
+        },
+        {
+          "index": 7,
+          "event": {
+            "kind": "attempt",
+            "id": "att-detail-08",
+            "at": "2026-11-04T13:23:00Z",
+            "stepId": "steer-it-project",
+            "checkpointId": "steer-it",
+            "text": "make the title 48px bold, and a slightly lighter navy for the background",
+            "evidenceLevel": 1
+          },
+          "evidence": {
+            "build": 1,
+            "language": 1,
+            "debug": 1
+          },
+          "progress": {
+            "intro": "completed",
+            "skill-check": "completed",
+            "steer-it": "current"
+          },
+          "testedOut": [],
+          "route": {
+            "phase": "taught",
+            "checkpointId": "steer-it",
+            "reason": "Continue on steer-it; its target is not yet met."
+          },
+          "signal": {
+            "signal": "redirect",
+            "hintStyle": "guiding_question",
+            "angleToTry": "name the one visitor action that matters most",
+            "reason": "100% of recent project edits were cosmetic with no gain in evidence; redirect from styling to purpose.",
+            "evidenceRefs": [
+              "att-detail-06",
+              "att-detail-07",
+              "att-detail-08"
+            ],
+            "confidence": 0.7
+          },
+          "anglesTried": [],
+          "flags": [
+            {
+              "skillId": "build",
+              "stepId": "steer-it-project",
+              "severity": "high",
+              "reason": "4 attempts below target on steer-it-project."
+            }
+          ],
+          "timing": {
+            "maxGapSeconds": 400.0,
+            "rapidSubmits": 0,
+            "cosmeticEditShare": 1.0,
+            "projectSubmits": 4
+          }
+        },
+        {
+          "index": 8,
+          "event": {
+            "kind": "attempt",
+            "id": "att-detail-09",
+            "at": "2026-11-04T13:28:00Z",
+            "stepId": "steer-it-project",
+            "checkpointId": "steer-it",
+            "text": "round the photo corners to 12px, and try the navy one shade lighter again",
+            "evidenceLevel": 1
+          },
+          "evidence": {
+            "build": 1,
+            "language": 1,
+            "debug": 1
+          },
+          "progress": {
+            "intro": "completed",
+            "skill-check": "completed",
+            "steer-it": "current"
+          },
+          "testedOut": [],
+          "route": {
+            "phase": "taught",
+            "checkpointId": "steer-it",
+            "reason": "Continue on steer-it; its target is not yet met."
+          },
+          "signal": {
+            "signal": "redirect",
+            "hintStyle": "guiding_question",
+            "angleToTry": "name the one visitor action that matters most",
+            "reason": "100% of recent project edits were cosmetic with no gain in evidence; redirect from styling to purpose.",
+            "evidenceRefs": [
+              "att-detail-07",
+              "att-detail-08",
+              "att-detail-09"
+            ],
+            "confidence": 0.7
+          },
+          "anglesTried": [],
+          "flags": [
+            {
+              "skillId": "build",
+              "stepId": "steer-it-project",
+              "severity": "high",
+              "reason": "5 attempts below target on steer-it-project."
+            }
+          ],
+          "timing": {
+            "maxGapSeconds": 400.0,
+            "rapidSubmits": 0,
+            "cosmeticEditShare": 1.0,
+            "projectSubmits": 5
+          }
+        },
+        {
+          "index": 9,
+          "event": {
+            "kind": "attempt",
+            "id": "att-detail-10",
+            "at": "2026-11-04T13:33:00Z",
+            "stepId": "steer-it-project",
+            "checkpointId": "steer-it",
+            "text": "the blue is still not right, try #0b4a7a and then #0c5a8a",
+            "evidenceLevel": 1
+          },
+          "evidence": {
+            "build": 1,
+            "language": 1,
+            "debug": 1
+          },
+          "progress": {
+            "intro": "completed",
+            "skill-check": "completed",
+            "steer-it": "current"
+          },
+          "testedOut": [],
+          "route": {
+            "phase": "taught",
+            "checkpointId": "steer-it",
+            "reason": "Continue on steer-it; its target is not yet met."
+          },
+          "signal": {
+            "signal": "redirect",
+            "hintStyle": "guiding_question",
+            "angleToTry": "name the one visitor action that matters most",
+            "reason": "100% of recent project edits were cosmetic with no gain in evidence; redirect from styling to purpose.",
+            "evidenceRefs": [
+              "att-detail-08",
+              "att-detail-09",
+              "att-detail-10"
+            ],
+            "confidence": 0.7
+          },
+          "anglesTried": [],
+          "flags": [
+            {
+              "skillId": "build",
+              "stepId": "steer-it-project",
+              "severity": "high",
+              "reason": "6 attempts below target on steer-it-project."
+            }
+          ],
+          "timing": {
+            "maxGapSeconds": 400.0,
+            "rapidSubmits": 0,
+            "cosmeticEditShare": 1.0,
+            "projectSubmits": 6
+          }
+        }
+      ]
+    },
+    "distracted-inattentive": {
+      "persona": "distracted-inattentive",
+      "student": {
+        "studentId": "stu-away",
+        "displayName": "Drifting Drew",
+        "synthetic": true
+      },
+      "description": "Distracted learner, variant 2: not paying attention. Rapid low-effort submits ('ok', 'asdf') separated by long gaps. There is deliberately no client telemetry (ADR-006), so this is inferred from content and server timestamps only, and it can look like slow thinking. Passive should reengage gently, with lower confidence, shown to the teacher as an observation. Synthetic.",
+      "targets": {
+        "build": 2,
+        "language": 2,
+        "debug": 2
+      },
+      "expected": {
+        "signal": "reengage",
+        "hintStyle": "guiding_question",
+        "lowConfidence": true,
+        "nextAfterIntro": "steer-it"
+      },
+      "frames": [
+        {
+          "index": 0,
+          "event": {
+            "kind": "attempt",
+            "id": "att-away-01",
+            "at": "2026-11-04T11:00:20Z",
+            "stepId": "intro-website",
+            "checkpointId": "intro",
+            "text": "idk",
+            "evidenceLevel": null
+          },
+          "evidence": {},
+          "progress": {
+            "intro": "completed"
+          },
+          "testedOut": [],
+          "route": {
+            "phase": "diagnostic",
+            "checkpointId": "intro",
+            "reason": "Diagnostic in progress; routing starts once the skill check is complete (C-19.2)."
+          },
+          "signal": {
+            "signal": "steady",
+            "hintStyle": "guiding_question",
+            "reason": "On track; no change to guidance.",
+            "evidenceRefs": [],
+            "confidence": 0.7
+          },
+          "anglesTried": [],
+          "flags": [],
+          "timing": {
+            "maxGapSeconds": null,
+            "rapidSubmits": 0,
+            "cosmeticEditShare": 0.0,
+            "projectSubmits": 0
+          }
+        },
+        {
+          "index": 1,
+          "event": {
+            "kind": "attempt",
+            "id": "att-away-02",
+            "at": "2026-11-04T11:00:25Z",
+            "stepId": "skill-check-web-dev",
+            "checkpointId": "skill-check",
+            "text": "q103:e",
+            "evidenceLevel": 0
+          },
+          "evidence": {
+            "build": 0
+          },
+          "progress": {
+            "intro": "completed",
+            "skill-check": "current"
+          },
+          "testedOut": [],
+          "route": {
+            "phase": "diagnostic",
+            "checkpointId": "skill-check",
+            "reason": "Diagnostic in progress; routing starts once the skill check is complete (C-19.2)."
+          },
+          "signal": {
+            "signal": "steady",
+            "hintStyle": "guiding_question",
+            "reason": "On track; no change to guidance.",
+            "evidenceRefs": [
+              "att-away-02"
+            ],
+            "confidence": 0.7
+          },
+          "anglesTried": [],
+          "flags": [],
+          "timing": {
+            "maxGapSeconds": 5.0,
+            "rapidSubmits": 1,
+            "cosmeticEditShare": 0.0,
+            "projectSubmits": 0
+          }
+        },
+        {
+          "index": 2,
+          "event": {
+            "kind": "attempt",
+            "id": "att-away-03",
+            "at": "2026-11-04T11:00:27Z",
+            "stepId": "skill-check-web-dev",
+            "checkpointId": "skill-check",
+            "text": "q104:e",
+            "evidenceLevel": 0
+          },
+          "evidence": {
+            "build": 0,
+            "language": 0
+          },
+          "progress": {
+            "intro": "completed",
+            "skill-check": "current"
+          },
+          "testedOut": [],
+          "route": {
+            "phase": "diagnostic",
+            "checkpointId": "skill-check",
+            "reason": "Diagnostic in progress; routing starts once the skill check is complete (C-19.2)."
+          },
+          "signal": {
+            "signal": "steady",
+            "hintStyle": "guiding_question",
+            "reason": "On track; no change to guidance.",
+            "evidenceRefs": [
+              "att-away-02",
+              "att-away-03"
+            ],
+            "confidence": 0.7
+          },
+          "anglesTried": [],
+          "flags": [],
+          "timing": {
+            "maxGapSeconds": 5.0,
+            "rapidSubmits": 2,
+            "cosmeticEditShare": 0.0,
+            "projectSubmits": 0
+          }
+        },
+        {
+          "index": 3,
+          "event": {
+            "kind": "attempt",
+            "id": "att-away-04",
+            "at": "2026-11-04T11:00:29Z",
+            "stepId": "skill-check-web-dev",
+            "checkpointId": "skill-check",
+            "text": "q105:e",
+            "evidenceLevel": 0
+          },
+          "evidence": {
+            "build": 0,
+            "language": 0,
+            "debug": 0
+          },
+          "progress": {
+            "intro": "completed",
+            "skill-check": "completed"
+          },
+          "testedOut": [],
+          "route": {
+            "phase": "taught",
+            "checkpointId": "steer-it",
+            "reason": "steer-it is the first available checkpoint in lesson order."
+          },
+          "signal": {
+            "signal": "steady",
+            "hintStyle": "guiding_question",
+            "reason": "On track; no change to guidance.",
+            "evidenceRefs": [
+              "att-away-02",
+              "att-away-03",
+              "att-away-04"
+            ],
+            "confidence": 0.7
+          },
+          "anglesTried": [],
+          "flags": [],
+          "timing": {
+            "maxGapSeconds": 5.0,
+            "rapidSubmits": 3,
+            "cosmeticEditShare": 0.0,
+            "projectSubmits": 0
+          }
+        },
+        {
+          "index": 4,
+          "event": {
+            "kind": "attempt",
+            "id": "att-away-05",
+            "at": "2026-11-04T11:34:10Z",
+            "stepId": "steer-it-project",
+            "checkpointId": "steer-it",
+            "text": "ok",
+            "evidenceLevel": 0
+          },
+          "evidence": {
+            "build": 0,
+            "language": 0,
+            "debug": 0
+          },
+          "progress": {
+            "intro": "completed",
+            "skill-check": "completed",
+            "steer-it": "current"
+          },
+          "testedOut": [],
+          "route": {
+            "phase": "taught",
+            "checkpointId": "steer-it",
+            "reason": "Continue on steer-it; its target is not yet met."
+          },
+          "signal": {
+            "signal": "reengage",
+            "hintStyle": "guiding_question",
+            "reason": "Long gaps between work with several very short submissions; a gentle check-in. May also be slow thinking, so confidence is low.",
+            "evidenceRefs": [
+              "att-away-03",
+              "att-away-04",
+              "att-away-05"
+            ],
+            "confidence": 0.5
+          },
+          "anglesTried": [],
+          "flags": [],
+          "timing": {
+            "maxGapSeconds": 2021.0,
+            "rapidSubmits": 3,
+            "cosmeticEditShare": 0.0,
+            "projectSubmits": 1
+          }
+        },
+        {
+          "index": 5,
+          "event": {
+            "kind": "attempt",
+            "id": "att-away-06",
+            "at": "2026-11-04T11:34:14Z",
+            "stepId": "steer-it-project",
+            "checkpointId": "steer-it",
+            "text": "asdf",
+            "evidenceLevel": 0
+          },
+          "evidence": {
+            "build": 0,
+            "language": 0,
+            "debug": 0
+          },
+          "progress": {
+            "intro": "completed",
+            "skill-check": "completed",
+            "steer-it": "current"
+          },
+          "testedOut": [],
+          "route": {
+            "phase": "taught",
+            "checkpointId": "steer-it",
+            "reason": "Continue on steer-it; its target is not yet met."
+          },
+          "signal": {
+            "signal": "reengage",
+            "hintStyle": "guiding_question",
+            "reason": "Long gaps between work with several very short submissions; a gentle check-in. May also be slow thinking, so confidence is low.",
+            "evidenceRefs": [
+              "att-away-04",
+              "att-away-05",
+              "att-away-06"
+            ],
+            "confidence": 0.5
+          },
+          "anglesTried": [],
+          "flags": [
+            {
+              "skillId": "build",
+              "stepId": "steer-it-project",
+              "severity": "normal",
+              "reason": "2 attempts below target on steer-it-project."
+            }
+          ],
+          "timing": {
+            "maxGapSeconds": 2021.0,
+            "rapidSubmits": 4,
+            "cosmeticEditShare": 0.0,
+            "projectSubmits": 2
+          }
+        },
+        {
+          "index": 6,
+          "event": {
+            "kind": "attempt",
+            "id": "att-away-07",
+            "at": "2026-11-04T12:10:00Z",
+            "stepId": "steer-it-project",
+            "checkpointId": "steer-it",
+            "text": "hi",
+            "evidenceLevel": 0
+          },
+          "evidence": {
+            "build": 0,
+            "language": 0,
+            "debug": 0
+          },
+          "progress": {
+            "intro": "completed",
+            "skill-check": "completed",
+            "steer-it": "current"
+          },
+          "testedOut": [],
+          "route": {
+            "phase": "taught",
+            "checkpointId": "steer-it",
+            "reason": "Continue on steer-it; its target is not yet met."
+          },
+          "signal": {
+            "signal": "reengage",
+            "hintStyle": "guiding_question",
+            "reason": "Long gaps between work with several very short submissions; a gentle check-in. May also be slow thinking, so confidence is low.",
+            "evidenceRefs": [
+              "att-away-05",
+              "att-away-06",
+              "att-away-07"
+            ],
+            "confidence": 0.5
+          },
+          "anglesTried": [],
+          "flags": [
+            {
+              "skillId": "build",
+              "stepId": "steer-it-project",
+              "severity": "normal",
+              "reason": "3 attempts below target on steer-it-project."
+            }
+          ],
+          "timing": {
+            "maxGapSeconds": 2146.0,
+            "rapidSubmits": 4,
+            "cosmeticEditShare": 0.0,
+            "projectSubmits": 3
+          }
+        },
+        {
+          "index": 7,
+          "event": {
+            "kind": "attempt",
+            "id": "att-away-08",
+            "at": "2026-11-04T12:10:03Z",
+            "stepId": "steer-it-project",
+            "checkpointId": "steer-it",
+            "text": "lol",
+            "evidenceLevel": 0
+          },
+          "evidence": {
+            "build": 0,
+            "language": 0,
+            "debug": 0
+          },
+          "progress": {
+            "intro": "completed",
+            "skill-check": "completed",
+            "steer-it": "current"
+          },
+          "testedOut": [],
+          "route": {
+            "phase": "taught",
+            "checkpointId": "steer-it",
+            "reason": "Continue on steer-it; its target is not yet met."
+          },
+          "signal": {
+            "signal": "reengage",
+            "hintStyle": "guiding_question",
+            "reason": "Long gaps between work with several very short submissions; a gentle check-in. May also be slow thinking, so confidence is low.",
+            "evidenceRefs": [
+              "att-away-06",
+              "att-away-07",
+              "att-away-08"
+            ],
+            "confidence": 0.5
+          },
+          "anglesTried": [],
+          "flags": [
+            {
+              "skillId": "build",
+              "stepId": "steer-it-project",
+              "severity": "high",
+              "reason": "4 attempts below target on steer-it-project."
+            }
+          ],
+          "timing": {
+            "maxGapSeconds": 2146.0,
+            "rapidSubmits": 5,
+            "cosmeticEditShare": 0.0,
+            "projectSubmits": 4
+          }
+        }
+      ]
+    }
+  }
+}
