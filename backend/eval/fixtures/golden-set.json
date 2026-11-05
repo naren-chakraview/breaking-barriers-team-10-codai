@@ -1,0 +1,137 @@
+{
+  "gate": 0.7,
+  "status": "human-rated",
+  "ratings": [
+    {
+      "submissionId": "sub-b01",
+      "skillId": "build",
+      "humanLevel": 0,
+      "modelLevel": 0,
+      "ratedBy": "Narendra"
+    },
+    {
+      "submissionId": "sub-b02",
+      "skillId": "build",
+      "humanLevel": 1,
+      "modelLevel": 1,
+      "ratedBy": "Narendra"
+    },
+    {
+      "submissionId": "sub-b03",
+      "skillId": "build",
+      "humanLevel": 2,
+      "modelLevel": 1,
+      "ratedBy": "Narendra"
+    },
+    {
+      "submissionId": "sub-b04",
+      "skillId": "build",
+      "humanLevel": 2,
+      "modelLevel": 2,
+      "ratedBy": "Narendra"
+    },
+    {
+      "submissionId": "sub-b05",
+      "skillId": "build",
+      "humanLevel": 0,
+      "modelLevel": 0,
+      "ratedBy": "Narendra"
+    },
+    {
+      "submissionId": "sub-b06",
+      "skillId": "build",
+      "humanLevel": 1,
+      "modelLevel": 1,
+      "ratedBy": "Narendra"
+    },
+    {
+      "submissionId": "sub-l01",
+      "skillId": "language",
+      "humanLevel": 0,
+      "modelLevel": 0,
+      "ratedBy": "Narendra"
+    },
+    {
+      "submissionId": "sub-l02",
+      "skillId": "language",
+      "humanLevel": 1,
+      "modelLevel": 1,
+      "ratedBy": "Narendra"
+    },
+    {
+      "submissionId": "sub-l03",
+      "skillId": "language",
+      "humanLevel": 3,
+      "modelLevel": 1,
+      "ratedBy": "Narendra"
+    },
+    {
+      "submissionId": "sub-l04",
+      "skillId": "language",
+      "humanLevel": 3,
+      "modelLevel": 3,
+      "ratedBy": "Narendra"
+    },
+    {
+      "submissionId": "sub-l05",
+      "skillId": "language",
+      "humanLevel": 0,
+      "modelLevel": 0,
+      "ratedBy": "Narendra"
+    },
+    {
+      "submissionId": "sub-l06",
+      "skillId": "language",
+      "humanLevel": 1,
+      "modelLevel": 1,
+      "ratedBy": "Narendra"
+    },
+    {
+      "submissionId": "sub-d01",
+      "skillId": "debug",
+      "humanLevel": 0,
+      "modelLevel": 0,
+      "ratedBy": "Narendra"
+    },
+    {
+      "submissionId": "sub-d02",
+      "skillId": "debug",
+      "humanLevel": 1,
+      "modelLevel": 1,
+      "ratedBy": "Narendra"
+    },
+    {
+      "submissionId": "sub-d03",
+      "skillId": "debug",
+      "humanLevel": 2,
+      "modelLevel": 2,
+      "ratedBy": "Narendra"
+    },
+    {
+      "submissionId": "sub-d04",
+      "skillId": "debug",
+      "humanLevel": 3,
+      "modelLevel": 3,
+      "ratedBy": "Narendra"
+    },
+    {
+      "submissionId": "sub-d05",
+      "skillId": "debug",
+      "humanLevel": 1,
+      "modelLevel": 0,
+      "ratedBy": "Narendra"
+    },
+    {
+      "submissionId": "sub-d06",
+      "skillId": "debug",
+      "humanLevel": 3,
+      "modelLevel": 3,
+      "ratedBy": "Narendra"
+    }
+  ],
+  "modelSnapshot": {
+    "modelFast": "us.anthropic.claude-haiku-4-5-20251001-v1:0",
+    "modelStrong": "us.anthropic.claude-sonnet-4-5-20250929-v1:0",
+    "promptVersion": "validate@1"
+  }
+}

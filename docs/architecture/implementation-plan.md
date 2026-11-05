@@ -268,7 +268,7 @@ Owner: ____ · Serves: C-35, C-36, C-37, C-38 · Discrepancy items 1, 2
 - [x] `.gitattributes` with `* text=auto eol=lf` pushed to `main` (`f67c681`)
 - [x] Confirmed no CRLF churn in this checkout (`git add --renormalize .` is a no-op here)
 - [ ] Teammates with CRLF churn have synced (`git diff --ignore-cr-at-eol` is empty, then discard)
-- [ ] Rename `package.json` `name` from `login-app` to `codeai-adaptive` (**still `login-app`**)
+- [x] Rename `package.json` `name` from `login-app` to `codeai-adaptive`
 - [x] Add Vitest and a first passing test (vitest suite: 139 tests)
 - [ ] Add lint (ESLint) and a `npm run lint` script
 - [x] GitHub Actions workflow on PRs: JS, Python, `cdk synth` (`.github/workflows/ci.yml`, #28)
@@ -279,7 +279,7 @@ Owner: ____ · Serves: C-35, C-36, C-37, C-38 · Discrepancy items 1, 2
 - [ ] Secret scanning in CI: gitleaks on every PR, failing the build on a finding
 - [ ] GitHub secret scanning and push protection enabled on the repo (needs repo admin)
 - [ ] Scan the existing history once for leaked keys or the AWS account id and report the result
-- [ ] Add a `LICENSE` (default MIT-0) before judging
+- [x] Add a `LICENSE` (MIT-0) before judging
 - [ ] Branch protection expectations agreed (one review, squash merge)
 
 **Tests:** the workflow passes on a trivial test. **Demo:** a PR with a green check.
@@ -329,8 +329,8 @@ Track: C builds the schema, judge and metrics. Track G does the human ratings.
 - [x] Multiple-choice answers map to levels with no model call (C-13) — submit flow (`backend/api/submit.py`)
 - [x] Not-scored steps record completion only (C-15) — submit flow
 - [x] Condition source wiring (`validation.condition` / `Evidence:` line) — submit passes `condition` into the ValidateRequest
-- [x] Human rating: 18 project submissions rated (Narendra, `backend/eval/fixtures/golden-set.json`); 15 clean pairs score QWK 0.889 (PASS). *3 awaiting a re-snapshot after the #47 evidence-length fix.*
-- [ ] Snapshot the validator's `evidenceLevel`s into the golden set on a pinned model + prompt version (15/18 filled; re-run `snapshot_validator --live` to complete the last 3)
+- [x] Human rating: 18 project submissions rated (Narendra, `backend/eval/fixtures/golden-set.json`)
+- [x] Snapshot the validator's `evidenceLevel`s into the golden set on a pinned model + prompt version (all 18 scored live, 0 fallbacks). **Gate PASS: pooled QWK 0.859** (gate 0.70)
 
 **Tests:** `pytest backend/ai` (validator: valid/low-confidence/invalid-JSON-repair/out-of-range/model-fail,
 45 total) and `pytest backend/eval` (26, PR #33). **Demo:** `python -m backend.eval <file>` prints the
@@ -585,8 +585,8 @@ Owner: ____ · Serves: C-17, P-19.2 · Architecture: 2.5
 - [x] Golden-set runner + launch gate: ≥ 15 submissions AND pooled QWK ≥ 0.70, pooled + per-skill report
 - [x] CLI gate `python -m backend.eval <file>` — prints the numbers, exits non-zero below the gate
 - [x] Placeholder sample set wires the gate (18 synthetic pairs, PASS); demo-ready report format
-- [x] Replace the placeholder with ≥ 15 **real** human-rated submissions — 18 rated (`golden-set.json`); 15 clean pairs score QWK 0.889 (PASS)
-- [~] `modelLevel` snapshot from the real validator (C-14) — 15/18 filled; 3 awaiting a re-snapshot after #47
+- [x] Replace the placeholder with ≥ 15 **real** human-rated submissions — 18 rated (`golden-set.json`)
+- [x] `modelLevel` snapshot from the real validator (C-14) — all 18 scored live on the pinned models, 0 fallbacks
 - [ ] CI job on `main` runs `python -m backend.eval` against the snapshot (not every PR, to limit spend)
 
 **Tests:** `pytest backend/eval` → 26 passing (metric math, count gate, QWK gate, validation, CLI exit
