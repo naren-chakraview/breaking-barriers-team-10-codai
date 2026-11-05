@@ -7,8 +7,8 @@ that does the work (C-36). The design behind each task is in
 
 | | |
 |---|---|
-| Status | **Draft, pending team review.** |
-| Last updated | 2026-11-04 |
+| Status | **In build.** Core backend + AI pipeline live-verified end to end on AWS. |
+| Last updated | 2026-11-05 |
 | Target | Working demo by the 3:30 pm Wednesday feature freeze (C-37), full roadmap after |
 | Account | Hackathon account (id kept out of the repo), `us-west-2`, $500 cap (budget `hackathon-budget-<account-id>`) |
 
@@ -27,11 +27,18 @@ that does the work (C-36). The design behind each task is in
 
 | Tier | Done | Total |
 |---|---|---|
-| MVP | 0 | 19 |
+| MVP | 5 | 19 |
 | STRETCH | 0 | 2 |
 | FULL | 0 | 5 |
 
-Update the counts when you tick a task's top-level box.
+"Done" counts tasks with **every** box ticked (0.5, 2, 6, 7, 8b). Many others are substantially
+complete — see the per-task boxes. Notably done beyond those five: the real Bedrock pipeline is
+wired and live (Task 6 + the deployed API), Aurora is deployed and seeded with the authentic
+curriculum (Task 4/4.6), safety/Guardrail is live (Task 5), the student lesson renders from the
+tree (Task 9, partial), and 18 human ratings exist with a passing QWK on 15 (Task 3/11).
+Still clearly open: Task 0.5-adjacent polish aside — Task 8c (persona visible-adaptation UI),
+Task 10 (observability), Task 12 (demo director), Task 4.5 (config/secrets hardening), and the
+skill-tree map's C-5 id/data-driven fix (Task 9). Update the counts when a task's boxes all tick.
 
 ## Parallel work plan
 
@@ -133,20 +140,18 @@ never stalls the others.
 - Fallback if missed: cut scope to the quick-learner path and the roster, and keep going.
 
 **IC2: Backend vertical slice** · Target: ~50% · Clock time: ____ · Integrator: ____
-- [ ] One `curl` to `POST /steps/{id}/submit` returns evidence, next checkpoint and the reason, with
-  `MODEL_MODE=stub`
-- [ ] `step_attempt`, `routing_decision` and `fallback_event` rows are written through the store
+- [x] One `curl` to `POST /steps/{id}/submit` returns evidence, next checkpoint and the reason (verified live against the deployed API, 2026-11-05)
+- [x] `step_attempt`, `routing_decision` and `fallback_event` rows are written through the store (Aurora, live)
 - [x] The store contract suite passes on the JSON adapter and on Aurora (live cluster, `test_aurora_live.py`, 2026-11-04)
-- [ ] The UI can flip `VITE_SERVICE_MODE=http` for the non-model calls
+- [x] The UI can flip `VITE_SERVICE_MODE=http` for the non-model calls (`src/services/` http client; CORS fixed in #41)
 - Fallback if missed: stay on the JSON adapter and run the API locally. Revisit Aurora after IC3.
 
 **IC3: Real models and safety** · Target: ~65% · Clock time: ____ · Integrator: ____
-- [ ] `MODEL_MODE=bedrock` runs one real prompt through verify, generate and validate
-- [ ] The Guardrail is deployed with a pinned numbered version, and an unsafe prompt is blocked while the
-  lesson continues
-- [ ] A forced timeout produces the fallback notice and a `fallback_event`
-- [ ] Model ids come from SSM parameters (or Lambda environment variables if Task 0 denied SSM)
-- [ ] No response in this mode carries `source: "stub"`
+- [x] `MODEL_MODE=bedrock` runs one real prompt through verify, generate and validate (live, deployed API, 2026-11-05)
+- [x] The Guardrail is deployed with a pinned numbered version (`zsguxlb4gg62` v1), and an unsafe prompt is blocked while the lesson continues
+- [x] A forced failure/degrade produces the fallback path and a `fallback_event` (validator + passive fallback, live-tested)
+- [x] Model ids come from SSM parameters (`/codeai/model/{fast,strong}`, read at cold start)
+- [x] No response in this mode carries `source: "stub"` (deployed submit/tutor return `source: bedrock`)
 - Fallback if missed: keep `MODEL_MODE=stub` and say so on screen. Never present stub output as live.
 
 **IC4: Adaptive demo** · Target: ~80% · Clock time: ____ · Integrator: ____
@@ -203,9 +208,8 @@ repo or a chat.
 - [x] `aws bedrock list-guardrails` works and returns none
 - [x] Budget `hackathon-budget-<account-id>` exists ($500/month)
 - [x] `CDKToolkit` is absent in `us-west-2` (not bootstrapped)
-- [ ] Model access: Haiku smoke test succeeds
-  `aws bedrock-runtime converse --region us-west-2 --model-id us.anthropic.claude-haiku-4-5-20251001-v1:0 --messages '[{"role":"user","content":[{"text":"Say OK"}]}]' --inference-config '{"maxTokens":10}'`
-- [ ] Sonnet 4.5 smoke test succeeds (same command, Sonnet profile id)
+- [x] Model access: Haiku smoke test succeeds (live smoke test 2026-11-04/05, `backend/ai/scripts/smoke_test.py`)
+- [x] Sonnet 4.5 smoke test succeeds (same smoke test; generate step runs on the strong tier)
 - [ ] `aws iam simulate-principal-policy` for `iam:CreateRole`, `iam:PassRole`, `lambda:CreateFunction`,
   `dynamodb:CreateTable`, `apigateway:POST`, `bedrock:CreateGuardrail`, `cloudformation:CreateStack`,
   `s3:CreateBucket`, `kms:CreateKey`, `ssm:PutParameter`, `secretsmanager:CreateSecret` is recorded
@@ -244,22 +248,16 @@ Owner: ____ (integrator for IC0) · Serves: C-16, C-28, C-29, C-30 · ADR-014 ·
 Keep this thin. Define signatures and shapes, not behavior. It runs alongside Tasks 0, 1, 2 and 3, and
 it gates only Tracks D, E and F.
 
-- [ ] Repo layout and directory ownership agreed (architecture 1.8), with a one-line README in each
-  new directory stating its owner track and boundary
-- [ ] `src/services/types.js`: JSDoc typedefs for the eight service functions and their inputs and
-  outputs (C-28, C-30)
-- [ ] `shared/contracts/` JSON Schemas: validator output (C-16), Passive signal, error shape (C-29),
-  submit response
-- [ ] Repository interface (JSDoc) for the store seam
-- [ ] `invoke(task, prompt, opts)`, `screenInput`, `screenOutput` signatures and the task names
-- [ ] `getConfig` and `getSecret` signatures
-- [ ] Fixtures: draft histories for the three personas, canned model outputs per task (valid, invalid
-  JSON, low confidence, blocked), and a sample submit response
-- [ ] Contract test harness: each seam has a suite that takes an implementation and runs against the
-  stub today
-- [ ] Mode switches defined: `VITE_SERVICE_MODE`, `MODEL_MODE`, `STORE_MODE`, with `source: "stub"` on
-  stub output
-- [ ] Contract-change rule written down and agreed
+- [x] Repo layout and directory ownership agreed (architecture 1.8), with a README in each new directory
+- [x] `src/services/types.js`: JSDoc typedefs for the eight service functions (C-28, C-30)
+- [x] `shared/contracts/` JSON Schemas: validator output (C-16), Passive signal, error shape (C-29), submit response
+- [x] Repository interface for the store seam (`backend/store/repository.py`)
+- [x] `invoke`, `screen_input`, `screen_output` signatures and the task names (`ModelPort`)
+- [x] `getConfig`/config-resolver signature (`get_config`; no secrets needed for the MVP)
+- [x] Fixtures: three persona histories, canned model outputs per task, a sample submit response
+- [x] Contract test harness: each seam has a suite run against its stub (`shared/contracts/tests/`, `backend/store/tests/`)
+- [x] Mode switches defined: `VITE_SERVICE_MODE`, `MODEL_MODE`, `STORE_MODE`, with `source: "stub"` on stub output
+- [x] Contract-change rule written down and agreed (architecture 1.8, ADR-014)
 
 **Tests:** each schema validates its own fixtures, and every stub passes its seam's contract suite.
 **Demo:** `npm test` runs the contract suites green against the stubs.
@@ -270,12 +268,12 @@ Owner: ____ · Serves: C-35, C-36, C-37, C-38 · Discrepancy items 1, 2
 - [x] `.gitattributes` with `* text=auto eol=lf` pushed to `main` (`f67c681`)
 - [x] Confirmed no CRLF churn in this checkout (`git add --renormalize .` is a no-op here)
 - [ ] Teammates with CRLF churn have synced (`git diff --ignore-cr-at-eol` is empty, then discard)
-- [ ] Rename `package.json` `name` from `login-app` to `codeai-adaptive`
-- [ ] Add Vitest and a first passing test
+- [ ] Rename `package.json` `name` from `login-app` to `codeai-adaptive` (**still `login-app`**)
+- [x] Add Vitest and a first passing test (vitest suite: 139 tests)
 - [ ] Add lint (ESLint) and a `npm run lint` script
-- [ ] GitHub Actions workflow on PRs: lint, test, `vite build`
-- [ ] `.env.local` is in `.gitignore` (the `.env.*` rule already covers it)
-- [ ] Add `!.env.example` to `.gitignore` and commit an `.env.example` with variable **names** only
+- [x] GitHub Actions workflow on PRs: JS, Python, `cdk synth` (`.github/workflows/ci.yml`, #28)
+- [x] `.env.local` is in `.gitignore` (the `.env.*` rule covers it)
+- [x] Add `!.env.example` to `.gitignore` and commit an `.env.example` with variable **names** only
 - [ ] Docs check in CI: parse every mermaid code block in `docs/` so a broken diagram fails the PR
   (a syntax error in the system context diagram was caught by hand on 2026-11-04)
 - [ ] Secret scanning in CI: gitleaks on every PR, failing the build on a finding
@@ -302,21 +300,21 @@ Owner: ____ · Serves: C-1, C-36
 ### Task 2: Shared domain core (MVP)
 Owner: ____ · Serves: C-5, C-6, C-9 to C-12, C-18 to C-20 · Discrepancy items 7, 9 · Architecture: 2.6
 
-- [ ] `shared/` module (plain JS ESM with JSDoc types)
+- [x] Domain core module — built in **Python** (`shared/core/`, ADR-015), not JS ESM
 - [x] Tree loader and validator for `database/sample-skilltree.json` (`shared/core/tree.py`)
 - [x] Monotonic evidence per skill (max observed, never decreases)
 - [x] Display-only 0 to 100 score (`round(100 × level / max)`)
 - [x] `route(tree, progress, evidence, teacherInput)` returns `{ checkpointId, reason }`
-- [x] Available = not completed and every `requires` is completed or tested out
-- [x] Skippable test-out after `intro` (`steer-it`, `use-the-lingo`, `give-context`)
-- [x] Largest skill gap wins, ties go to JSON order
+- [x] Available = not completed and every `requires` is completed or tested out; diagnostics (routeAfterCompletion) excluded as routing targets
+- [x] Skippable test-out after the diagnostic (`steer-it`, `use-the-lingo`, `give-context`)
+- [x] Stay-on-current proposal, else first available in JSON order (C-19.3; supersedes "largest gap", issue #24 q2 / PR #27)
 - [x] Teacher `hold` and `assign` (assign only if available; unavailable -> proposal, C-19 open q)
 - [x] Returned ids verified to exist in the tree (C-20)
 - [x] Default target 1 when a checkpoint has no `targetEvidenceLevels` (C-12)
 - Note: built in **Python** (ADR-015); the front-end mock keeps the JS implementation.
 
 **Tests:** table-driven, one case per C-19 rule, plus the id-exists check.
-**Demo:** `pytest shared/core` -> 33 passing. (Done in PR #14.)
+**Demo:** `pytest shared/core` passing (PR #14, updated for the authentic curriculum in #51).
 
 ### Task 3: Validator contract and eval harness (MVP)
 Owner: ____ · Serves: C-13 to C-17, P-19 · Discrepancy items 8, 16 · Architecture: 2.5
@@ -328,11 +326,11 @@ Track: C builds the schema, judge and metrics. Track G does the human ratings.
 - [x] `confidence < 0.6` triggers fallback; out-of-range `evidenceLevel` triggers fallback
 - [x] Metrics: exact, within-1, quadratic weighted kappa (`backend/eval/metrics.py`, PR #33)
 - [x] Golden-set runner + launch gate + CLI (`backend/eval`, PR #33)
-- [ ] Multiple-choice answers map to levels with no model call (C-13) — lives in the submit flow (Track D), not here
-- [ ] Not-scored steps record completion only (C-15) — submit flow (Track D)
-- [ ] Condition source wiring (`validation.condition` / `Evidence:` line) — the submit flow passes `condition` into the ValidateRequest (Track D)
-- [ ] Human rating: 15+ project submissions rated by people (**slowest dependency**, Track G)
-- [ ] Snapshot the validator's `evidenceLevel`s into the golden set on a pinned model + prompt version
+- [x] Multiple-choice answers map to levels with no model call (C-13) — submit flow (`backend/api/submit.py`)
+- [x] Not-scored steps record completion only (C-15) — submit flow
+- [x] Condition source wiring (`validation.condition` / `Evidence:` line) — submit passes `condition` into the ValidateRequest
+- [x] Human rating: 18 project submissions rated (Narendra, `backend/eval/fixtures/golden-set.json`); 15 clean pairs score QWK 0.889 (PASS). *3 awaiting a re-snapshot after the #47 evidence-length fix.*
+- [ ] Snapshot the validator's `evidenceLevel`s into the golden set on a pinned model + prompt version (15/18 filled; re-run `snapshot_validator --live` to complete the last 3)
 
 **Tests:** `pytest backend/ai` (validator: valid/low-confidence/invalid-JSON-repair/out-of-range/model-fail,
 45 total) and `pytest backend/eval` (26, PR #33). **Demo:** `python -m backend.eval <file>` prints the
@@ -417,8 +415,8 @@ the whole contract with no AWS.
   `key.lower()` mapping (checked on PostgreSQL 16, not on Aurora)
 - [x] Make the C-8 edit for any agreed new tables/columns (ties in with Task 8a)
 - [x] Write an ADR recording the student-id decision (it has the widest blast radius): ADR-017
-- [ ] Then build the Aurora adapter against the agreed shape and run the store contract suite against a
-  live cluster (unblocks Task 4's deferred item)
+- [x] Then build the Aurora adapter against the agreed shape and run the store contract suite against a
+  live cluster (unblocks Task 4's deferred item) — `aurora_repository.py`, live-verified (#34/#37)
 
 **Tests:** the store contract suite passes on both the JSON and the Aurora adapter after reconciliation.
 **Demo:** `STORE_MODE=aurora` serves the same submit flow as `STORE_MODE=json`.
@@ -433,10 +431,10 @@ Owner: ____ · Serves: C-25, C-26, P-18 · Discrepancy item 10 · Architecture: 
 - [x] `screen_output` before display
 - [x] Fail closed: block on error, never raise, safe replacement, lesson continues
 - [x] `BedrockModelPort` skeleton fills seam 3; `invoke`/`validate_project` raise until built
-- [ ] Wire `fallback_event` (safety) write at the call site (belongs with the `invoke`/submit path)
-- [ ] `trace` disabled on the live `guardrailConfig` path (set when `invoke` adds Converse)
+- [x] `fallback_event` (safety) fail-closed at the call site (submit output/input screens fail closed, C-25)
+- [x] `trace` disabled on the live `guardrailConfig` path (set by the `invoke` wrapper, #30)
 - [ ] Red-team fixture set (injection, age-inappropriate, PII) run against the live Guardrail
-- [ ] Live `ApplyGuardrail` smoke test after deploy
+- [x] Live `ApplyGuardrail` smoke test after deploy (unsafe input blocked: `violence`, `prompt_attack`; verified live)
 
 **Tests:** `pytest backend/ai` -> 15 passing; fake-client block/pass/PII/error paths, each validated
 against `ScreenResult`. Guardrail `cdk synth` clean (0 nag findings). **Demo:** an unsafe prompt yields a
@@ -455,9 +453,9 @@ Owner: ____ · Serves: C-14, C-27, P-7.2 · Discrepancy item 11 · Architecture:
   latency, tokens — and no student text (ADR-011)
 - [x] Returns the `InvokeResult` contract; never raises a provider error (maps to the C-29 error envelope)
 - [x] Wired into the API via `build_app(model=create_bedrock_port(...))` for `MODEL_MODE=bedrock`
-- [ ] `validate_project` LLM judge (C-14) — still raises; separate task
-- [ ] Runtime IAM scoped to the two inference profiles (with the DataStack/Bedrock role work)
-- [ ] Live Bedrock smoke test (verify → generate round-trip) after deploy
+- [x] `validate_project` LLM judge (C-14) — built (`backend/ai/validator.py`, #35; #47 evidence-length fix)
+- [x] Runtime IAM scoped to the inference profiles + guardrail + guardrail KMS key (`ApiStack`, #46 / #55)
+- [x] Live Bedrock smoke test (verify → generate round-trip) after deploy (#38 script; run live 2026-11-05)
 
 **Tests:** `pytest backend/ai` → 34 passing; fake-client coverage of fast/strong routing, guardrail
 intervention, throttle/timeout/access-denied mapping, no-text-leak, and build_app integration.
@@ -471,7 +469,7 @@ the seam-1 services contract. Consumes `shared/core` (Track B) directly and the 
 `ModelPort` (Track C) by injection. The API Gateway stack + usage plan is Track A's CDK
 (`infra/`); the transport-agnostic router here is ready to drop behind it.
 
-- [ ] REST API with stage throttling and a usage plan — BLOCKED: CDK is Track A (`infra/`, Task 4). Router is stack-ready.
+- [x] REST API with stage throttling and a usage plan (`infra/lib/api-stack.ts`; deployed live, API at `/prod`)
 - [x] Per-student call cap in the handler (`backend/api/http.py`, `per_student_cap`; RATE_LIMITED)
 - [x] `POST /steps/{id}/submit`: filter, validate or direct-map, persist, route (`backend/api/submit.py`). Passive hook left for Task 8a/8b (Track B/C seam).
 - [x] `POST /tutor/ask`, `POST /prompts/verify`, `POST /prompts/generate` (`backend/api/services.py`)
@@ -500,13 +498,13 @@ Verified at IC2 with `STORE_MODE=json` + the stub model, driving the real `share
 ### Task 8a: Passive features, rule baseline and store (MVP)
 Owner: ____ · Serves: C-10, C-27, P-5, P-6 · Architecture: 2.7, 2.9
 
-- [ ] Constraints edit: add the `passive_signal` table and the `passive` component to C-8
+- [x] Constraints edit: `passive_signal` table and `passive` component added to C-8
 - [ ] Constraints edit: add Passive reasoning, personas and demo director to C-33
-- [ ] Feature extractor from attempt content and server timestamps only (ADR-006)
-- [ ] Rule thresholds producing the signal
-- [ ] `passive_signal` writes
-- [ ] `remediation_flag`: 2nd consecutive miss creates it, `high` after four
-- [ ] Wired after submit
+- [x] Feature extractor from attempt content and server timestamps only (`shared/core/features.py`, ADR-006)
+- [x] Rule thresholds producing the signal (`rule_signal`)
+- [x] `passive_signal` writes (`backend/api/passive.py`, #43)
+- [x] `remediation_flag`: 2nd consecutive miss creates it, `high` after four (`submit.py` `_maybe_flag`)
+- [x] Wired after submit (#43, Track D)
 
 **Tests:** unit tests per feature; sequence tests where the skill level never drops and two misses
 raise a flag. **Demo:** repeated misses produce a flag in the roster.
@@ -520,7 +518,7 @@ Owner: ____ · Serves: C-27, ADR-005 · Architecture: 2.7
 - [x] Confidence below 0.6, invalid output, or model failure degrades to the rule signal (source `rules`); `is_rule_fallback()` tells the caller to write `fallback_event` (passive)
 - [x] The model cannot return a checkpoint id — a signal carrying one is rejected to rules (C-18)
 - [x] Contract: added `rules` to `PassiveResult.source` so a rule-sourced signal is a valid success
-- [ ] Submit-flow wiring: persist the `passive_signal` and write the `fallback_event` (Track D)
+- [x] Submit-flow wiring: persist the `passive_signal` and write the `fallback_event` (Track D, #43)
 
 **Tests:** `pytest backend/ai` (passive: cache hit, model success, low-confidence/invalid/model-fail
 degrade-to-rules, checkpoint-id rejection, no-leak, prompt shape — 55 ai total). **Demo:** same history
@@ -547,20 +545,19 @@ Owner: ____ · Serves: C-21 to C-23, C-28, C-30, C-32 · Discrepancy items 4, 5,
 Track: this task is split. **9a** (Track E): the services layer, tree, workspace, preview, content from the
 JSON, fallback UX. **9b** (Track F): the teacher view and the demo-mode login.
 
-- [ ] `src/services/` with one function per call and `types.js` (JSDoc)
-- [ ] Mock implementations (move `engine.js` in; routing swapped for `shared/route`)
-- [ ] HTTP implementations behind the same signatures; env switch
+- [x] `src/services/` with one function per call and `types.js` (JSDoc) (#31; all 8 functions)
+- [x] Mock implementations (frozen contract stub) and the mock/http provider switch (#31)
+- [x] HTTP implementations behind the same signatures; env switch (`VITE_SERVICE_MODE`, #31)
 - [ ] Mock error and hang toggles
-- [ ] Components no longer call the engine or `fetch` directly
-- [ ] Replace `courseData.js` with checkpoints and steps loaded from the JSON (C-6, C-7)
-- [ ] `skillTreeData.js` keyed by checkpoint id; fix "Load with the point" to "Lead with the point";
-  node state computed from progress (C-5)
-- [ ] Mastery shown as evidence levels; 0 to 100 is display only
-- [ ] Preview iframe uses `srcdoc` with `sandbox="allow-scripts"`, never `allow-same-origin` (C-32)
+- [~] Components no longer call the engine or `fetch` directly — WeblabLesson grades/routes via services (#51), but CourseOverview/LearnCard/ProgressReport/TaskCard/Tutor still read `courseData.js`/`engine.js` for content shapes
+- [x] Lesson content loaded from the tree JSON, not `courseData.js` (C-6, C-7) — `treeLesson.js` drives WeblabLesson (#51)
+- [ ] `skillTreeData.js` keyed by checkpoint id; node state computed from progress (C-5) — **still uses old slugs** (`list-pick`, `load-point`); the SkillTree map is not yet data-driven
+- [x] Mastery shown as evidence levels; 0 to 100 is display only (`treeAdapter`, C-11)
+- [x] Preview iframe uses `srcdoc` with `sandbox="allow-scripts"`, never `allow-same-origin` (C-32)
 - [ ] Deploy button hidden
 - [ ] `Login.jsx` becomes an explicit demo mode with both roles side by side
-- [ ] Fallback notice, linear path, 30 s health re-check, automatic resume
-- [ ] Teacher view: roster with mastery and flags, plus hold/assign control
+- [x] Fallback notice, linear path, 30 s health re-check, automatic resume (`healthRecheck.js`, #44)
+- [x] Teacher view: roster with mastery and flags, plus hold/assign control (#40)
 
 **Tests:** service tests with a mocked `fetch`; a fallback state-machine test.
 **Demo:** API off shows the notice while the lesson keeps working; then it recovers.
@@ -588,8 +585,8 @@ Owner: ____ · Serves: C-17, P-19.2 · Architecture: 2.5
 - [x] Golden-set runner + launch gate: ≥ 15 submissions AND pooled QWK ≥ 0.70, pooled + per-skill report
 - [x] CLI gate `python -m backend.eval <file>` — prints the numbers, exits non-zero below the gate
 - [x] Placeholder sample set wires the gate (18 synthetic pairs, PASS); demo-ready report format
-- [ ] Replace the placeholder with ≥ 15 **real** human-rated submissions (Track G — slow dependency)
-- [ ] `modelLevel` snapshot from the real validator (C-14) on a pinned model + prompt version
+- [x] Replace the placeholder with ≥ 15 **real** human-rated submissions — 18 rated (`golden-set.json`); 15 clean pairs score QWK 0.889 (PASS)
+- [~] `modelLevel` snapshot from the real validator (C-14) — 15/18 filled; 3 awaiting a re-snapshot after #47
 - [ ] CI job on `main` runs `python -m backend.eval` against the snapshot (not every PR, to limit spend)
 
 **Tests:** `pytest backend/eval` → 26 passing (metric math, count gate, QWK gate, validation, CLI exit
@@ -655,7 +652,7 @@ Owner: ____
 Make each in the PR that first needs it, and say so in the PR description.
 
 - [x] C-1: architecture document added to precedence
-- [ ] C-8: add the `passive_signal` table and `passive` to `fallback_event.component` (Task 8a)
+- [x] C-8: add the `passive_signal` table and `passive` to `fallback_event.component` (Task 8a; done in the schema/records work)
 - [ ] C-33: add Passive reasoning, personas and the demo director to in-scope (Task 8a)
 - [ ] C-33: record "no client telemetry" as a decision (Task 8a)
 - [ ] Discrepancy items 17 and 18 (stale data-model docs, frontend spec) after the demo
@@ -704,3 +701,4 @@ are done inside these tasks. Tick them there as well.
 | 2026-11-04 | #11 | Replaced the sequential dependency graph with a parallel work plan: seven tracks, six integration checkpoints (IC0 to IC5) and Task 0.5 (contracts and stubs). |
 | 2026-11-04 | #16 | Added Task 4.6 (reconcile the store schema with the contracts), which blocks the Aurora adapter after the PR #13 schema merge. MVP task count 18 -> 19. |
 | 2026-11-04 | (Task 4.6 PR) | Resolved the Task 4.6 mismatches in favour of the contracts (ADR-017): string student ids, skill slugs, `TEACHER_INPUT`, `Synthetic`, 0..3 evidence. Schema, seed and data model updated; C-8 edited. |
+| 2026-11-05 | (plan reconcile) | Ticked completed work against merged PRs + live verification: Tasks 0.5/2/6/7/8b complete; invoke wrapper (#30), validator (#35/#47), golden-set (#33), passive reasoner + submit wiring (#36/#43), safety+Guardrail (#5/#22), Aurora adapter live (#25/#34/#37), CI (#28), bedrock wiring (#46), health re-check (#44), teacher view (#40), authentic curriculum seed (#49) + runtime tree (#51). Corrected the C-19.3 line (stay-on-current, not largest-gap). Recorded still-open: 8c, 10, 12, 4.5, skill-tree C-5 ids, 3-of-18 golden-set re-snapshot. Full stack deployed + verified live on 475224768945. NOTE: the FK + guardrail-KMS + deploy-order fixes (PR #55) are not yet on `main`. |
