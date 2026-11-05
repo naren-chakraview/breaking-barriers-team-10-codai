@@ -1,0 +1,11 @@
+/* Teacher "classes you teach" landing page. Reuses the student dashboard's
+   .sd-* design language (studentDashboard.css); this file only adds the list
+   layout for the class cards. */
+
+.tc-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 24px;
+}

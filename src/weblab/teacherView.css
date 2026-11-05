@@ -446,3 +446,10 @@
   font-size: 13px;
   line-height: 1.4;
 }
+
+/* Back-to-classes button in the top bar (shown when TeacherView is opened from
+   the teacher's classes landing page). */
+.wf-back {
+  margin-right: 4px;
+  white-space: nowrap;
+}
