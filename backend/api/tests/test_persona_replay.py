@@ -110,9 +110,10 @@ def _seed_repo(persona) -> JsonRepository:
 
 
 def _progress_after_intro(persona, evidence):
-    """The progress map the personas assume: intro completed, plus any skippable checkpoint
-    whose target the diagnostic already meets marked tested_out (C-19.2)."""
-    progress = {"intro": "completed"}
+    """The progress map the personas assume: the diagnostics (intro + skill-check) completed,
+    plus any skippable checkpoint whose target the diagnostic already meets marked tested_out
+    (C-19.2). Taught checkpoints require skill-check in the authoritative curriculum."""
+    progress = {"intro": "completed", "skill-check": "completed"}
     for cid in persona["expected"].get("testedOut", []):
         progress[cid] = "tested_out"
     return progress

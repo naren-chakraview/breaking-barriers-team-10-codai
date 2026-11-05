@@ -50,9 +50,11 @@ describe('sample-skilltree.json', () => {
     }
   })
 
-  it('exactly one checkpoint routes after completion (the diagnostic, C-19)', () => {
+  it('the diagnostic checkpoints route after completion (C-19)', () => {
+    // intro (onboarding) and skill-check (the placement diagnostic) both route after
+    // completion in the authoritative curriculum; no other checkpoint does.
     const routers = checkpoints.filter((c) => c.routeAfterCompletion)
-    expect(routers.map((c) => c.id)).toEqual(['intro'])
+    expect(routers.map((c) => c.id)).toEqual(['intro', 'skill-check'])
   })
 
   it('skippable checkpoints declare a target, so test-out is defined (C-19.2)', () => {

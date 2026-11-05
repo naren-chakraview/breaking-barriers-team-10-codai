@@ -46,7 +46,7 @@
       "properties": {
         "id": { "$ref": "common.schema.json#/$defs/Slug" },
         "title": { "type": "string", "minLength": 1 },
-        "kind": { "enum": ["panels", "questions", "level"] },
+        "kind": { "enum": ["panels", "questions", "level", "review"] },
         "project": { "type": "boolean" },
         "instructionsPrompt": { "type": "string" },
         "validation": {
