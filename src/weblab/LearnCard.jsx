@@ -17,7 +17,9 @@ export default function LearnCard({ objectiveId, onStart }) {
         <h2 id="wf-learn2-title" className="wf-learn2-title">{obj.title}</h2>
       </div>
 
-      <p className="wf-learn2-intro">{lesson.intro}</p>
+      {String(lesson.intro).split('\n\n').map((para, i) => (
+        <p key={i} className="wf-learn2-intro">{para}</p>
+      ))}
 
       <ol className="wf-learn2-points">
         {lesson.points.map((pt, i) => (
@@ -30,6 +32,27 @@ export default function LearnCard({ objectiveId, onStart }) {
           <span className="wf-learn2-example-label">Worked example</span>
           <pre>{lesson.example.code}</pre>
           {lesson.example.caption && <p className="wf-learn2-example-cap">{lesson.example.caption}</p>}
+        </div>
+      )}
+
+      {lesson.walkthrough?.length > 0 && (
+        <div className="wf-learn2-walk">
+          <p className="wf-learn2-walk-label">Step by step</p>
+          <ol className="wf-learn2-walk-steps">
+            {lesson.walkthrough.map((w, i) => (
+              <li key={i}>
+                {w.code && <code className="wf-learn2-walk-code">{w.code}</code>}
+                <span>{w.text}</span>
+              </li>
+            ))}
+          </ol>
+        </div>
+      )}
+
+      {lesson.watchOut && (
+        <div className="wf-learn2-watch" role="note">
+          <span className="wf-learn2-watch-icon" aria-hidden="true">⚠️</span>
+          <p><strong>Watch out:</strong> {lesson.watchOut}</p>
         </div>
       )}
 

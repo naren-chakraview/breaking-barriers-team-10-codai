@@ -345,3 +345,17 @@
 .idg-tier--core { background: #dbeafe; color: #1e40af; }
 .idg-tier--stretch { background: #dcfce7; color: #166534; }
 .idg-cta { margin: 22px 0 0; }
+
+/* ---------- Learn card: step-by-step walkthrough + watch-out ---------- */
+.wfl .wf-learn2-intro + .wf-learn2-intro { margin-top: 10px; }
+.wfl .wf-learn2-walk { margin: 16px 0 0; }
+.wfl .wf-learn2-walk-label { margin: 0 0 8px; font-size: 12px; font-weight: 800; letter-spacing: 0.04em; text-transform: uppercase; color: #374151; }
+.wfl .wf-learn2-walk-steps { margin: 0; padding: 0; list-style: none; counter-reset: walk; display: flex; flex-direction: column; gap: 8px; }
+.wfl .wf-learn2-walk-steps li { counter-increment: walk; display: grid; grid-template-columns: auto 1fr; gap: 10px; align-items: baseline; font-size: 14px; line-height: 1.5; color: #1f2937; }
+.wfl .wf-learn2-walk-steps li::before { content: counter(walk); flex: none; width: 20px; height: 20px; border-radius: 50%; background: #e0e7ff; color: #3730a3; font-size: 11px; font-weight: 800; display: inline-grid; place-items: center; }
+.wfl .wf-learn2-walk-code { grid-column: 2; display: inline-block; margin-bottom: 2px; padding: 1px 7px; border-radius: 5px; background: #0f172a; color: #e5e7eb; font: 12px/1.6 ui-monospace, Consolas, monospace; }
+.wfl .wf-learn2-walk-steps li > span:last-child { grid-column: 2; }
+.wfl .wf-learn2-watch { margin: 16px 0 0; display: flex; gap: 10px; padding: 12px 14px; border-radius: 10px; background: #fffbeb; border: 1px solid #fde68a; }
+.wfl .wf-learn2-watch-icon { font-size: 16px; line-height: 1.5; }
+.wfl .wf-learn2-watch p { margin: 0; font-size: 13.5px; line-height: 1.55; color: #78350f; }
+.wfl .wf-learn2-watch strong { color: #92400e; }
