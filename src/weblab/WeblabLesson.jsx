@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { LESSON, FIRST_LEVEL_ID, getLevel, getPool } from './courseData.js'
 import { validateSubmission, routeNextLevel, buildNudge, describeRoute, computeConfidence, applyEstablished } from './engine.js'
 import { readProgress, writeProgress } from './progressStore.js'
@@ -12,6 +12,9 @@ import RequirementsBox from './RequirementsBox.jsx'
 import TaskCard from './TaskCard.jsx'
 import LearnCard from './LearnCard.jsx'
 import IntroDiagnostic from './IntroDiagnostic.jsx'
+import IntroInterests from './IntroInterests.jsx'
+import { readProfile, writeProfile, clearProfile } from './profileStore.js'
+import { themeFor } from './themes.js'
 import CodeWorkspace from './CodeWorkspace.jsx'
 import Preview from './Preview.jsx'
 import Tutor from './Tutor.jsx'
@@ -27,18 +30,44 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms))
 //   right    — live preview, then the AI Tutor
 const COURSE_ID = 'hoai2026-adaptive'
 
-export default function WeblabLesson({ user, onExit, onViewSkillTree }) {
+export default function WeblabLesson({ user, mode = 'continue', onModeConsumed, onExit, onViewSkillTree }) {
   const services = useServices()
   const [levelId, setLevelId] = useState(FIRST_LEVEL_ID)
   const level = getLevel(levelId)
+
+  // "Start lesson" (mode 'start') means re-ask the intro quizzes and
+  // re-personalize from the new answers; clear the saved profile + placement
+  // once, on entry, before the gate flags below read them.
+  const freshStart = useRef(mode === 'start')
+  if (freshStart.current) {
+    freshStart.current = false
+    try {
+      clearProfile(user?.username)
+      writeProgress(user?.username, { placedTier: null })
+    } catch { /* ignore */ }
+    onModeConsumed?.()
+  }
   // Teach-first: objectives whose Learn card the student has acknowledged. The
   // current objective's lesson shows (gating the task) until "Got it" is pressed.
   // Pre-project skill check: shown once before the lesson so the engine can rank
   // the student's starting level. Persisted so a reload doesn't re-ask.
+  // Interests profile drives personalization + the visual theme. Captured first.
+  const [profile, setProfile] = useState(() => readProfile(user?.username))
+  const [interestsDone, setInterestsDone] = useState(() => !!readProfile(user?.username))
   const [diagnosticDone, setDiagnosticDone] = useState(() => !!readProgress(user?.username)?.placedTier)
+  const theme = useMemo(() => themeFor(profile), [profile])
   const [lessonSeen, setLessonSeen] = useState({})
   const learning = level && !lessonSeen[level.objectiveId]
   const markLessonSeen = () => setLessonSeen((m) => ({ ...m, [level.objectiveId]: true }))
+
+  function applyInterests(answers) {
+    const record = writeProfile(user?.username, answers)
+    setProfile(record)
+    setInterestsDone(true)
+  }
+  function skipInterests() {
+    setInterestsDone(true)
+  }
 
   function applyDiagnostic(result) {
     const firstObj = LESSON.objectives[0].id
@@ -431,6 +460,9 @@ export default function WeblabLesson({ user, onExit, onViewSkillTree }) {
   const clock = `${String(Math.floor(seconds / 60)).padStart(2, '0')}:${String(seconds % 60).padStart(2, '0')}`
 
   // Gate the whole lesson behind the one-time skill check.
+  if (!interestsDone) {
+    return <IntroInterests user={user} onComplete={applyInterests} onSkip={skipInterests} />
+  }
   if (!diagnosticDone) {
     return <IntroDiagnostic user={user} onComplete={applyDiagnostic} onSkip={skipDiagnostic} />
   }

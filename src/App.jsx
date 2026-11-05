@@ -28,6 +28,10 @@ export default function App() {
   // Which screen the signed-in student is on:
   // 'dashboard' | 'course' | 'lesson' | 'skilltree'.
   const [view, setView] = useState(() => readStored(VIEW_KEY) || 'dashboard')
+  // 'start' = a fresh lesson (re-ask the intro quizzes and re-personalize);
+  // 'continue' = pick up the existing personalized lesson.
+  const [lessonMode, setLessonMode] = useState('continue')
+  const openLesson = (mode) => { setLessonMode(mode); setView('lesson') }
 
   // Persist the session so a reload keeps the user signed in.
   useEffect(() => {
@@ -55,6 +59,8 @@ export default function App() {
     return (
       <WeblabLesson
         user={user}
+        mode={lessonMode}
+        onModeConsumed={() => setLessonMode('continue')}
         onExit={() => setView('dashboard')}
         onViewSkillTree={() => setView('skilltree')}
       />
@@ -66,7 +72,7 @@ export default function App() {
       <SkillTree
         user={user}
         onExit={() => setView('dashboard')}
-        onOpenLesson={() => setView('lesson')}
+        onOpenLesson={() => openLesson('continue')}
       />
     )
   }
@@ -76,7 +82,7 @@ export default function App() {
       <CourseOverview
         user={user}
         onBack={() => setView('dashboard')}
-        onContinueLesson={() => setView('lesson')}
+        onContinueLesson={() => openLesson('continue')}
       />
     )
   }
@@ -85,7 +91,8 @@ export default function App() {
     <Dashboard
       user={user}
       onLogout={logout}
-      onContinueLesson={() => setView('lesson')}
+      onContinueLesson={() => openLesson('continue')}
+      onStartLesson={() => openLesson('start')}
       onViewCourse={() => setView('course')}
     />
   )
