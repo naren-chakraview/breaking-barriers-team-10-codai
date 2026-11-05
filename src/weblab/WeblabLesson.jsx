@@ -1,7 +1,9 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
-import { LESSON, FIRST_LEVEL_ID, getLevel } from './courseData.js'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { LESSON as BASE_LESSON, FIRST_LEVEL_ID, getLevel as baseGetLevel, getPool } from './courseData.js'
+import { buildLesson } from './lessonBuilder.js'
+import { assignedStandards } from '../teacher/assignmentStore.js'
 import { validateSubmission, routeNextLevel, buildNudge, describeRoute, computeConfidence, applyEstablished } from './engine.js'
-import { writeProgress } from './progressStore.js'
+import { readProgress, writeProgress } from './progressStore.js'
 import { buildProject } from './tools.js'
 import { useServices } from '../services/ServicesContext.jsx'
 import { adaptTree, adaptSubmit } from '../services/treeAdapter.js'
@@ -12,6 +14,9 @@ import LessonPanel from './LessonPanel.jsx'
 import RequirementsBox from './RequirementsBox.jsx'
 import TaskCard from './TaskCard.jsx'
 import LearnCard from './LearnCard.jsx'
+import IntroDiagnostic from './IntroDiagnostic.jsx'
+import IntroInterests from './IntroInterests.jsx'
+import { readProfile, writeProfile, clearProfile } from './profileStore.js'
 import CodeWorkspace from './CodeWorkspace.jsx'
 import Preview from './Preview.jsx'
 import Tutor from './Tutor.jsx'
@@ -27,15 +32,77 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms))
 //   right    — live preview, then the AI Tutor
 const COURSE_ID = 'hoai2026-adaptive'
 
-export default function WeblabLesson({ user, onExit, onViewSkillTree }) {
+export default function WeblabLesson({ user, mode = 'continue', onModeConsumed, onExit, onViewSkillTree }) {
   const services = useServices()
-  const [levelId, setLevelId] = useState(FIRST_LEVEL_ID)
+
+  // "Start lesson" (mode 'start') means re-ask the intro quizzes and
+  // re-personalize from the new answers; clear the saved profile + placement
+  // once, on entry, before anything reads them.
+  const freshStart = useRef(mode === 'start')
+  if (freshStart.current) {
+    freshStart.current = false
+    try {
+      clearProfile(user?.username)
+      writeProgress(user?.username, { placedTier: null })
+    } catch { /* ignore */ }
+    onModeConsumed?.()
+  }
+
+  // Interests profile drives lesson/task personalization. Captured first.
+  const [profile, setProfile] = useState(() => readProfile(user?.username))
+  const [interestsDone, setInterestsDone] = useState(() => !!readProfile(user?.username))
+  const [diagnosticDone, setDiagnosticDone] = useState(() => !!readProgress(user?.username)?.placedTier)
+
+  // The lesson itself is BUILT from the four inputs (teacher assignment, skill-
+  // check tier, interests profile, learn-focus), not read from a static table.
+  // Level/objective ids match the base model, so the engine's id-based routing
+  // keeps working while the content is personalized.
+  const assigned = useMemo(() => assignedStandards(user?.username), [user])
+  const placedTier = readProgress(user?.username)?.placedTier || 'core'
+  const built = useMemo(
+    () => buildLesson({ assigned, profile, startTier: placedTier }),
+    [assigned, profile, placedTier],
+  )
+  const LESSON = built.lesson
+  const builtById = useMemo(() => Object.fromEntries(built.levels.map((l) => [l.id, l])), [built])
+  const getLevel = (id) => builtById[id] || baseGetLevel(id)
+
+  const [levelId, setLevelId] = useState(() => built.firstLevelId || FIRST_LEVEL_ID)
   const level = getLevel(levelId)
-  // Teach-first: objectives whose Learn card the student has acknowledged. The
-  // current objective's lesson shows (gating the task) until "Got it" is pressed.
+
   const [lessonSeen, setLessonSeen] = useState({})
   const learning = level && !lessonSeen[level.objectiveId]
   const markLessonSeen = () => setLessonSeen((m) => ({ ...m, [level.objectiveId]: true }))
+
+  function applyInterests(answers) {
+    const record = writeProfile(user?.username, answers)
+    setProfile(record)
+    setInterestsDone(true)
+  }
+  function skipInterests() {
+    setInterestsDone(true)
+  }
+
+  function applyDiagnostic(result) {
+    const firstObj = LESSON.objectives[0].id
+    const tier = result?.tier || 'core'
+    const startLevel = (getPool(firstObj, tier)[0]) || getLevel(FIRST_LEVEL_ID)
+    setEstablished((e) => ({ ...e, [firstObj]: tier }))
+    setPlacements((pm) => ({ ...pm, [firstObj]: { tier, reason: 'placement' } }))
+    if (startLevel && startLevel.id !== levelId) {
+      setLevelId(startLevel.id)
+      setHistory((h) => [...h, startLevel.id])
+      setShownIds((ids) => [...ids, startLevel.id])
+      if (startLevel.starter) { setHtml(startLevel.starter.html ?? ''); setCss(startLevel.starter.css ?? '') }
+      setLevelStart({ html: startLevel.starter?.html ?? '', css: startLevel.starter?.css ?? '' })
+    }
+    writeProgress(user?.username, { started: true, placedTier: tier })
+    setDiagnosticDone(true)
+  }
+  function skipDiagnostic() {
+    writeProgress(user?.username, { started: true, placedTier: 'core' })
+    setDiagnosticDone(true)
+  }
   const reviewLesson = () => setLessonSeen((m) => ({ ...m, [level.objectiveId]: false }))
 
   // Content + progress sourced from the services layer (seam 1). The editor
@@ -416,6 +483,14 @@ export default function WeblabLesson({ user, onExit, onViewSkillTree }) {
   const totalObjectives = LESSON.objectives.length
   const clock = `${String(Math.floor(seconds / 60)).padStart(2, '0')}:${String(seconds % 60).padStart(2, '0')}`
 
+  // Gate the whole lesson behind the one-time skill check.
+  if (!interestsDone) {
+    return <IntroInterests user={user} onComplete={applyInterests} onSkip={skipInterests} />
+  }
+  if (!diagnosticDone) {
+    return <IntroDiagnostic user={user} onComplete={applyDiagnostic} onSkip={skipDiagnostic} />
+  }
+
   if (phase === 'complete') {
     return (
       <div className="ca-complete">
@@ -476,13 +551,14 @@ export default function WeblabLesson({ user, onExit, onViewSkillTree }) {
 
         <div className="wf-col wf-col--center">
           {learning ? (
-            <LearnCard objectiveId={level.objectiveId} onStart={markLessonSeen} />
+            <LearnCard objectiveId={level.objectiveId} objective={LESSON.objectives.find((o) => o.id === level.objectiveId)} projectTitle={LESSON.projectTitle} onStart={markLessonSeen} />
           ) : (
           <>
             <TaskCard
               level={level}
               objectives={LESSON.objectives}
               completed={completed}
+              projectTitle={LESSON.projectTitle}
               onReviewLesson={reviewLesson}
             />
             <RequirementsBox onGenerate={generate} onAsk={askFromRequirements} />

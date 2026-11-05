@@ -11,7 +11,7 @@ const TIER_LABEL = {
   stretch: 'Challenge',
 }
 
-export default function TaskCard({ level, objectives, completed, onReviewLesson }) {
+export default function TaskCard({ level, objectives, completed, projectTitle, onReviewLesson }) {
   if (!level) return null
   const obj = getObjective(level.objectiveId)
   const total = objectives.length
@@ -34,6 +34,7 @@ export default function TaskCard({ level, objectives, completed, onReviewLesson 
         <span className="wf-task-icon" aria-hidden="true">🎯</span>
         Your task: {level.title}
       </h2>
+      {projectTitle && <p className="wf-task-project">Building: <strong>{projectTitle}</strong></p>}
       <p className="wf-task-body">{level.instructions}</p>
       {example && (
         <div className="wf-task-example">

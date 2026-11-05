@@ -5,8 +5,8 @@
 // the editor task; it can be reopened later with "Review the lesson".
 import { getObjective } from './courseData.js'
 
-export default function LearnCard({ objectiveId, onStart }) {
-  const obj = getObjective(objectiveId)
+export default function LearnCard({ objectiveId, objective, projectTitle, onStart }) {
+  const obj = objective || getObjective(objectiveId)
   const lesson = obj?.lesson
   if (!obj || !lesson) return null
 
@@ -15,9 +15,16 @@ export default function LearnCard({ objectiveId, onStart }) {
       <div className="wf-learn2-head">
         <span className="wf-learn2-eyebrow"><span aria-hidden="true">📘</span> Learn this first</span>
         <h2 id="wf-learn2-title" className="wf-learn2-title">{obj.title}</h2>
+        {projectTitle && (
+          <p className="wf-learn2-project">
+            <span aria-hidden="true">🎯</span> You'll use this on <strong>{projectTitle}</strong>.
+          </p>
+        )}
       </div>
 
-      <p className="wf-learn2-intro">{lesson.intro}</p>
+      {String(lesson.intro).split('\n\n').map((para, i) => (
+        <p key={i} className="wf-learn2-intro">{para}</p>
+      ))}
 
       <ol className="wf-learn2-points">
         {lesson.points.map((pt, i) => (
@@ -30,6 +37,27 @@ export default function LearnCard({ objectiveId, onStart }) {
           <span className="wf-learn2-example-label">Worked example</span>
           <pre>{lesson.example.code}</pre>
           {lesson.example.caption && <p className="wf-learn2-example-cap">{lesson.example.caption}</p>}
+        </div>
+      )}
+
+      {lesson.walkthrough?.length > 0 && (
+        <div className="wf-learn2-walk">
+          <p className="wf-learn2-walk-label">Step by step</p>
+          <ol className="wf-learn2-walk-steps">
+            {lesson.walkthrough.map((w, i) => (
+              <li key={i}>
+                {w.code && <code className="wf-learn2-walk-code">{w.code}</code>}
+                <span>{w.text}</span>
+              </li>
+            ))}
+          </ol>
+        </div>
+      )}
+
+      {lesson.watchOut && (
+        <div className="wf-learn2-watch" role="note">
+          <span className="wf-learn2-watch-icon" aria-hidden="true">⚠️</span>
+          <p><strong>Watch out:</strong> {lesson.watchOut}</p>
         </div>
       )}
 
