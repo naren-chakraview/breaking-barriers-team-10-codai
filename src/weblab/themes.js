@@ -29,6 +29,16 @@ const CATEGORY = {
   business:    { accent: '#1d4ed8', accent2: '#1e40af', font: 'clean',  radius: '8px',  label: 'Brand', icon: '🏷️' },
   me:          { accent: '#4f46e5', accent2: '#4338ca', font: 'clean',  radius: '12px', label: 'Me', icon: '✨' },
 }
+// A darker shade per category, guaranteed to carry white text at >= 4.5:1.
+// Used for button/hero surfaces; the brighter `accent` stays for borders/dots.
+const STRONG = {
+  gaming: '#15803d', sports: '#c2410c', music: '#7c3aed', art: '#be185d',
+  photography: '#0369a1', movies: '#b91c1c', books: '#92400e', animals: '#15803d',
+  food: '#be123c', science: '#0e7490', coding: '#1d4ed8', fashion: '#9d174d',
+  travel: '#0f766e', club: '#6d28d9', cause: '#047857', business: '#1e40af', me: '#4338ca',
+}
+const DEFAULT_STRONG = '#4338ca'
+
 const DEFAULT_CATEGORY = { accent: '#4f46e5', accent2: '#4338ca', font: 'clean', radius: '12px', label: 'Project', icon: '🚀' }
 
 // Vibe -> surface feel (page background, surface, text, light/dark).
@@ -63,17 +73,19 @@ export function themeFor(profile) {
   const vibe = VIBE[vibeId] || DEFAULT_VIBE
   const font = FONT_STACK[cat.font] || FONT_STACK.clean
 
+  const strong = STRONG[categoryId] || DEFAULT_STRONG
   const vars = {
-    '--th-accent': cat.accent,
+    '--th-accent': cat.accent,        // bright: borders, dots, focus (on light bg)
     '--th-accent-2': cat.accent2,
-    '--th-accent-ink': vibe.dark ? '#06240f' : '#ffffff',
+    '--th-accent-strong': strong,     // dark enough to carry white text (>= 4.5:1)
+    '--th-accent-ink': '#ffffff',
     '--th-bg': vibe.bg,
     '--th-surface': vibe.surface,
     '--th-ink': vibe.ink,
     '--th-muted': vibe.muted,
     '--th-radius': cat.radius,
     '--th-font': font,
-    '--th-hero': `linear-gradient(135deg, ${cat.accent} 0%, ${cat.accent2} 100%)`,
+    '--th-hero': `linear-gradient(135deg, ${strong} 0%, ${cat.accent2} 100%)`,
     '--th-ring': `${cat.accent}55`,
   }
   return { id: categoryId || 'default', label: cat.label, icon: cat.icon, vars, dark: !!vibe.dark }

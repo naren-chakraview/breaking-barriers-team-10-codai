@@ -464,7 +464,7 @@ export default function WeblabLesson({ user, mode = 'continue', onModeConsumed, 
     return <IntroInterests user={user} onComplete={applyInterests} onSkip={skipInterests} />
   }
   if (!diagnosticDone) {
-    return <IntroDiagnostic user={user} onComplete={applyDiagnostic} onSkip={skipDiagnostic} />
+    return <IntroDiagnostic user={user} theme={theme} onComplete={applyDiagnostic} onSkip={skipDiagnostic} />
   }
 
   if (phase === 'complete') {
@@ -487,7 +487,7 @@ export default function WeblabLesson({ user, mode = 'continue', onModeConsumed, 
   }
 
   return (
-    <div className="wf wfl">
+    <div className={`wf wfl th th--${theme.id}${theme.dark ? ' th--dark' : ''}`} style={theme.vars}>
       <LessonTopBar
         user={user}
         completedCount={completedCount}

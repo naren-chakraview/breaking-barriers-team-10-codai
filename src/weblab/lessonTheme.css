@@ -359,3 +359,45 @@
 .wfl .wf-learn2-watch-icon { font-size: 16px; line-height: 1.5; }
 .wfl .wf-learn2-watch p { margin: 0; font-size: 13.5px; line-height: 1.55; color: #78350f; }
 .wfl .wf-learn2-watch strong { color: #92400e; }
+
+/* ======================================================================
+   Preference-driven theme (themes.js -> CSS variables on `.th`). These rules
+   let the student's interests/vibe recolor the most visible surfaces while the
+   layout and the contrast-checked light panels stay intact. Everything falls
+   back to the default AdaptAI look when a variable is unset.
+   ====================================================================== */
+.th { --wf-blue: var(--th-accent, #4f8cff); font-family: var(--th-font, inherit); }
+
+/* Accent surfaces pick up the theme accent + gradient. */
+.wfl.th .wf-top::after { background: var(--th-hero); }
+.wfl.th .wf-avatar { background: var(--th-accent-strong); }
+.wfl.th .wf-btn--blue { background: var(--th-hero); box-shadow: 0 6px 14px -6px var(--th-ring); }
+.wfl.th .wf-btn--blue:hover { filter: brightness(1.06); }
+.wfl.th .wf-task { border-left-color: var(--th-accent); }
+.wfl.th .wf-task-icon { filter: none; }
+.wfl.th .wf-bar-fill--blue { background: var(--th-hero); }
+.wfl.th *:focus-visible { outline-color: var(--th-accent, #1d4ed8); }
+.wfl.th .wf-learn2 { border-top-color: var(--th-accent); }
+.wfl.th .wf-task-review { color: var(--th-accent); }
+.th .idg-badge { color: var(--th-accent); background: color-mix(in srgb, var(--th-accent) 16%, #ffffff); }
+.th .idg-qn, .th .wf-learn2-num { background: var(--th-accent); }
+.th .idg-choice.is-checked { border-color: var(--th-accent); box-shadow: 0 0 0 3px var(--th-ring); background: color-mix(in srgb, var(--th-accent) 8%, #ffffff); }
+.th .idg-tier--core { background: color-mix(in srgb, var(--th-accent) 18%, #ffffff); color: color-mix(in srgb, var(--th-accent) 70%, #111827); }
+
+/* Themed page background on the gate screens + lesson field. */
+.wfl.th { background: var(--th-bg, #f4f5f7); }
+.th.idg-screen { background:
+  radial-gradient(900px 360px at 12% -8%, color-mix(in srgb, var(--th-accent) 20%, transparent), transparent 62%),
+  var(--th-bg, #f4f7fb); }
+
+/* Dark vibe: lift text/surfaces so a dark theme is readable. */
+.th--dark.idg-screen { color: var(--th-ink); }
+.th--dark .idg { background: var(--th-surface); border-color: color-mix(in srgb, var(--th-accent) 30%, transparent); }
+.th--dark .idg-title, .th--dark .idg-done-title { color: var(--th-ink); }
+.th--dark .idg-sub, .th--dark .idg-done-sub, .th--dark .idg-done-blurb { color: var(--th-muted); }
+.th--dark .idg-choice { background: color-mix(in srgb, var(--th-surface) 70%, #000); border-color: color-mix(in srgb, var(--th-accent) 25%, transparent); color: var(--th-ink); }
+.th--dark .idg-choice:hover { background: color-mix(in srgb, var(--th-accent) 12%, var(--th-surface)); }
+.th--dark .idg-legend { color: var(--th-ink); }
+.th--dark .idg-code { background: #05101f; }
+
+@media (prefers-reduced-motion: reduce) { .wfl.th .wf-btn--blue:hover { filter: none; } }

@@ -5,7 +5,7 @@ import { QUIZ_QUESTIONS, scoreQuiz, tierBlurb, tierLabel } from './diagnosticQui
 // questions; the answers are scored into a starting tier so the adaptive engine
 // can rank the student's initial skill and begin at the right level. The student
 // may skip (which starts them at the standard tier). Fully local, no backend.
-export default function IntroDiagnostic({ user, onComplete, onSkip }) {
+export default function IntroDiagnostic({ user, theme, onComplete, onSkip }) {
   const [answers, setAnswers] = useState({})
   const [result, setResult] = useState(null)
 
@@ -19,7 +19,7 @@ export default function IntroDiagnostic({ user, onComplete, onSkip }) {
 
   if (result) {
     return (
-      <div className="wf wfl idg-screen">
+      <div className={`wf wfl idg-screen th th--${theme?.id || 'default'}${theme?.dark ? ' th--dark' : ''}`} style={theme?.vars}>
         <div className="idg idg--result" role="dialog" aria-labelledby="idg-done-title" aria-modal="true">
           <span className="idg-badge">Skill check complete</span>
           <h1 id="idg-done-title" className="idg-done-title">Nice — we've got a starting point.</h1>
@@ -37,7 +37,7 @@ export default function IntroDiagnostic({ user, onComplete, onSkip }) {
   }
 
   return (
-    <div className="wf wfl idg-screen">
+    <div className={`wf wfl idg-screen th th--${theme?.id || 'default'}${theme?.dark ? ' th--dark' : ''}`} style={theme?.vars}>
       <div className="idg" role="form" aria-labelledby="idg-title">
         <div className="idg-head">
           <span className="idg-badge">Quick skill check · 3 questions</span>
