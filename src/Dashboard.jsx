@@ -1,4 +1,6 @@
+import { useState } from 'react'
 import StudentDashboard from './StudentDashboard.jsx'
+import TeacherClasses from './TeacherClasses.jsx'
 import TeacherView from './weblab/TeacherView.jsx'
 
 export default function Dashboard({ user, onLogout, onContinueLesson, onStartLesson, onViewCourse }) {
@@ -14,8 +16,22 @@ export default function Dashboard({ user, onLogout, onContinueLesson, onStartLes
     )
   }
 
-  // Teacher: the lesson view (roster + student detail) from teacher-view-design.md.
-  // Uses my weblab/ implementation (persona-driven). The team's src/teacher/
-  // version is also present on main but not wired in here (Option B).
-  return <TeacherView user={user} onLogout={onLogout} />
+  // Teacher: classes landing page -> classroom dashboard.
+  if (teacherView === 'course') {
+    return (
+      <TeacherView
+        user={user}
+        onLogout={onLogout}
+        onBack={() => setTeacherView('classes')}
+      />
+    )
+  }
+
+  return (
+    <TeacherClasses
+      user={user}
+      onLogout={onLogout}
+      onViewCourse={() => setTeacherView('course')}
+    />
+  )
 }

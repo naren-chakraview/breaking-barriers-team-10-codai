@@ -650,7 +650,7 @@ function StudentDetail({ student, onRouting, routing }) {
   )
 }
 
-export default function TeacherView({ user, onLogout }) {
+export default function TeacherView({ user, onLogout, onBack }) {
   const [roster, setRoster] = useState([])
   const [selectedId, setSelectedId] = useState(null)
   const [search, setSearch] = useState('')
@@ -744,9 +744,14 @@ export default function TeacherView({ user, onLogout }) {
       {/* Top bar */}
       <header className="wf-top">
         <div className="wf-brand">
+          {onBack && (
+            <button type="button" className="wf-btn wf-btn--ghost wf-back" onClick={onBack}>
+              ← Classes
+            </button>
+          )}
           <BrandMark size={30} />
           <span className="wf-brand-name">AdaptAI</span>
-          <span className="wf-project">Teacher · Module 2 — Build a personal site</span>
+          <span className="wf-project">Teacher · Hour of AI 2026 — Adaptive Weblab</span>
         </div>
         <div className="wf-actions">
           {source === 'stub' && <span className="tv-demo-tag" title="Served by the mock services stub">demo data</span>}
