@@ -4,6 +4,9 @@ import {
   NODE_META, STATE_META, buildAssignedTree,
 } from './skillTreeData.js'
 import { assignedStandards } from '../teacher/assignmentStore.js'
+import { autoSelectStandards } from '../teacher/autoSelectStandards.js'
+import { readProfile } from './profileStore.js'
+import { readProgress } from './progressStore.js'
 import { BrandMark } from '../Brand.jsx'
 import './skillTree.css'
 
@@ -15,13 +18,25 @@ import './skillTree.css'
 export default function SkillTree({ user, onExit, onOpenLesson }) {
   // If the teacher assigned CSTA standards to this student, the tree is built
   // from those; otherwise fall back to the default demo graph.
+  // The skill tree is always CSTA High School Specialty standards. If the teacher
+  // assigned some, use exactly those; otherwise auto-select from the same list
+  // based on the student's questionnaire + skill-check tier.
   const assigned = useMemo(() => assignedStandards(user?.username), [user])
+  const standards = useMemo(() => {
+    if (assigned.length) return assigned
+    const profile = readProfile(user?.username)
+    const tier = readProgress(user?.username)?.placedTier || 'core'
+    return autoSelectStandards({ profile, tier })
+  }, [assigned, user])
+  const source = assigned.length ? 'assigned' : 'auto'
   const tree = useMemo(
-    () => (assigned.length ? buildAssignedTree(assigned) : { CLUSTERS: DEFAULT_CLUSTERS, NODES: DEFAULT_NODES, EDGES: DEFAULT_EDGES, CANVAS: DEFAULT_CANVAS }),
-    [assigned],
+    () => (standards.length
+      ? buildAssignedTree(standards)
+      : { CLUSTERS: DEFAULT_CLUSTERS, NODES: DEFAULT_NODES, EDGES: DEFAULT_EDGES, CANVAS: DEFAULT_CANVAS }),
+    [standards],
   )
   const { CLUSTERS, NODES, EDGES, CANVAS } = tree
-  const isAssigned = assigned.length > 0
+  const isAssigned = standards.length > 0
   const getNode = (id) => NODES.find((n) => n.id === id) || null
   const neighborsOf = (id) => {
     const ids = new Set()
@@ -126,7 +141,7 @@ export default function SkillTree({ user, onExit, onOpenLesson }) {
           <BrandMark size={30} />
           <span className="stx-brand-name">AdaptAI</span>
         </div>
-        <div className="stx-top-title">Skill Tree · {isAssigned ? "Your assigned CSTA standards" : "Hour of AI 2026 — Adaptive"}</div>
+        <div className="stx-top-title">Skill Tree · {source === 'assigned' ? 'Assigned by your teacher (CSTA)' : 'Chosen for you from CSTA standards'}</div>
         <div className="stx-top-actions">
           <button type="button" className="stx-btn" onClick={() => setMenuOpen((o) => !o)} aria-expanded={menuOpen}>
             {user?.username || 'Student'} ▾
