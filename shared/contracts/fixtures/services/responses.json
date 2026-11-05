@@ -58,23 +58,23 @@
       {
         "studentId": "stu-slow", "displayName": "Steady Sam", "synthetic": true, "currentCheckpointId": "steer-it",
         "mastery": [ { "skillId": "build", "level": 1, "max": 2, "display": 50 }, { "skillId": "language", "level": 1, "max": 3, "display": 33 }, { "skillId": "debug", "level": 0, "max": 3, "display": 0 } ],
-        "flags": [ { "skillId": "build", "reason": "Five attempts below target on steer-it-project.", "severity": "high", "createdAt": "2026-11-04T09:29:05Z" } ],
+        "flags": [ { "skillId": "build", "reason": "5 attempts below target on steer-it-project.", "severity": "high", "createdAt": "2026-11-04T09:29:05Z" } ],
         "passive": { "signal": "slow_down", "hintStyle": "step_by_step", "reason": "Repeated misses; example and analogy already tried.", "confidence": 0.78, "createdAt": "2026-11-04T09:29:10Z" },
-        "lastRouting": { "decisionId": "dec-slow-01", "studentId": "stu-slow", "proposedCheckpointId": "steer-it", "teacherInput": { "mode": "auto" }, "appliedCheckpointId": "steer-it", "reason": "Largest gap to target is build (0 of 2); steer-it is first in tree order.", "createdAt": "2026-11-04T09:05:10Z" },
+        "lastRouting": { "decisionId": "dec-slow-01", "studentId": "stu-slow", "proposedCheckpointId": "steer-it", "teacherInput": { "mode": "auto" }, "appliedCheckpointId": "steer-it", "reason": "Continue on steer-it; its target is not yet met.", "createdAt": "2026-11-04T09:05:10Z" },
         "teacherInput": { "mode": "auto" }
       },
       {
         "studentId": "stu-detail", "displayName": "Detail Dana", "synthetic": true, "currentCheckpointId": "steer-it",
-        "mastery": [ { "skillId": "build", "level": 2, "max": 2, "display": 100 }, { "skillId": "language", "level": 1, "max": 3, "display": 33 }, { "skillId": "debug", "level": 1, "max": 3, "display": 33 } ],
-        "flags": [],
-        "passive": { "signal": "redirect", "hintStyle": "guiding_question", "reason": "Target reached, then repeated color and font edits with flat evidence.", "confidence": 0.74, "createdAt": "2026-11-04T13:33:05Z" },
+        "mastery": [ { "skillId": "build", "level": 1, "max": 2, "display": 50 }, { "skillId": "language", "level": 1, "max": 3, "display": 33 }, { "skillId": "debug", "level": 1, "max": 3, "display": 33 } ],
+        "flags": [ { "skillId": "build", "reason": "6 attempts below target on steer-it-project.", "severity": "high", "createdAt": "2026-11-04T13:33:05Z" } ],
+        "passive": { "signal": "redirect", "hintStyle": "guiding_question", "reason": "Repeated color and font edits; build evidence flat below target.", "confidence": 0.74, "createdAt": "2026-11-04T13:33:05Z" },
         "lastRouting": null,
         "teacherInput": { "mode": "hold" }
       },
       {
         "studentId": "stu-away", "displayName": "Drifting Drew", "synthetic": true, "currentCheckpointId": "steer-it",
         "mastery": [ { "skillId": "build", "level": 0, "max": 2, "display": 0 }, { "skillId": "language", "level": 0, "max": 3, "display": 0 }, { "skillId": "debug", "level": 0, "max": 3, "display": 0 } ],
-        "flags": [],
+        "flags": [ { "skillId": "build", "reason": "4 attempts below target on steer-it-project.", "severity": "high", "createdAt": "2026-11-04T12:10:05Z" } ],
         "passive": { "signal": "reengage", "hintStyle": "guiding_question", "reason": "Low-effort submits with long gaps between them; inferred from content and timing only.", "confidence": 0.55, "createdAt": "2026-11-04T12:10:05Z" },
         "lastRouting": null,
         "teacherInput": { "mode": "auto" }
