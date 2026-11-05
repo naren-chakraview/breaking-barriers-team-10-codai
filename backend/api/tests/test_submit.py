@@ -89,7 +89,7 @@ def test_maps_multiple_choice_answer_without_model():
     deps, _ = _deps()
     res = submit_step(
         deps,
-        {"stepId": "intro-web-dev", "courseId": "hoai2026-adaptive", "checkpointId": "intro", "kind": "answer", "questionId": 103, "choiceId": "b"},
+        {"stepId": "skill-check-web-dev", "courseId": "hoai2026-adaptive", "checkpointId": "skill-check", "kind": "answer", "questionId": 103, "choiceId": "b"},
         CTX,
     )
     assert _valid(res) == []

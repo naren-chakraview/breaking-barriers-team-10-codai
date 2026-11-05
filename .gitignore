@@ -31,3 +31,6 @@ infra/cdk.context.json
 
 # Local demo backend virtualenv (backend/local/run.py)
 .venv-api/
+
+# Local demo store working copy (backend writes to it at runtime; seed is demo-store.json)
+backend/local/.demo-store.working.json

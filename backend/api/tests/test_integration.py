@@ -101,9 +101,9 @@ def test_evidence_never_decreases_across_calls():
     h = _student_headers("stu-mono")
 
     # First an MCQ answer worth 2, then one worth 0 on the same skill.
-    r1 = _post(app, "/steps/intro-web-dev/submit", h, {"courseId": "hoai2026-adaptive", "checkpointId": "intro", "kind": "answer", "questionId": 103, "choiceId": "b"})
+    r1 = _post(app, "/steps/skill-check-web-dev/submit", h, {"courseId": "hoai2026-adaptive", "checkpointId": "skill-check", "kind": "answer", "questionId": 103, "choiceId": "b"})
     assert r1["body"]["evidence"]["level"] == 2
-    r2 = _post(app, "/steps/intro-web-dev/submit", h, {"courseId": "hoai2026-adaptive", "checkpointId": "intro", "kind": "answer", "questionId": 103, "choiceId": "c"})
+    r2 = _post(app, "/steps/skill-check-web-dev/submit", h, {"courseId": "hoai2026-adaptive", "checkpointId": "skill-check", "kind": "answer", "questionId": 103, "choiceId": "c"})
     assert r2["body"]["evidence"]["level"] == 0  # this attempt scored 0
     # ...but the stored skill level stays at the max observed.
     assert repo.get_evidence("stu-mono")["build"] == 2

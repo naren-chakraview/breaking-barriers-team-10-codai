@@ -37,11 +37,18 @@ def _requires_met(tree: Tree, progress: Mapping[str, str], checkpoint_id: str) -
 def available_checkpoints(tree: Tree, progress: Mapping[str, str]) -> list[str]:
     """Available = not done and every `requires` checkpoint is completed or tested out (C-19.1).
 
+    Diagnostic checkpoints (routeAfterCompletion: intro onboarding, skill-check placement)
+    are never routing targets — they run before the taught lesson and the router proposes
+    what to *work on* next, not the diagnostic. Excluding them keeps a post-diagnostic student
+    from being proposed the diagnostic as their next checkpoint.
+
     Returned in JSON order so all downstream tie-breaking is deterministic.
     """
     out = []
     for cp in tree.checkpoints:
         cid = cp["id"]
+        if tree.routes_after_completion(cid):
+            continue  # diagnostic phase, not a taught checkpoint (C-19.2)
         if _is_done(progress, cid):
             continue
         if _requires_met(tree, progress, cid):

@@ -17,9 +17,20 @@ change, not a rewrite.
 Methods take and return the camelCase records in
 `shared/contracts/schemas/records.schema.json`. Task 4.6 aligned `database/schema.sql` to
 those records: **string ids, skill slugs, `TEACHER_INPUT` table, JSONB `TeacherInput` on
-`ROUTING_DECISION`, evidence levels 0..3.** Column names are the camelCase record keys,
-which Postgres folds to lowercase in result sets; `AuroraRepository` maps them back with a
-column-name table (`_CAMEL`). No id translation anywhere — the persona fixtures load as-is.
+`ROUTING_DECISION`, evidence levels 0..3.** The DDL column names are PascalCase
+(`StudentId`), which Postgres folds to lowercase in result sets (`studentid`);
+`AuroraRepository` maps each back through `_CAMEL` and lowercases the first letter to the
+camelCase record key (`studentId`), so reads match the JSON adapter and the schemas exactly.
+No id translation anywhere — the persona fixtures load as-is.
+
+Two Postgres realities the adapter handles explicitly (both surfaced by the live contract
+test, which a fake client cannot catch):
+
+- **Timestamps.** ISO-8601 strings are bound as text and cast in SQL (`:ts::timestamptz`),
+  because Postgres will not implicitly cast text into a `TIMESTAMPTZ` column on insert.
+- **Referential integrity.** Student-state tables carry foreign keys to `STUDENT_PROFILE`
+  (and skills/steps/checkpoints), which the JSON adapter does not. A student must exist
+  before its child rows — the contract seeds the synthetic student through `put_student`.
 
 ## Aurora via the Data API
 
@@ -33,7 +44,7 @@ module imports without it; the unit tests use a fake Data API client (no AWS).
 
 ```bash
 . .venv/bin/activate && pip install -r requirements-dev.txt
-pytest backend/store
+pytest backend/store   # JSON adapter + the fake-client Aurora tests; no AWS
 ```
 
 - `test_json_repository.py` — full contract suite against the JSON adapter + persistence.
@@ -41,3 +52,19 @@ pytest backend/store
   round-trip, factory wiring, with a fake client.
 - `test_aurora_live.py` — the **same** contract suite against a real cluster. Skipped unless
   `AURORA_CLUSTER_ARN`/`AURORA_SECRET_ARN` are set; run post-deploy against a scratch DB.
+
+To run the live suite (needs `boto3` and the shared cluster's ARNs):
+
+```bash
+pip install boto3
+AWS_DEFAULT_REGION=us-west-2 \
+AURORA_CLUSTER_ARN=<CodeAI-DataStack ClusterArn> \
+AURORA_SECRET_ARN=<CodeAI-DataStack SecretArn> \
+AURORA_DATABASE_NAME=codeai \
+pytest backend/store/tests/test_aurora_live.py
+```
+
+The suite writes under the synthetic id `stu-x` and its autouse fixture deletes that student
+(cascading to all child tables) before and after the run — scoped to `stu-x` only. Note the
+cluster scales to zero when idle, so the first call may return `DatabaseResumingException`;
+re-run once it has resumed (a few seconds).

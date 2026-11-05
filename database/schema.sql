@@ -190,7 +190,8 @@ CREATE TABLE CHECKPOINT_TARGET (
 
 CREATE INDEX idx_target_skill ON CHECKPOINT_TARGET (SkillId);
 
--- Kind: panels (read only), level (widget or project task), questions.
+-- Kind: panels (read only), level (widget or project task), questions,
+-- review (read-only plan summary; completion-only like panels, C-15).
 -- Payload holds the kind-specific content (panels, questions, level reference).
 -- ValidationCondition and ValidationSkillId are set only for project steps that
 -- spell them out. Otherwise the validator derives them at runtime (architecture 2.5).
@@ -198,7 +199,7 @@ CREATE TABLE STEP (
     StepId              TEXT PRIMARY KEY,
     CheckpointId        TEXT NOT NULL REFERENCES CHECKPOINT (CheckpointId) ON DELETE CASCADE,
     Sequence            INTEGER NOT NULL,
-    Kind                TEXT NOT NULL CHECK (Kind IN ('panels', 'level', 'questions')),
+    Kind                TEXT NOT NULL CHECK (Kind IN ('panels', 'level', 'questions', 'review')),
     Title               TEXT NOT NULL,
     IsProject           BOOLEAN NOT NULL DEFAULT FALSE,
     Instructions        TEXT,

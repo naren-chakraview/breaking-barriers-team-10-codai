@@ -86,7 +86,14 @@ def _read_context(headers: Mapping[str, Any]) -> dict[str, Any]:
 
 
 def _json_headers() -> dict[str, str]:
-    return {"content-type": "application/json"}
+    # The API Gateway CORS config only answers the OPTIONS preflight; the proxy integration's
+    # actual responses come from here, so they must carry Access-Control-Allow-Origin or the
+    # browser blocks the UI from reading them. '*' mirrors the stack's Cors.ALL_ORIGINS
+    # (demo mode, C-33; tighten to the real origin with auth in Task 19).
+    return {
+        "content-type": "application/json",
+        "access-control-allow-origin": "*",
+    }
 
 
 def _status_for(code: str) -> int:

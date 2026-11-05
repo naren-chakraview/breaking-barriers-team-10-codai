@@ -1,12 +1,12 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { LESSON as BASE_LESSON, FIRST_LEVEL_ID, getLevel as baseGetLevel, getPool } from './courseData.js'
-import { buildLesson } from './lessonBuilder.js'
-import { assignedStandards } from '../teacher/assignmentStore.js'
-import { validateSubmission, routeNextLevel, buildNudge, describeRoute, computeConfidence, applyEstablished } from './engine.js'
+import { FIRST_LEVEL_ID, getLevel as baseGetLevel } from './courseData.js'
+import { buildTreeLesson, startLevelId } from './treeLesson.js'
+import { buildNudge, describeRoute } from './engine.js'
 import { readProgress, writeProgress } from './progressStore.js'
 import { buildProject } from './tools.js'
 import { useServices } from '../services/ServicesContext.jsx'
 import { adaptTree, adaptSubmit } from '../services/treeAdapter.js'
+import { useHealthRecheck } from '../services/healthRecheck.js'
 import SourceBadge from '../services/SourceBadge.jsx'
 import LessonTopBar from './LessonTopBar.jsx'
 import LessonPanel from './LessonPanel.jsx'
@@ -46,20 +46,17 @@ export default function WeblabLesson({ user, onExit, onViewSkillTree }) {
 
   // The lesson itself is BUILT from the four inputs (teacher assignment, skill-
   // check tier, interests profile, learn-focus), not read from a static table.
-  // Level/objective ids match the base model, so the engine's id-based routing
-  // keeps working while the content is personalized.
-  const assigned = useMemo(() => assignedStandards(user?.username), [user])
-  const placedTier = readProgress(user?.username)?.placedTier || 'core'
-  const built = useMemo(
-    () => buildLesson({ assigned, profile, startTier: placedTier }),
-    [assigned, profile, placedTier],
-  )
-  const LESSON = built.lesson
-  const builtById = useMemo(() => Object.fromEntries(built.levels.map((l) => [l.id, l])), [built])
-  const getLevel = (id) => builtById[id] || baseGetLevel(id)
+  // The lesson the student works through is BUILT FROM THE AUTHORITATIVE SKILL TREE
+  // (C-6, C-7): objectives are the tree's skill checkpoints and levels are their steps,
+  // with real instructions/panels/questions — not the invented courseData HTML lesson.
+  // The raw tree arrives from getTree (async); until it loads we show a loading banner.
+  const [rawTree, setRawTree] = useState(null)
+  const built = useMemo(() => (rawTree ? buildTreeLesson(rawTree) : null), [rawTree])
+  const LESSON = built?.lesson || { objectives: [], title: 'Loading…', unitTitle: '', projectTitle: '' }
+  const getLevel = (id) => built?.byStep[id] || baseGetLevel(id)
 
-  const [levelId, setLevelId] = useState(() => built.firstLevelId || FIRST_LEVEL_ID)
-  const level = getLevel(levelId)
+  const [levelId, setLevelId] = useState(null)
+  const level = getLevel(levelId) || { objectiveId: null, title: '', instructions: '', starter: null }
 
   const [lessonSeen, setLessonSeen] = useState({})
   const learning = level && !lessonSeen[level.objectiveId]
@@ -75,19 +72,9 @@ export default function WeblabLesson({ user, onExit, onViewSkillTree }) {
   }
 
   function applyDiagnostic(result) {
-    const firstObj = LESSON.objectives[0].id
-    const tier = result?.tier || 'core'
-    const startLevel = (getPool(firstObj, tier)[0]) || getLevel(FIRST_LEVEL_ID)
-    setEstablished((e) => ({ ...e, [firstObj]: tier }))
-    setPlacements((pm) => ({ ...pm, [firstObj]: { tier, reason: 'placement' } }))
-    if (startLevel && startLevel.id !== levelId) {
-      setLevelId(startLevel.id)
-      setHistory((h) => [...h, startLevel.id])
-      setShownIds((ids) => [...ids, startLevel.id])
-      if (startLevel.starter) { setHtml(startLevel.starter.html ?? ''); setCss(startLevel.starter.css ?? '') }
-      setLevelStart({ html: startLevel.starter?.html ?? '', css: startLevel.starter?.css ?? '' })
-    }
-    writeProgress(user?.username, { started: true, placedTier: tier })
+    // The server owns placement/routing; the diagnostic result is recorded for the
+    // dashboard. The lesson starts at getTree.current (seeded on load).
+    writeProgress(user?.username, { started: true, placedTier: result?.tier || 'core' })
     setDiagnosticDone(true)
   }
   function skipDiagnostic() {
@@ -108,23 +95,40 @@ export default function WeblabLesson({ user, onExit, onViewSkillTree }) {
   // Latest source/notice/fallback to surface in the badge.
   const [serviceStatus, setServiceStatus] = useState({ source: null, notice: null, fallbackActive: false })
 
-  useEffect(() => {
-    let alive = true
+  // Load (or reload) the tree from the services layer. Reused on mount and when health
+  // recovers, so resuming adaptive mode is just a fresh getTree (C-23, F-14.5).
+  const refreshTree = useCallback(() => {
     setLoadingTree(true)
-    services
+    return services
       .getTree({ courseId: COURSE_ID })
       .then((res) => {
-        if (!alive) return
         const adapted = adaptTree(res)
         setTree(adapted)
+        setRawTree(res?.tree || null)
         if (adapted.current) setStepRef(adapted.current)
+        // Seed the starting step from the server's routing pointer (else the first step),
+        // but only once — don't yank the student back when they reload mid-lesson.
+        const tl = res?.tree ? buildTreeLesson(res.tree) : null
+        if (tl) {
+          setLevelId((cur) => cur || startLevelId(tl, res.current))
+        }
         setServiceStatus({ source: adapted.source, notice: null, fallbackActive: adapted.fallbackActive })
         setLoadError(null)
+        return adapted
       })
-      .catch((err) => { if (alive) setLoadError(err?.message || 'Could not load the lesson.') })
-      .finally(() => { if (alive) setLoadingTree(false) })
-    return () => { alive = false }
+      .catch((err) => { setLoadError(err?.message || 'Could not load the lesson.'); return null })
+      .finally(() => { setLoadingTree(false) })
   }, [services])
+
+  useEffect(() => { refreshTree() }, [refreshTree])
+
+  // C-23 / F-14.4: while on the fallback path, re-check health every 30 s and resume
+  // adaptive mode automatically when the service is healthy again — no reload needed.
+  useHealthRecheck({
+    active: serviceStatus.fallbackActive,
+    health: services.health,
+    onRecover: () => { refreshTree() },
+  })
 
   // Code buffers (carried forward across levels) and editor view state.
   const [html, setHtml] = useState(level.starter?.html ?? '')
@@ -224,26 +228,37 @@ export default function WeblabLesson({ user, onExit, onViewSkillTree }) {
   const markDirty = () => setSaveState({ status: 'dirty' })
 
   function loadLevel(next, reason) {
+    if (!next) { setPhase('complete'); setBanner(null); return }
     setLevelId(next.id)
     setHistory((h) => [...h, next.id])
-    setShownIds((ids) => [...ids, next.id])
-    setEstablished((e) => ({ ...e, [next.objectiveId]: applyEstablished(next.tier, e[next.objectiveId]) }))
-    // Fresh starter if the level ships one; otherwise carry the code forward.
-    const startHtml = next.starter ? (next.starter.html ?? '') : html
-    const startCss = next.starter ? (next.starter.css ?? '') : css
-    if (next.starter) {
-      setHtml(startHtml)
-      setCss(startCss)
-    }
-    setLevelStart({ html: startHtml, css: startCss })
+    // Carry the project forward across steps (the tree steps have no per-step starter).
+    setLevelStart({ html, css })
     setUndoStack([])
     setLevelHints(0)
     setLevelAttempts(0)
     levelStartRef.current = Date.now()
     setPhase('working')
     setNudge(null)
-    const msg = describeRoute(reason)
-    if (msg) flash(msg, 5000)
+    if (reason) flash(reason, 5000)
+  }
+
+  // Advance to the next step. The server's routing decides the next CHECKPOINT
+  // (via submitStep.next / getTree.current); within a checkpoint we walk the tree's
+  // step order. `nextRef` is {checkpointId, stepId} from the submit response, or null.
+  function advance(nextRef) {
+    const levels = built?.levels || []
+    const idx = levels.findIndex((l) => l.id === levelId)
+    // Prefer the next step in the SAME checkpoint (tree order).
+    const sameCp = levels[idx + 1]
+    if (sameCp && sameCp.checkpointId === level.checkpointId) {
+      return loadLevel(sameCp, null)
+    }
+    // Otherwise jump to the server's next checkpoint's first step.
+    if (nextRef?.stepId && built?.byStep[nextRef.stepId]) {
+      return loadLevel(built.byStep[nextRef.stepId], nextRef.reason)
+    }
+    // Fall back to the next level in tree order, else complete.
+    return loadLevel(levels[idx + 1] || null, null)
   }
 
   // Run / Build: check both files, write a build log, refresh the preview on
@@ -269,67 +284,59 @@ export default function WeblabLesson({ user, onExit, onViewSkillTree }) {
     const attempts = levelAttempts + 1
     setLevelAttempts(attempts)
 
-    // Grade against the local engine so content, grading, hints and routing all
-    // share one model (no split between the UI content and a separate service).
-    const signal = await validateSubmission(level, { html, css })
-    signal.hintsOnLevel = levelHints
-    signal.attempts = attempts
+    // Grade through the services layer against the authoritative curriculum (C-14):
+    // project steps go to the validator; questions/panels/review record completion.
+    // The server also routes (C-18/C-19) and returns the next step.
+    let res
+    try {
+      const raw = await services.submitStep({
+        courseId: COURSE_ID,
+        checkpointId: level.checkpointId,
+        stepId: level.id,
+        kind: level.project ? 'prompt' : 'complete',
+        text: level.project ? `Submission for ${level.title}` : undefined,
+        project: level.project ? { html, css, js: '' } : undefined,
+      })
+      res = adaptSubmit(raw)
+    } catch (err) {
+      setPhase('working')
+      flash(err?.message || 'We could not check your work just now — your code is safe. Try again.', 6000)
+      return
+    }
 
-    setMastery(signal.score)
-    setBestMastery((m) => Math.max(m, signal.score)) // mastery never shown decreasing
-    if (signal.passing) setCompleted((c) => ({ ...c, [level.objectiveId]: true }))
-    if (signal.passing) setEstablished((e) => ({ ...e, [level.objectiveId]: applyEstablished(level.tier, e[level.objectiveId]) }))
+    // masteryDisplay is display-only (C-11): show it verbatim, never decreasing.
+    if (typeof res.mastery === 'number') {
+      setMastery(res.mastery)
+      setBestMastery((m) => Math.max(m, res.mastery))
+    }
+    if (res.completed) setCompleted((c) => ({ ...c, [level.objectiveId]: true }))
+    setServiceStatus({ source: res.source, notice: res.notice, fallbackActive: res.outcome === 'fallback' })
 
-    // Persist real progress so the dashboard reflects what actually happened.
     writeProgress(user?.username, {
-      bestMastery: Math.max(bestMastery, signal.score),
-      completed: signal.passing ? { [level.objectiveId]: true } : {},
+      bestMastery: typeof res.mastery === 'number' ? Math.max(bestMastery, res.mastery) : bestMastery,
+      completed: res.completed ? { [level.objectiveId]: true } : {},
     })
 
-    // Confidence in this objective's level drives whether we probe to confirm.
-    const conf = computeConfidence(signal, level.tier)
-    setConfidence((c) => ({ ...c, [level.objectiveId]: conf }))
-
-    setPhase('routing')
-    probeSeedRef.current += 1
-    const ctx = {
-      confidence: conf,
-      probeCount: probeCount[level.objectiveId] || 0,
-      established,
-      shownIds,
-      seed: probeSeedRef.current,
-    }
-    const result = await routeNextLevel(level, signal, history, ctx)
-
-    // Track consecutive probes per objective so probing can't loop (cap in engine).
-    if (result.reason === 'probe') {
-      setProbeCount((pc) => ({ ...pc, [level.objectiveId]: (pc[level.objectiveId] || 0) + 1 }))
-    } else {
-      setProbeCount((pc) => ({ ...pc, [level.objectiveId]: 0 }))
-    }
-
-    // Record this step for the progress report: what skill, how hard, how it went.
+    // Record this step for the progress report.
     const secondsOnStep = Math.max(1, Math.round((Date.now() - levelStartRef.current) / 1000))
     setStepLog((log) => [...log, {
       id: `${level.id}-${log.length}`,
       levelId: level.id,
       objectiveId: level.objectiveId,
       title: level.title,
-      tier: level.tier,
-      score: signal.score,
-      passing: signal.passing,
+      score: res.mastery ?? 0,
+      passing: res.completed,
       hints: levelHints,
       attempts,
       seconds: secondsOnStep,
-      routeReason: result.reason,
+      routeReason: res.outcome,
     }])
 
-    if (result.reason === 'complete') {
-      setPhase('complete')
-      setBanner(null)
-      return
-    }
-    loadLevel(result.level, result.reason)
+    // A blocked submission did not score: keep the student on this step (C-25).
+    if (res.outcome === 'blocked') { setPhase('working'); return }
+
+    setPhase('routing')
+    advance(res.next)
   }
 
   // Edits, undo and reset.

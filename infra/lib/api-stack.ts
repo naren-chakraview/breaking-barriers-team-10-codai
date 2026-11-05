@@ -2,6 +2,7 @@ import * as cdk from 'aws-cdk-lib'
 import { Duration } from 'aws-cdk-lib'
 import * as apigw from 'aws-cdk-lib/aws-apigateway'
 import * as iam from 'aws-cdk-lib/aws-iam'
+import * as kms from 'aws-cdk-lib/aws-kms'
 import * as lambda from 'aws-cdk-lib/aws-lambda'
 import * as logs from 'aws-cdk-lib/aws-logs'
 import { NagSuppressions } from 'cdk-nag'
@@ -22,6 +23,11 @@ export interface ApiStackProps extends cdk.StackProps {
   readonly secretArn: string
   /** The DataStack managed policy granting rds-data:*, GetSecretValue, kms:Decrypt. */
   readonly dataApiAccessPolicy: iam.IManagedPolicy
+  /**
+   * The GuardrailStack CMK that encrypts the Guardrail config. The Lambda needs kms:Decrypt
+   * on it so Converse/ApplyGuardrail with the guardrail attached is not rejected by Bedrock.
+   */
+  readonly guardrailKey: kms.IKey
 }
 
 /**
@@ -40,10 +46,12 @@ const PYTHON_VERSION = PYTHON_RUNTIME.name.replace('python', '') // e.g. "3.14"
  * throttling and a usage plan (spend protection, ADR-012), a {proxy+} catch-all so the
  * router sees every path, the P-1.4 CORS headers, and the Lambda's log group / env.
  *
- * Runtime defaults are safe: MODEL_MODE=stub and STORE_MODE=json, so the deployed API runs
- * end to end with no model calls and no database (the Aurora adapter is not built yet; its
- * schema is reconciled by Task 4.6).
- * The handler fails fast if asked for bedrock/aurora before those land.
+ * Runtime wiring (Task 6): MODEL_MODE=bedrock and STORE_MODE=aurora, so the deployed API
+ * runs the real AI agents (Converse via the invoke wrapper, behind the deployed Guardrail)
+ * against the shared Aurora cluster. Model ids and the guardrail id/version are read from
+ * SSM at cold start (architecture 2.14); the Lambda is granted scoped Bedrock + SSM access
+ * below. verify/validate/passive run on the fast (Haiku) tier, codegen/tutor on the strong
+ * (Sonnet) tier (P-7.2, C-27).
  */
 export class ApiStack extends cdk.Stack {
   constructor(scope: Construct, id: string, props: ApiStackProps) {
@@ -53,14 +61,16 @@ export class ApiStack extends cdk.Stack {
       runtime: PYTHON_RUNTIME, // backend tier is Python (ADR-015); latest runtime (cdk-nag L1)
       handler: 'backend.api.lambda_handler.handler',
       code: this.bundleBackend(),
-      timeout: Duration.seconds(10), // adaptive-call budget (C-22, C-29)
+      // The model budget is 10 s per adaptive call (C-22) with one retry inside the invoke
+      // wrapper; the Lambda must outlast that so it never kills a call mid-retry. 29 s is the
+      // API Gateway integration ceiling, which gives the needed headroom.
+      timeout: Duration.seconds(29),
       memorySize: 512,
       environment: {
-        MODEL_MODE: 'stub', // no Bedrock until Task 6; StubModel from fixtures
-        // The Aurora adapter is built (ADR-017). STORE_MODE stays 'json' as the safe default;
-        // flip to 'aurora' to run the backend on the deployed cluster. The AURORA_* coordinates
-        // below are what backend/store/factory.py reads, so flipping is a one-value change.
-        STORE_MODE: 'json',
+        MODEL_MODE: 'bedrock', // real AI agents via the invoke wrapper (Task 6, C-27)
+        // The Aurora adapter is built (ADR-017); the API runs on the deployed shared cluster.
+        // The AURORA_* coordinates below are what backend/store/factory.py reads.
+        STORE_MODE: 'aurora',
         AURORA_CLUSTER_ARN: props.clusterArn,
         AURORA_SECRET_ARN: props.secretArn,
         AURORA_DATABASE_NAME: props.databaseName,
@@ -76,6 +86,8 @@ export class ApiStack extends cdk.Stack {
     // policy (rds-data:*, secretsmanager:GetSecretValue on the secret, kms:Decrypt). One
     // source of truth for data-tier access, so the API and agents stay in sync.
     fn.role!.addManagedPolicy(props.dataApiAccessPolicy)
+
+    this.grantModelAccess(fn, props.guardrailKey)
 
     // Access log: request metadata only (standard fields: ip, method, path, status, latency).
     // API Gateway access logs never include request or response bodies, so no student text
@@ -100,7 +112,7 @@ export class ApiStack extends cdk.Stack {
       },
       defaultCorsPreflightOptions: {
         allowOrigins: apigw.Cors.ALL_ORIGINS, // demo mode; tighten with real auth (Task 19)
-        allowHeaders: [...apigw.Cors.DEFAULT_HEADERS, 'X-User-Id', 'X-Role'], // P-1.4
+        allowHeaders: [...apigw.Cors.DEFAULT_HEADERS, 'X-User-Id', 'X-Role', 'X-Correlation-Id'], // P-1.4 + correlation
         allowMethods: apigw.Cors.ALL_METHODS,
       },
     })
@@ -122,6 +134,52 @@ export class ApiStack extends cdk.Stack {
     new cdk.CfnOutput(this, 'ApiUrl', { value: api.url })
 
     this.addNagSuppressions(api)
+  }
+
+  /**
+   * Grant the API Lambda the runtime permissions the real AI agents need (Task 6, C-27):
+   *   - Bedrock Converse/invoke on the Claude models and the cross-region inference profiles
+   *     the models resolve to (the `us.` ids are system-defined inference profiles, so both
+   *     the profile ARN and the underlying foundation-model ARNs must be allowed).
+   *   - ApplyGuardrail on this account's guardrails (the deployed K-12 Guardrail, C-25).
+   *   - Read the model ids + guardrail id/version from SSM at cold start (architecture 2.14).
+   * Account/region come from the stack env, never the repo (ADR-013).
+   */
+  private grantModelAccess(fn: lambda.Function, guardrailKey: kms.IKey): void {
+    const { account, region } = cdk.Stack.of(this)
+
+    fn.addToRolePolicy(
+      new iam.PolicyStatement({
+        sid: 'BedrockInvoke',
+        actions: ['bedrock:InvokeModel', 'bedrock:InvokeModelWithResponseStream'],
+        resources: [
+          // Foundation models are account-less and can be invoked in any region the profile spans.
+          `arn:aws:bedrock:*::foundation-model/*`,
+          // System-defined cross-region inference profiles (the `us.anthropic...` ids).
+          `arn:aws:bedrock:${region}:${account}:inference-profile/*`,
+        ],
+      }),
+    )
+    fn.addToRolePolicy(
+      new iam.PolicyStatement({
+        sid: 'BedrockApplyGuardrail',
+        actions: ['bedrock:ApplyGuardrail'],
+        resources: [`arn:aws:bedrock:${region}:${account}:guardrail/*`],
+      }),
+    )
+    fn.addToRolePolicy(
+      new iam.PolicyStatement({
+        sid: 'ReadCodeAiConfig',
+        actions: ['ssm:GetParameter'],
+        resources: [`arn:aws:ssm:${region}:${account}:parameter/codeai/*`],
+      }),
+    )
+    // The Guardrail config is encrypted with the GuardrailStack CMK. When Converse runs with
+    // the guardrail attached, Bedrock decrypts that config as the caller, so the Lambda role
+    // needs kms:Decrypt on the key — otherwise Converse fails with "You do not have access to
+    // the guardrail's KMS key" and the invoke wrapper falls back to the rule baseline (C-22).
+    // grantDecrypt adds kms:Decrypt (+ DescribeKey) scoped to this key and updates its policy.
+    guardrailKey.grantDecrypt(fn)
   }
 
   /**
@@ -224,7 +282,12 @@ export class ApiStack extends cdk.Stack {
       {
         id: 'AwsSolutions-IAM4',
         reason:
-          'The API Lambda uses AWSLambdaBasicExecutionRole for CloudWatch Logs. Aurora Data API access is granted via the scoped DataStack DataApiAccessPolicy (rds-data:*, GetSecretValue, kms:Decrypt on the specific resources). Bedrock permissions are added when the model integration lands (Task 6).',
+          'The API Lambda uses AWSLambdaBasicExecutionRole for CloudWatch Logs. Aurora Data API access is granted via the scoped DataStack DataApiAccessPolicy (rds-data:*, GetSecretValue, kms:Decrypt on the specific resources).',
+      },
+      {
+        id: 'AwsSolutions-IAM5',
+        reason:
+          'Bedrock model access (Task 6, C-27) is scoped by service and resource type but keeps a resource wildcard within it: bedrock:InvokeModel on foundation-model/* and this account/region inference-profile/* (the models are chosen at runtime from SSM, so the exact id is not known at synth), ApplyGuardrail on this account/region guardrail/*, and ssm:GetParameter on parameter/codeai/* (the config namespace this app owns). kms:Decrypt is scoped to the single GuardrailStack key ARN (required so Converse can decrypt the guardrail config). No cross-account or cross-service wildcard.',
       },
     ])
   }
