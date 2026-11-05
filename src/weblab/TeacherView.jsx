@@ -1,8 +1,10 @@
 import { useEffect, useState } from 'react'
 import './teacherView.css'
+import './demo.css'
 import { BrandMark } from '../Brand.jsx'
 import { personas } from '../../shared/contracts/fixtures/index.js'
 import { createServices } from '../services/provider.js'
+import { readDemoResult } from './demoResultsStore.js'
 
 // Build the seam-1 services object from the active mode (VITE_SERVICE_MODE).
 // Uses the team's provider (src/services/provider.js); mock mode returns the
@@ -209,13 +211,36 @@ function rosterStudentToView(s) {
     }
   }
 
+  // Live demo run (if any) overrides the persona-derived mastery/status so the
+  // teacher page reflects exactly what the autopilot just produced for this
+  // student. Persona fixtures remain the fallback when no demo has run.
+  const demo = readDemoResult(s.studentId)
+
+  if (detail && demo) {
+    const total = demo.totalObjectives || (detail.skills.mastered.length + detail.skills.inProgress.length + detail.skills.locked.length)
+    detail.skills.pct = demo.mastery ?? detail.skills.pct
+    detail.skills.summary = `${demo.completedCount ?? 0} of ${total} objectives complete · ${demo.hintsUsed ?? 0} hint${(demo.hintsUsed ?? 0) === 1 ? '' : 's'} used · ${demo.attempts ?? 0} attempts · starting tier: ${demo.tier ?? '—'}`
+    detail.live = {
+      tier: demo.tier,
+      mastery: demo.mastery,
+      hintsUsed: demo.hintsUsed,
+      attempts: demo.attempts,
+      completedCount: demo.completedCount,
+      totalObjectives: total,
+      finished: demo.finished,
+    }
+  }
+
   return {
     id: s.studentId,
     name: s.displayName,
     initials: INITIALS(s.displayName),
-    levelLabel: `Checkpoint: ${s.currentCheckpointId ?? '—'} · prompting`,
-    mastery: buildSkill?.display ?? detail?.skills.pct ?? 0,
-    status: SIGNAL_STATUS[signal] ?? 'on track',
+    levelLabel: demo
+      ? `${demo.finished ? 'Completed' : 'In progress'} · tier ${demo.tier ?? '—'} · prompting`
+      : `Checkpoint: ${s.currentCheckpointId ?? '—'} · prompting`,
+    mastery: demo?.mastery ?? buildSkill?.display ?? detail?.skills.pct ?? 0,
+    status: demo?.status ?? SIGNAL_STATUS[signal] ?? 'on track',
+    isLiveDemo: !!demo,
     // Real roster-level fields from getTeacherRoster (not persona fixtures):
     currentCheckpointId: s.currentCheckpointId ?? null,
     flags: s.flags ?? [],
@@ -278,7 +303,10 @@ function RosterRow({ student, selected, onOpen }) {
           {student.initials}
         </span>
         <span className="tv-row-main">
-          <span className="tv-row-name">{student.name}</span>
+          <span className="tv-row-name">
+            {student.name}
+            {student.isLiveDemo && <span className="tv-demo-live" title="Live data from the automated demo run">live</span>}
+          </span>
           <span className="tv-row-sub">{student.levelLabel}</span>
         </span>
         <span className="tv-row-mastery">
@@ -490,7 +518,10 @@ function StudentDetail({ student, onRouting, routing }) {
             {student.name}
             {d.fromPersona && <span className="tv-persona-tag">persona: {d.fromPersona}</span>}
           </h2>
-          <p className="wf-muted">Class 7B · opened via double-click · {d.module}</p>
+          <p className="wf-muted">
+            Class 7B · opened via double-click · {d.module}
+            {d.live && <span className="tv-demo-live" title="Live data from the automated demo run">live demo run</span>}
+          </p>
         </div>
         {d.signal && (
           <span className={`tv-signal tv-signal--${SIGNAL_INFO[d.signal]?.tone ?? 'mid'}`}>

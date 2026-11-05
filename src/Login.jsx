@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { BrandLogo } from './Brand.jsx'
 
-export default function Login({ onLogin }) {
+export default function Login({ onLogin, onPlayDemo }) {
   const [role, setRole] = useState('student')
   const [username, setUsername] = useState('')
   const [password, setPassword] = useState('')
@@ -93,6 +93,15 @@ export default function Login({ onLogin }) {
         <p className="footer">
           Forgot your password? <a href="#reset">Reset it</a>
         </p>
+
+        {onPlayDemo && (
+          <>
+            <div className="login-or" aria-hidden="true"><span>or</span></div>
+            <button type="button" className="submit login-demo-btn" onClick={onPlayDemo}>
+              ▶ Play demo
+            </button>
+          </>
+        )}
       </form>
     </div>
   )
