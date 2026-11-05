@@ -401,3 +401,6 @@
 .th--dark .idg-code { background: #05101f; }
 
 @media (prefers-reduced-motion: reduce) { .wfl.th .wf-btn--blue:hover { filter: none; } }
+
+.wfl .wf-learn2-project { margin: 8px 0 0; font-size: 13px; font-weight: 600; color: var(--th-accent-strong, #4338ca); display: flex; align-items: center; gap: 6px; }
+.wfl .wf-task-project { margin: 2px 0 8px; font-size: 13px; font-weight: 700; color: var(--th-accent-strong, #4338ca); }

@@ -5,8 +5,8 @@
 // the editor task; it can be reopened later with "Review the lesson".
 import { getObjective } from './courseData.js'
 
-export default function LearnCard({ objectiveId, onStart }) {
-  const obj = getObjective(objectiveId)
+export default function LearnCard({ objectiveId, objective, projectTitle, theme, onStart }) {
+  const obj = objective || getObjective(objectiveId)
   const lesson = obj?.lesson
   if (!obj || !lesson) return null
 
@@ -15,6 +15,11 @@ export default function LearnCard({ objectiveId, onStart }) {
       <div className="wf-learn2-head">
         <span className="wf-learn2-eyebrow"><span aria-hidden="true">📘</span> Learn this first</span>
         <h2 id="wf-learn2-title" className="wf-learn2-title">{obj.title}</h2>
+        {projectTitle && (
+          <p className="wf-learn2-project">
+            <span aria-hidden="true">{theme?.icon || '🚀'}</span> You'll use this on <strong>{projectTitle}</strong>.
+          </p>
+        )}
       </div>
 
       {String(lesson.intro).split('\n\n').map((para, i) => (

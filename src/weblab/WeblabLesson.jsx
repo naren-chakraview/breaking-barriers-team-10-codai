@@ -1,5 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { LESSON, FIRST_LEVEL_ID, getLevel, getPool } from './courseData.js'
+import { LESSON as BASE_LESSON, FIRST_LEVEL_ID, getLevel as baseGetLevel, getPool } from './courseData.js'
+import { buildLesson } from './lessonBuilder.js'
+import { assignedStandards } from '../teacher/assignmentStore.js'
 import { validateSubmission, routeNextLevel, buildNudge, describeRoute, computeConfidence, applyEstablished } from './engine.js'
 import { readProgress, writeProgress } from './progressStore.js'
 import { buildProject } from './tools.js'
@@ -32,12 +34,10 @@ const COURSE_ID = 'hoai2026-adaptive'
 
 export default function WeblabLesson({ user, mode = 'continue', onModeConsumed, onExit, onViewSkillTree }) {
   const services = useServices()
-  const [levelId, setLevelId] = useState(FIRST_LEVEL_ID)
-  const level = getLevel(levelId)
 
   // "Start lesson" (mode 'start') means re-ask the intro quizzes and
   // re-personalize from the new answers; clear the saved profile + placement
-  // once, on entry, before the gate flags below read them.
+  // once, on entry, before anything reads them.
   const freshStart = useRef(mode === 'start')
   if (freshStart.current) {
     freshStart.current = false
@@ -47,15 +47,30 @@ export default function WeblabLesson({ user, mode = 'continue', onModeConsumed, 
     } catch { /* ignore */ }
     onModeConsumed?.()
   }
-  // Teach-first: objectives whose Learn card the student has acknowledged. The
-  // current objective's lesson shows (gating the task) until "Got it" is pressed.
-  // Pre-project skill check: shown once before the lesson so the engine can rank
-  // the student's starting level. Persisted so a reload doesn't re-ask.
+
   // Interests profile drives personalization + the visual theme. Captured first.
   const [profile, setProfile] = useState(() => readProfile(user?.username))
   const [interestsDone, setInterestsDone] = useState(() => !!readProfile(user?.username))
   const [diagnosticDone, setDiagnosticDone] = useState(() => !!readProgress(user?.username)?.placedTier)
   const theme = useMemo(() => themeFor(profile), [profile])
+
+  // The lesson itself is BUILT from the four inputs (teacher assignment, skill-
+  // check tier, interests profile, learn-focus), not read from a static table.
+  // Level/objective ids match the base model, so the engine's id-based routing
+  // keeps working while the content is personalized.
+  const assigned = useMemo(() => assignedStandards(user?.username), [user])
+  const placedTier = readProgress(user?.username)?.placedTier || 'core'
+  const built = useMemo(
+    () => buildLesson({ assigned, profile, startTier: placedTier }),
+    [assigned, profile, placedTier],
+  )
+  const LESSON = built.lesson
+  const builtById = useMemo(() => Object.fromEntries(built.levels.map((l) => [l.id, l])), [built])
+  const getLevel = (id) => builtById[id] || baseGetLevel(id)
+
+  const [levelId, setLevelId] = useState(() => built.firstLevelId || FIRST_LEVEL_ID)
+  const level = getLevel(levelId)
+
   const [lessonSeen, setLessonSeen] = useState({})
   const learning = level && !lessonSeen[level.objectiveId]
   const markLessonSeen = () => setLessonSeen((m) => ({ ...m, [level.objectiveId]: true }))
@@ -527,13 +542,14 @@ export default function WeblabLesson({ user, mode = 'continue', onModeConsumed, 
 
         <div className="wf-col wf-col--center">
           {learning ? (
-            <LearnCard objectiveId={level.objectiveId} onStart={markLessonSeen} />
+            <LearnCard objectiveId={level.objectiveId} objective={LESSON.objectives.find((o) => o.id === level.objectiveId)} projectTitle={LESSON.projectTitle} theme={theme} onStart={markLessonSeen} />
           ) : (
           <>
             <TaskCard
               level={level}
               objectives={LESSON.objectives}
               completed={completed}
+              projectTitle={LESSON.projectTitle}
               onReviewLesson={reviewLesson}
             />
             <RequirementsBox onGenerate={generate} onAsk={askFromRequirements} />
