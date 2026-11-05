@@ -66,7 +66,11 @@ export default function SkillTree({ user, onExit, onOpenLesson }) {
   const related = useMemo(() => (focus ? neighborsOf(focus) : null), [focus, tree])
   const hotEdges = useMemo(() => new Set(focus ? edgesTouching(focus).map((e) => `${e.from}->${e.to}`) : []), [focus, tree])
 
-  const nodeRadius = (n) => (n.big ? 23 : 18)
+  const nodeRadius = (n) => {
+    if (n.kind === 'milestone') return 30   // area root
+    if (n.kind === 'branch') return 7        // sub-concept waypoint
+    return 19                                // skill
+  }
 
   const onNodeClick = (n) => { if (n.state !== 'locked') setSelected(n.id) }
 
@@ -209,7 +213,7 @@ export default function SkillTree({ user, onExit, onOpenLesson }) {
               return (
                 <g key={key}>
                   <path
-                    className={`stx-edge ${e.locked ? 'stx-edge--locked' : done ? 'stx-edge--done' : ''} ${hot ? 'is-hot' : ''} ${dim ? 'is-dim' : ''}`}
+                    className={`stx-edge ${e.trunk ? 'stx-edge--trunk' : ''} ${e.locked ? 'stx-edge--locked' : done ? 'stx-edge--done' : ''} ${hot ? 'is-hot' : ''} ${dim ? 'is-dim' : ''}`}
                     d={d}
                   />
                   {hot && !e.locked && <path className="stx-edge-flow" d={d} />}
@@ -219,14 +223,35 @@ export default function SkillTree({ user, onExit, onOpenLesson }) {
 
             {NODES.map((n) => {
               const r = nodeRadius(n)
-              const clickable = n.state !== 'locked'
+              const clickable = n.kind === 'skill' && n.state !== 'locked'
               const isSel = selected === n.id
               const isHot = focus === n.id || (related && related.has(n.id))
               const isDim = focus && !isHot && focus !== n.id
-              let lx = 0, ly = 0, anchor = 'middle'
-              if (n.labelPos === 'left') { lx = -(r + 12); anchor = 'end' }
-              else if (n.labelPos === 'right') { lx = r + 12; anchor = 'start' }
-              else { ly = r + 18 }
+
+              // --- Area root: a large labelled pill ---
+              if (n.kind === 'milestone') {
+                return (
+                  <g key={n.id} className={`stx-node stx-node--root ${isDim ? 'is-dim' : ''}`} transform={`translate(${n.x}, ${n.y})`} aria-hidden="true">
+                    <circle className="stx-root-halo" r={r + 10} />
+                    <circle className="stx-root-circle" r={r} />
+                    <text className="stx-root-icon" x="0" y="0" textAnchor="middle" dominantBaseline="central">{n.icon}</text>
+                    <text className="stx-root-label" x="0" y={r + 20} textAnchor="middle">{n.shortTitle}</text>
+                  </g>
+                )
+              }
+
+              // --- Branch anchor: a small waypoint with a side label ---
+              if (n.kind === 'branch') {
+                return (
+                  <g key={n.id} className={`stx-node stx-node--anchor ${isDim ? 'is-dim' : ''}`} transform={`translate(${n.x}, ${n.y})`} aria-hidden="true">
+                    <circle className="stx-anchor-dot" r={r} />
+                    <text className="stx-anchor-label" x={-(r + 10)} y="0" textAnchor="end" dominantBaseline="central">{n.subLabel}</text>
+                  </g>
+                )
+              }
+
+              // --- Skill node ---
+              const lx = r + 14
               return (
                 <g
                   key={n.id}
@@ -239,7 +264,7 @@ export default function SkillTree({ user, onExit, onOpenLesson }) {
                   onBlur={() => setHovered(null)}
                   role={clickable ? 'button' : 'img'}
                   tabIndex={clickable ? 0 : -1}
-                  aria-label={`${n.title}. ${STATE_META[n.state]?.label || n.state}.`}
+                  aria-label={`${n.title}. ${n.tierBadge || ''} ${STATE_META[n.state]?.label || n.state}.`}
                   onKeyDown={(ev) => {
                     if (clickable && (ev.key === 'Enter' || ev.key === ' ')) { ev.preventDefault(); onNodeClick(n) }
                   }}
@@ -248,7 +273,12 @@ export default function SkillTree({ user, onExit, onOpenLesson }) {
                   <circle className="stx-node-circle" r={r} />
                   <circle className="stx-node-ring" r={r - 3} />
                   <text className="stx-node-icon" x="0" y="0" textAnchor="middle" dominantBaseline="central">{n.icon}</text>
-                  <text className="stx-node-label" x={lx} y={ly} textAnchor={anchor} dominantBaseline="central">{n.shortTitle || n.title}</text>
+                  <g transform={`translate(${lx}, 0)`}>
+                    <text className="stx-node-code" x="0" y="-6" textAnchor="start">{n.shortTitle}</text>
+                    {n.tierBadge && (
+                      <text className={`stx-node-tier stx-node-tier--${n.spec === 1 ? 'intro' : 'adv'}`} x="0" y="9" textAnchor="start">{n.tierBadge}</text>
+                    )}
+                  </g>
                 </g>
               )
             })}

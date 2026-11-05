@@ -148,3 +148,30 @@
   .stx-edge-flow { animation: none; }
   .stx-node-circle, .stx-progress-fill { transition: none; }
 }
+
+/* ---------- Branching tree: area roots, sub-concept anchors, skill labels ---------- */
+/* Area root: a bold gradient pill that heads each area's trunk. */
+.stx-node--root .stx-root-circle { fill: url(#stxBlue); stroke: #93c5fd; stroke-width: 2.5; filter: drop-shadow(0 6px 14px rgba(59,130,246,0.45)); }
+.stx-node--root .stx-root-halo { fill: none; stroke: rgba(147,197,253,0.4); stroke-width: 2; }
+.stx-node--root .stx-root-icon { font-size: 26px; }
+.stx-node--root .stx-root-label { fill: #fff; font-size: 15px; font-weight: 800; letter-spacing: -0.01em; paint-order: stroke; stroke: rgba(8,12,24,0.9); stroke-width: 4px; stroke-linejoin: round; }
+
+/* Sub-concept anchor: a small node on the trunk with a right-aligned label. */
+.stx-node--anchor .stx-anchor-dot { fill: #1e293b; stroke: #64748b; stroke-width: 2; }
+.stx-node--anchor .stx-anchor-label { fill: #9fb0c7; font-size: 12px; font-weight: 800; letter-spacing: 0.04em; text-transform: uppercase; paint-order: stroke; stroke: rgba(8,12,24,0.85); stroke-width: 3px; stroke-linejoin: round; }
+
+/* Trunk edges read as the spine; a touch thicker and brighter. */
+.stx-edge { stroke-width: 2.5; }
+.stx-edge.is-trunk, .stx-edge--trunk { stroke: rgba(148,163,184,0.6); stroke-width: 3.5; }
+
+/* Skill label: code on top, tier badge under it. */
+.stx-node-code { fill: #e6edf6; font-size: 12.5px; font-weight: 800; font-family: ui-monospace, Consolas, monospace; paint-order: stroke; stroke: rgba(8,12,24,0.92); stroke-width: 3.5px; stroke-linejoin: round; }
+.stx-node--locked .stx-node-code { fill: #93a2b8; }
+.stx-node-tier { font-size: 10px; font-weight: 800; letter-spacing: 0.04em; text-transform: uppercase; paint-order: stroke; stroke: rgba(8,12,24,0.92); stroke-width: 3px; stroke-linejoin: round; }
+.stx-node-tier--intro { fill: #7dd3fc; }
+.stx-node-tier--adv { fill: #fca5a5; }
+.stx-node.is-dim .stx-node-code, .stx-node.is-dim .stx-node-tier { opacity: 0.4; }
+
+/* Cluster box = area panel: subtle tint + a readable header pill. */
+.stx-cluster-box { fill: rgba(255,255,255,0.03); stroke: rgba(148,163,184,0.28); stroke-width: 1.5; stroke-dasharray: none; }
+.stx-cluster-label { fill: #cbd5e1; font-size: 13px; font-weight: 800; letter-spacing: 0.06em; text-transform: uppercase; }
