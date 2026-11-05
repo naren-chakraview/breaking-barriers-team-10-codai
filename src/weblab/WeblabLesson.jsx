@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { FIRST_LEVEL_ID, getLevel as baseGetLevel } from './courseData.js'
+import { FIRST_LEVEL_ID, getLevel as baseGetLevel, getObjective } from './courseData.js'
 import { buildTreeLesson, startLevelId } from './treeLesson.js'
 import { buildNudge, describeRoute } from './engine.js'
 import { readProgress, writeProgress } from './progressStore.js'
@@ -59,7 +59,12 @@ export default function WeblabLesson({ user, onExit, onViewSkillTree }) {
   const level = getLevel(levelId) || { objectiveId: null, title: '', instructions: '', starter: null }
 
   const [lessonSeen, setLessonSeen] = useState({})
-  const learning = level && !lessonSeen[level.objectiveId]
+  // Teach-first only when real lesson content exists for this objective. Tree-driven
+  // objectives carry no `lesson` field (treeLesson.js omits it), so LearnCard would
+  // render null and blank the center column — in that case go straight to the task.
+  const learnObjective = LESSON.objectives.find((o) => o.id === level.objectiveId)
+  const hasLessonContent = !!(learnObjective?.lesson || getObjective(level.objectiveId)?.lesson)
+  const learning = level && hasLessonContent && !lessonSeen[level.objectiveId]
   const markLessonSeen = () => setLessonSeen((m) => ({ ...m, [level.objectiveId]: true }))
 
   function applyInterests(answers) {
