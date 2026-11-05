@@ -138,44 +138,108 @@ export function edgesTouching(id) {
 // EDGES } shape the component already renders.
 // ---------------------------------------------------------------------------
 export function buildAssignedTree(standards) {
-  const byArea = {}
-  for (const s of standards) {
-    ;(byArea[s.areaId] = byArea[s.areaId] || { id: s.areaId, label: s.areaLabel, items: [] }).items.push(s)
+  // A branching learning-path tree. Each CSTA area (AI, Cybersecurity) is a
+  // vertical trunk; within an area, standards are grouped by sub-concept (the
+  // 3-letter code, e.g. DD, HR, CYB:TS) into branches, and ordered intro (S1)
+  // before advanced (S2) so difficulty flows top-to-bottom. The first node of
+  // the first branch is available; everything downstream is locked until reached.
+  const SUB_LABEL = {
+    DD: 'Design & Develop', DS: 'Data', HR: 'Human & Responsible', PP: 'Practices & Impact',
+    CP: 'Policy', ND: 'Network Design', NO: 'Network Ops', TS: 'Threats & Safeguards',
   }
-  const areas = Object.values(byArea)
-  const COL_W = 520
-  const ROW_H = 64
-  const TOP = 110
+  const parse = (code) => {
+    const m = /^S(\d)-(AIN|CYB)-([A-Z]+)-(\d+)$/.exec(code)
+    return m ? { spec: Number(m[1]), area: m[2], sub: m[3], num: Number(m[4]) } : { spec: 1, area: 'AIN', sub: 'XX', num: 0 }
+  }
+
+  // Group by area, then by sub-concept.
+  const areasMap = {}
+  for (const s of standards) {
+    const info = parse(s.code)
+    const a = (areasMap[s.areaId] = areasMap[s.areaId] || { id: s.areaId, label: s.areaLabel, subs: {}, area: info.area })
+    const sub = (a.subs[info.sub] = a.subs[info.sub] || { key: info.sub, label: SUB_LABEL[info.sub] || info.sub, items: [] })
+    sub.items.push({ ...s, ...info })
+  }
+  const areas = Object.values(areasMap)
+
+  // Layout constants.
+  const AREA_W = 560       // horizontal space per area
+  const TRUNK_X = 130      // trunk offset within an area
+  const BRANCH_DX = 150    // how far a branch node sits right of the trunk
+  const ROW_H = 72         // vertical spacing between items
+  const TOP = 150
+  const ROOT_Y = 92
+
   const clusters = []
   const nodes = []
   const edges = []
-  const icon = (areaId) => (areaId === 'cyb' ? '🔐' : '🤖')
+  const areaIcon = (areaId) => (areaId === 'cyb' ? '🛡️' : '🧠')
+
+  let firstAvailableSet = false
 
   areas.forEach((area, ai) => {
-    const colX = 70 + ai * COL_W
-    const rows = area.items.length
-    const boxH = Math.max(ROW_H * rows + 40, 120)
-    clusters.push({ id: area.id, label: area.label, box: { x: colX - 30, y: 70, w: 360, h: boxH } })
-    area.items.forEach((s, i) => {
-      const id = s.code
-      const y = TOP + i * ROW_H
-      nodes.push({
-        id,
-        title: `${s.code} — ${s.statement}`,
-        shortTitle: s.code,
-        cluster: area.id,
-        kind: 'skill',
-        state: i === 0 ? 'available' : 'locked',
-        icon: icon(area.id),
-        x: colX,
-        y,
-        labelPos: 'right',
-      })
-      if (i > 0) edges.push({ from: area.items[i - 1].code, to: id })
+    const ox = 60 + ai * AREA_W
+    const trunkX = ox + TRUNK_X
+    const subs = Object.values(area.subs)
+    // order sub-concepts by their earliest spec then key, for a stable layout
+    subs.sort((a, b) => (Math.min(...a.items.map((i) => i.spec)) - Math.min(...b.items.map((i) => i.spec))) || a.key.localeCompare(b.key))
+
+    // Area root node (the trunk head) — a milestone showing the area.
+    const rootId = `area-${area.id}`
+    nodes.push({
+      id: rootId, title: area.label, shortTitle: area.label, cluster: area.id,
+      kind: 'milestone', state: 'available', icon: areaIcon(area.id), x: trunkX, y: ROOT_Y,
+      big: true, labelPos: 'below', isRoot: true,
     })
+
+    let row = 0
+    let prevTrunkId = rootId
+    subs.forEach((sub) => {
+      // Branch anchor on the trunk for this sub-concept.
+      const anchorY = TOP + row * ROW_H
+      const anchorId = `anchor-${area.id}-${sub.key}`
+      nodes.push({
+        id: anchorId, title: sub.label, shortTitle: sub.label, cluster: area.id,
+        kind: 'branch', state: 'milestone', icon: '', x: trunkX, y: anchorY,
+        labelPos: 'left', isAnchor: true, subLabel: sub.label,
+      })
+      edges.push({ from: prevTrunkId, to: anchorId, trunk: true })
+      prevTrunkId = anchorId
+
+      // Items of this sub-concept fan out to the right, intro first.
+      sub.items.sort((a, b) => (a.spec - b.spec) || (a.num - b.num))
+      sub.items.forEach((it, j) => {
+        const id = it.code
+        const y = anchorY + j * ROW_H
+        const state = !firstAvailableSet ? 'available' : 'locked'
+        if (!firstAvailableSet) firstAvailableSet = true
+        nodes.push({
+          id,
+          title: `${it.code} — ${it.statement}`,
+          shortTitle: it.code,
+          tierBadge: it.spec === 1 ? 'Intro' : 'Advanced',
+          spec: it.spec,
+          cluster: area.id,
+          kind: 'skill',
+          state,
+          icon: areaIcon(area.id),
+          x: trunkX + BRANCH_DX,
+          y,
+          labelPos: 'right',
+        })
+        edges.push({ from: j === 0 ? anchorId : sub.items[j - 1].code, to: id })
+      })
+      row += Math.max(1, sub.items.length)
+    })
+
+    const areaH = TOP + row * ROW_H
+    clusters.push({ id: area.id, label: `${area.label}`, box: { x: ox + 20, y: 60, w: AREA_W - 70, h: Math.max(areaH - 20, 160) } })
   })
 
-  const widest = areas.reduce((m, a) => Math.max(m, a.items.length), 0)
-  const canvas = { w: 70 + areas.length * COL_W + 360, h: Math.max(TOP + widest * ROW_H + 60, 400) }
+  const maxRows = areas.reduce((m, a) => {
+    const r = Object.values(a.subs).reduce((n, sub) => n + Math.max(1, sub.items.length), 0)
+    return Math.max(m, r)
+  }, 0)
+  const canvas = { w: 60 + areas.length * AREA_W + 60, h: Math.max(TOP + maxRows * ROW_H + 80, 460) }
   return { CLUSTERS: clusters, NODES: nodes, EDGES: edges, CANVAS: canvas }
 }

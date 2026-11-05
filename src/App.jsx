@@ -4,6 +4,8 @@ import Dashboard from './Dashboard.jsx'
 import WeblabLesson from './weblab/WeblabLesson.jsx'
 import CourseOverview from './weblab/CourseOverview.jsx'
 import SkillTree from './weblab/SkillTree.jsx'
+import { clearProfile } from './weblab/profileStore.js'
+import { writeProgress } from './weblab/progressStore.js'
 
 // The signed-in user (and current screen) are kept in sessionStorage so a page
 // reload — including the dev server's HMR reconnects behind the proxy — restores
@@ -28,10 +30,17 @@ export default function App() {
   // Which screen the signed-in student is on:
   // 'dashboard' | 'course' | 'lesson' | 'skilltree'.
   const [view, setView] = useState(() => readStored(VIEW_KEY) || 'dashboard')
-  // 'start' = a fresh lesson (re-ask the intro quizzes and re-personalize);
-  // 'continue' = pick up the existing personalized lesson.
-  const [lessonMode, setLessonMode] = useState('continue')
-  const openLesson = (mode) => { setLessonMode(mode); setView('lesson') }
+  // Opening the lesson. 'start' means a fresh lesson: clear the saved interests
+  // profile + skill-check placement HERE (once, on the click) so the intro
+  // quizzes are asked again. 'continue' changes nothing, so a reload mid-lesson
+  // can never re-trigger the quizzes. The reset is not in the lesson component,
+  // so remounts/HMR can't repeat it.
+  const openLesson = (mode) => {
+    if (mode === 'start') {
+      try { clearProfile(user?.username); writeProgress(user?.username, { placedTier: null }) } catch { /* ignore */ }
+    }
+    setView('lesson')
+  }
 
   // Persist the session so a reload keeps the user signed in.
   useEffect(() => {
@@ -59,8 +68,6 @@ export default function App() {
     return (
       <WeblabLesson
         user={user}
-        mode={lessonMode}
-        onModeConsumed={() => setLessonMode('continue')}
         onExit={() => setView('dashboard')}
         onViewSkillTree={() => setView('skilltree')}
       />

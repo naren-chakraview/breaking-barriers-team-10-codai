@@ -15,7 +15,7 @@ import TaskCard from './TaskCard.jsx'
 import LearnCard from './LearnCard.jsx'
 import IntroDiagnostic from './IntroDiagnostic.jsx'
 import IntroInterests from './IntroInterests.jsx'
-import { readProfile, writeProfile, clearProfile } from './profileStore.js'
+import { readProfile, writeProfile } from './profileStore.js'
 import CodeWorkspace from './CodeWorkspace.jsx'
 import Preview from './Preview.jsx'
 import Tutor from './Tutor.jsx'
@@ -31,23 +31,15 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms))
 //   right    — live preview, then the AI Tutor
 const COURSE_ID = 'hoai2026-adaptive'
 
-export default function WeblabLesson({ user, mode = 'continue', onModeConsumed, onExit, onViewSkillTree }) {
+export default function WeblabLesson({ user, onExit, onViewSkillTree }) {
   const services = useServices()
 
-  // "Start lesson" (mode 'start') means re-ask the intro quizzes and
-  // re-personalize from the new answers; clear the saved profile + placement
-  // once, on entry, before anything reads them.
-  const freshStart = useRef(mode === 'start')
-  if (freshStart.current) {
-    freshStart.current = false
-    try {
-      clearProfile(user?.username)
-      writeProgress(user?.username, { placedTier: null })
-    } catch { /* ignore */ }
-    onModeConsumed?.()
-  }
-
-  // Interests profile drives lesson/task personalization. Captured first.
+  // Gates are driven purely by stored state: the interests quiz shows only if no
+  // profile is saved, and the skill check only if no placement is saved. App
+  // clears both when the student presses "Start lesson", so a fresh start re-asks
+  // them; "Continue" (and any reload/remount) leaves the saved state intact and
+  // skips straight into the lesson. Seeding from storage once means a remount can
+  // never bounce the student back to the quizzes.
   const [profile, setProfile] = useState(() => readProfile(user?.username))
   const [interestsDone, setInterestsDone] = useState(() => !!readProfile(user?.username))
   const [diagnosticDone, setDiagnosticDone] = useState(() => !!readProgress(user?.username)?.placedTier)
