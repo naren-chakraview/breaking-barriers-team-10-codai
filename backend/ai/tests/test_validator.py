@@ -174,3 +174,27 @@ def test_confidence_exactly_at_gate_passes():
            "confidence": CONFIDENCE_MIN, "evidence": "ok"}
     r = _run(_ok_invoke(json.dumps(out)))
     assert r["ok"] is True
+
+
+# ---- evidence length: chatty-but-usable is truncated, not rejected (C-16) ----
+
+def test_overlong_evidence_is_truncated_not_rejected(validate_against):
+    # Previously this fell back as "evidence missing or too long"; now the level is kept and
+    # the evidence is truncated to the 240-char contract cap.
+    long_evidence = "The student named a goal and a specific change. " * 20  # > 240 chars
+    out = {"skillId": "build", "evidenceLevel": 2, "conditionMet": True,
+           "confidence": 0.9, "evidence": long_evidence}
+    r = _run(_ok_invoke(json.dumps(out)))
+    assert r["ok"] is True
+    assert r["result"]["evidenceLevel"] == 2
+    assert len(r["result"]["evidence"]) == 240
+    assert validate_against(r, "model", "ValidateResult") == []
+
+
+def test_absurdly_long_evidence_still_falls_back():
+    # A pathological blob (e.g. the model echoed the whole project) is a real validity failure.
+    out = {"skillId": "build", "evidenceLevel": 2, "conditionMet": True,
+           "confidence": 0.9, "evidence": "x" * 5000}
+    r = _run(_ok_invoke(json.dumps(out)))
+    assert r["ok"] is False
+    assert r["fallback"]["component"] == "validation"

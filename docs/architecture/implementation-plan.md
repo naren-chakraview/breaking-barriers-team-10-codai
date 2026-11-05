@@ -136,7 +136,7 @@ never stalls the others.
 - [ ] One `curl` to `POST /steps/{id}/submit` returns evidence, next checkpoint and the reason, with
   `MODEL_MODE=stub`
 - [ ] `step_attempt`, `routing_decision` and `fallback_event` rows are written through the store
-- [ ] The store contract suite passes on the JSON adapter, and on Aurora if Task 0 allowed a deploy
+- [x] The store contract suite passes on the JSON adapter and on Aurora (live cluster, `test_aurora_live.py`, 2026-11-04)
 - [ ] The UI can flip `VITE_SERVICE_MODE=http` for the non-model calls
 - Fallback if missed: stay on the JSON adapter and run the API locally. Revisit Aurora after IC3.
 
@@ -514,14 +514,17 @@ raise a flag. **Demo:** repeated misses produce a flag in the roster.
 ### Task 8b: Passive Haiku reasoner (MVP)
 Owner: ____ · Serves: C-27, ADR-005 · Architecture: 2.7
 
-- [ ] One Haiku call at `temperature 0` over features, ~10 recent events and the hint log
-- [ ] Output schema-validated and restricted to enums
-- [ ] Cache by `features_hash + prompt_version`
-- [ ] Confidence below 0.6 or any error falls back to rules and writes `fallback_event` (passive)
-- [ ] The model cannot return a checkpoint id
+- [x] One `invoke(task="passive")` call at `temperature 0` over features, recent attempts and the hint log (`backend/ai/passive_reasoner.py`)
+- [x] Output schema-validated and restricted to the signal/hintStyle enums
+- [x] Cache by `features_hash + prompt_version` (source `cache`)
+- [x] Confidence below 0.6, invalid output, or model failure degrades to the rule signal (source `rules`); `is_rule_fallback()` tells the caller to write `fallback_event` (passive)
+- [x] The model cannot return a checkpoint id — a signal carrying one is rejected to rules (C-18)
+- [x] Contract: added `rules` to `PassiveResult.source` so a rule-sourced signal is a valid success
+- [ ] Submit-flow wiring: persist the `passive_signal` and write the `fallback_event` (Track D)
 
-**Tests:** stubbed-model tests, a schema fuzz test, and a check that no checkpoint id can leak.
-**Demo:** the same history gives the same signal and reason; a forced failure falls back to rules.
+**Tests:** `pytest backend/ai` (passive: cache hit, model success, low-confidence/invalid/model-fail
+degrade-to-rules, checkpoint-id rejection, no-leak, prompt shape — 55 ai total). **Demo:** same history
+→ same signal (cache), a forced failure → the rule signal.
 
 ### Task 8c: Persona fixtures and visible adaptation (MVP)
 Owner: ____ · Serves: P-5.3, C-34 · Discrepancy item 14 · Architecture: 2.7, 2.8

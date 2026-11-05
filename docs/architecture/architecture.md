@@ -444,7 +444,10 @@ stateDiagram-v2
 
 ### 2.7 Passive
 
-**Status:** Proposed. **Serves:** C-10, C-27, P-5, P-6, P-8, diagrams 3, 6 to 9, 11.
+**Status:** Built — stage 1 (features + rule baseline, `shared/core/features.py`) and stage 2 (the
+reasoner, `backend/ai/passive_reasoner.py`). Submit-flow wiring (persist `passive_signal` +
+`fallback_event`) is Track D; live run pending a Bedrock smoke test.
+**Serves:** C-10, C-27, P-5, P-6, P-8, diagrams 3, 6 to 9, 11.
 
 Passive evaluates a student's **history** and emits a signal. It never talks to the student and never
 picks a checkpoint.
@@ -1171,3 +1174,4 @@ session on 2026-11-04 and are **Proposed** until the team reviews them.
 | 2026-11-04 | (invoke PR) | Built the `invoke` wrapper (C-27): `backend/ai/invoke.py` + `BedrockModelPort.invoke` + `create_bedrock_port` factory. Task→tier model routing (verify≠codegen, P-7.2), `maxTokens`+10s timeout, pinned guardrail, error-envelope on failure (never raises), decision log with no student text. Marked 2.4 Built. Validator (C-14) still pending; live smoke test pending a Bedrock run. |
 | 2026-11-04 | (validator PR) | Built the LLM-judge validator (C-14/C-16): `backend/ai/validator.py` — rubric prompt (trusted) + student text (untrusted/guardContent), one repair retry, fallback on invalid JSON / out-of-range level / confidence<0.6 / model failure; wired `BedrockModelPort.validate_project`. Marked 2.5 Built. Its evidence levels feed the golden-set gate (Task 11). C-13 direct-map and C-15 not-scored live in the submit flow (Track D); live smoke test pending. |
 | 2026-11-04 | (golden-set PR) | Built the validator eval harness (Task 11, C-17): `backend/eval/` — exact/within-1/QWK metrics (hand-verified), golden-set runner, launch gate (≥15 submissions AND QWK≥0.70), CLI. Placeholder sample set wires the gate; real human ratings (Track G) and the validator `modelLevel` snapshot (C-14) still pending. The validator (2.5) landed in the validator PR above; its levels feed this gate. |
+| 2026-11-04 | (passive reasoner PR) | Built the Passive stage-2 reasoner (Task 8b, C-27, 2.7): `backend/ai/passive_reasoner.py` — one `invoke(task="passive")` call, schema-validated signal, cache by features-hash, degrade to the rule baseline (source `rules`) on low confidence/invalid/model-failure with a fallback_event signal, checkpoint-id rejection (C-18). Added `rules` to `PassiveResult.source`. Marked 2.7 Built. Submit-flow persistence is Track D; live run pending. |

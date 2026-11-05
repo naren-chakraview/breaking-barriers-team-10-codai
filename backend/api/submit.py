@@ -23,6 +23,7 @@ from typing import Any, Mapping, Optional
 from shared.core import apply_evidence, route, skill_max
 from shared.core.tree import Tree
 
+from .passive import run_passive
 from .tree_read import find_step, step_skill_id, step_condition, is_project_step, question_measure
 from .util import new_correlation_id, new_record_id, now_iso
 
@@ -179,6 +180,11 @@ def submit_step(deps: "Deps", args: Mapping[str, Any], ctx: Mapping[str, Any]) -
             }
         )
 
+    # 6b. Passive stage (Track D, C-27): produce a pacing signal from the student's
+    # cumulative activity, persist it, and surface the student-safe part. Best-effort —
+    # a failure returns None and never affects the outcome above (C-24).
+    passive = run_passive(deps, student_id, correlation_id)
+
     # 7. Assemble.
     if outcome == "scored":
         return {
@@ -189,17 +195,17 @@ def submit_step(deps: "Deps", args: Mapping[str, Any], ctx: Mapping[str, Any]) -
             "completed": completed,
             "next": next_,
             "hint": None,
-            "passive": None,
+            "passive": passive,
             "notice": None,
             "source": source,
             "correlationId": correlation_id,
         }
-    return _recorded_response(step["id"], correlation_id, next_, source="none")
+    return _recorded_response(step["id"], correlation_id, next_, source="none", passive=passive)
 
 
 # --- response builders (each satisfies the SubmitResponse schema conditionals) ---
 
-def _recorded_response(step_id, correlation_id, next_, source):
+def _recorded_response(step_id, correlation_id, next_, source, passive=None):
     return {
         "stepId": step_id,
         "outcome": "recorded",
@@ -208,7 +214,7 @@ def _recorded_response(step_id, correlation_id, next_, source):
         "completed": False,
         "next": next_,
         "hint": None,
-        "passive": None,
+        "passive": passive,
         "notice": None,
         "source": source or "none",
         "correlationId": correlation_id,

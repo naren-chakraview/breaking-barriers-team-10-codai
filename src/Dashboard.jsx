@@ -3,17 +3,14 @@ import StudentDashboard from './StudentDashboard.jsx'
 import TeacherClasses from './TeacherClasses.jsx'
 import TeacherView from './weblab/TeacherView.jsx'
 
-export default function Dashboard({ user, onLogout, onContinueLesson, onViewCourse }) {
-  // Teacher lands on their classes list first; "View course" opens the classroom
-  // dashboard (roster + per-student detail). 'classes' | 'course'.
-  const [teacherView, setTeacherView] = useState('classes')
-
+export default function Dashboard({ user, onLogout, onContinueLesson, onStartLesson, onViewCourse }) {
   if (user.role === 'student') {
     return (
       <StudentDashboard
         user={user}
         onLogout={onLogout}
         onContinueLesson={onContinueLesson}
+        onStartLesson={onStartLesson}
         onViewCourse={onViewCourse}
       />
     )

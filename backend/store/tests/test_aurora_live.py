@@ -28,11 +28,36 @@ pytestmark = pytest.mark.skipif(
     reason="Set AURORA_CLUSTER_ARN and AURORA_SECRET_ARN to run the live Aurora contract test.",
 )
 
+# The synthetic student the contract writes under. Unlike the in-memory JSON adapter, the
+# Aurora cluster keeps rows between runs, so the suite must start from a clean slate for this
+# id or re-inserting primary keys (e.g. attempt ids) fails. Scope is strictly this one id.
+_SYNTHETIC_STUDENT = "stu-x"
+
+
+@pytest.fixture(autouse=True)
+def _clean_synthetic_rows():
+    """Delete the synthetic student before and after the run.
+
+    STUDENT_PROFILE is the parent of every student-state table via ON DELETE CASCADE, so one
+    delete clears evidence, attempts, progress, flags, routing, fallback, passive signals,
+    hints and teacher input for this id. Scoped to `stu-x` only — never touches real data.
+    """
+    repo = create_repository({**os.environ, "STORE_MODE": "aurora"})
+
+    def purge():
+        repo._execute(
+            "DELETE FROM STUDENT_PROFILE WHERE StudentId = :sid",
+            [{"name": "sid", "value": {"stringValue": _SYNTHETIC_STUDENT}}],
+        )
+
+    purge()
+    yield
+    purge()
+
 
 def test_aurora_passes_the_repository_contract():
-    # check_repository calls make_repo() several times for isolation; each returns a fresh
-    # adapter bound to the same cluster. The contract uses synthetic ids, so runs are
-    # independent as long as the scratch DB starts clean.
+    # check_repository calls make_repo() several times; each returns a fresh adapter bound to
+    # the same cluster. The autouse fixture clears the synthetic id first so the run is clean.
     def make_repo():
         return create_repository({**os.environ, "STORE_MODE": "aurora"})
 

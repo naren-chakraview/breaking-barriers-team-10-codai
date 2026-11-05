@@ -6,6 +6,8 @@ import Roster from './Roster.jsx'
 import StudentSummary from './StudentSummary.jsx'
 import HelpPanel from './HelpPanel.jsx'
 import ComposeModal from './ComposeModal.jsx'
+import StandardsPicker from './StandardsPicker.jsx'
+import { assignedStandards } from './assignmentStore.js'
 
 const CLASS_LABEL = 'Class 7B'
 
@@ -33,6 +35,8 @@ export default function TeacherView({ user, onLogout }) {
   const [selectedId, setSelectedId] = useState(INITIAL_STUDENTS[0].id)
   const [query, setQuery] = useState('')
   const [compose, setCompose] = useState(null) // 'message' | 'hint' | null
+  const [picking, setPicking] = useState(false)
+  const [assignTick, setAssignTick] = useState(0) // bump to re-read assignment after save
   const [toast, setToast] = useState(null)
   const [menuOpen, setMenuOpen] = useState(false)
   const menuRef = useRef(null)
@@ -199,7 +203,10 @@ export default function TeacherView({ user, onLogout }) {
                   <h2 className="tv-name">{selected.name}</h2>
                   <p className="tv-muted">{CLASS_LABEL} · opened via double-click · Module 2 “Build a personal site”</p>
                 </div>
-                <button type="button" className="tv-btn tv-btn--light tv-btn--wide" onClick={() => setCompose('message')}>Message student</button>
+                <div className="tv-detail-head-actions">
+                  <button type="button" className="tv-btn tv-btn--blue tv-btn--wide" onClick={() => setPicking(true)}>Choose skills (CSTA)</button>
+                  <button type="button" className="tv-btn tv-btn--light tv-btn--wide" onClick={() => setCompose('message')}>Message student</button>
+                </div>
               </div>
               <div className="tv-detail-cols">
                 <StudentSummary key={selected.id} student={selected} onOverrideGrade={overrideGrade} />
@@ -216,6 +223,13 @@ export default function TeacherView({ user, onLogout }) {
         </section>
       </main>
 
+      {picking && selected && (
+        <StandardsPicker
+          student={selected}
+          onClose={() => setPicking(false)}
+          onSaved={(n) => { setAssignTick((t) => t + 1); flash(`Assigned ${n} standard${n === 1 ? '' : 's'} to ${selected.name}'s skill tree.`) }}
+        />
+      )}
       {compose === 'message' && selected && (
         <ComposeModal
           title={`Message ${selected.name}`}

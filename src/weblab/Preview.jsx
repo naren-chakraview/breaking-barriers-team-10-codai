@@ -1,4 +1,4 @@
-import { useMemo } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 
 // Right-top card from the wireframe: "Live preview" with a phone/web toggle,
 // browser chrome (traffic lights + URL bar) and the rendered page. The iframe
@@ -8,6 +8,7 @@ import { useMemo } from 'react'
 export default function Preview({
   html, css, device, onDeviceChange, outOfDate, hasOutput, highlight, url,
 }) {
+  const [expanded, setExpanded] = useState(false)
   const srcDoc = useMemo(() => {
     let payload = 'null'
     if (highlight?.selector) {
@@ -68,11 +69,51 @@ export default function Preview({
     return `<!doctype html><html><head><meta charset="utf-8"><style>${css || ''}</style></head><body>${html || ''}${script}</body></html>`
   }, [html, css, highlight])
 
+  // Fullscreen overlay: lock Esc-to-close, restore focus, and freeze body scroll.
+  const closeRef = useRef(null)
+  const openerRef = useRef(null)
+  useEffect(() => {
+    if (!expanded) return undefined
+    const prevFocus = document.activeElement
+    const prevOverflow = document.body.style.overflow
+    document.body.style.overflow = 'hidden'
+    closeRef.current?.focus()
+    const onKey = (e) => { if (e.key === 'Escape') setExpanded(false) }
+    document.addEventListener('keydown', onKey)
+    return () => {
+      document.removeEventListener('keydown', onKey)
+      document.body.style.overflow = prevOverflow
+      prevFocus?.focus?.()
+    }
+  }, [expanded])
+
+  // The rendered iframe, reused by the inline card and the fullscreen overlay.
+  const frame = (titleSuffix = '') => (
+    <iframe
+      className="wf-browser-frame"
+      title={`Live preview of your website${titleSuffix}`}
+      sandbox="allow-scripts"
+      srcDoc={srcDoc}
+    />
+  )
+
   return (
     <section className="wf-card wf-preview" aria-label="Live preview">
       <div className="wf-card-head">
         <h2 className="wf-card-title">Live preview</h2>
-        <div className="wf-seg" role="group" aria-label="Preview size">
+        <div className="wf-preview-head-actions">
+          {hasOutput && (
+            <button
+              type="button"
+              className="wf-btn wf-btn--light wf-btn--xs wf-expand-btn"
+              onClick={() => setExpanded(true)}
+              aria-haspopup="dialog"
+              ref={openerRef}
+            >
+              ⤢ Expand
+            </button>
+          )}
+          <div className="wf-seg" role="group" aria-label="Preview size">
           <button
             type="button"
             className={`wf-seg-btn ${device === 'phone' ? 'is-active' : ''}`}
@@ -89,6 +130,7 @@ export default function Preview({
           >
             web
           </button>
+          </div>
         </div>
       </div>
 
@@ -100,12 +142,16 @@ export default function Preview({
         </div>
         <div className={`wf-browser-body wf-browser-body--${device}`}>
           {hasOutput ? (
-            <iframe
-              className="wf-browser-frame"
-              title="Live preview of your website"
-              sandbox="allow-scripts"
-              srcDoc={srcDoc}
-            />
+            <button
+              type="button"
+              className="wf-browser-openbtn"
+              onClick={() => setExpanded(true)}
+              aria-label="Expand the live preview to full screen"
+              title="Click to expand"
+            >
+              {frame()}
+              <span className="wf-browser-openhint" aria-hidden="true">⤢ Click to expand</span>
+            </button>
           ) : (
             <div className="wf-empty">
               <p className="wf-empty-title">Nothing to preview yet</p>
@@ -114,6 +160,31 @@ export default function Preview({
           )}
         </div>
       </div>
+
+      {expanded && (
+        <div
+          className="wf-preview-overlay"
+          role="dialog"
+          aria-modal="true"
+          aria-label="Live preview, full screen"
+          onMouseDown={(e) => { if (e.target === e.currentTarget) setExpanded(false) }}
+        >
+          <div className="wf-preview-modal">
+            <div className="wf-preview-modal-bar">
+              <span className="wf-dots" aria-hidden="true"><i /><i /><i /></span>
+              <span className="wf-browser-url">{url}</span>
+              <div className="wf-seg" role="group" aria-label="Preview size">
+                <button type="button" className={`wf-seg-btn ${device === 'phone' ? 'is-active' : ''}`} aria-pressed={device === 'phone'} onClick={() => onDeviceChange('phone')}>▢ phone</button>
+                <button type="button" className={`wf-seg-btn ${device === 'web' ? 'is-active' : ''}`} aria-pressed={device === 'web'} onClick={() => onDeviceChange('web')}>web</button>
+              </div>
+              <button type="button" className="wf-btn wf-btn--light wf-btn--xs" ref={closeRef} onClick={() => setExpanded(false)}>✕ Close</button>
+            </div>
+            <div className={`wf-preview-modal-body wf-browser-body--${device}`}>
+              {frame(', full screen')}
+            </div>
+          </div>
+        </div>
+      )}
     </section>
   )
 }

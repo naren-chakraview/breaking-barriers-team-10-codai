@@ -1,16 +1,64 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import Login from './Login.jsx'
 import Dashboard from './Dashboard.jsx'
 import WeblabLesson from './weblab/WeblabLesson.jsx'
 import CourseOverview from './weblab/CourseOverview.jsx'
 import SkillTree from './weblab/SkillTree.jsx'
+import { clearProfile } from './weblab/profileStore.js'
+import { writeProgress } from './weblab/progressStore.js'
+
+// The signed-in user (and current screen) are kept in sessionStorage so a page
+// reload — including the dev server's HMR reconnects behind the proxy — restores
+// the session instead of dropping the user back to the login screen. This is a
+// demo convenience, not real authentication: it lives only for the browser tab
+// and is cleared on Sign out.
+const USER_KEY = 'adaptai.user'
+const VIEW_KEY = 'adaptai.view'
+
+function readStored(key) {
+  try {
+    const raw = sessionStorage.getItem(key)
+    return raw ? JSON.parse(raw) : null
+  } catch {
+    return null
+  }
+}
 
 export default function App() {
-  // When a user signs in, we store { username, role } here.
-  const [user, setUser] = useState(null)
+  // Restore { username, role } from the tab's session, if present.
+  const [user, setUser] = useState(() => readStored(USER_KEY))
   // Which screen the signed-in student is on:
   // 'dashboard' | 'course' | 'lesson' | 'skilltree'.
-  const [view, setView] = useState('dashboard')
+  const [view, setView] = useState(() => readStored(VIEW_KEY) || 'dashboard')
+  // Opening the lesson. 'start' means a fresh lesson: clear the saved interests
+  // profile + skill-check placement HERE (once, on the click) so the intro
+  // quizzes are asked again. 'continue' changes nothing, so a reload mid-lesson
+  // can never re-trigger the quizzes. The reset is not in the lesson component,
+  // so remounts/HMR can't repeat it.
+  const openLesson = (mode) => {
+    if (mode === 'start') {
+      try { clearProfile(user?.username); writeProgress(user?.username, { placedTier: null }) } catch { /* ignore */ }
+    }
+    setView('lesson')
+  }
+
+  // Persist the session so a reload keeps the user signed in.
+  useEffect(() => {
+    try {
+      if (user) sessionStorage.setItem(USER_KEY, JSON.stringify(user))
+      else sessionStorage.removeItem(USER_KEY)
+    } catch { /* storage unavailable: fall back to in-memory only */ }
+  }, [user])
+
+  useEffect(() => {
+    try { sessionStorage.setItem(VIEW_KEY, JSON.stringify(view)) } catch { /* ignore */ }
+  }, [view])
+
+  function logout() {
+    setUser(null)
+    setView('dashboard')
+    try { sessionStorage.removeItem(USER_KEY); sessionStorage.removeItem(VIEW_KEY) } catch { /* ignore */ }
+  }
 
   if (!user) {
     return <Login onLogin={setUser} />
@@ -31,7 +79,7 @@ export default function App() {
       <SkillTree
         user={user}
         onExit={() => setView('dashboard')}
-        onOpenLesson={() => setView('lesson')}
+        onOpenLesson={() => openLesson('continue')}
       />
     )
   }
@@ -41,7 +89,7 @@ export default function App() {
       <CourseOverview
         user={user}
         onBack={() => setView('dashboard')}
-        onContinueLesson={() => setView('lesson')}
+        onContinueLesson={() => openLesson('continue')}
       />
     )
   }
@@ -49,8 +97,9 @@ export default function App() {
   return (
     <Dashboard
       user={user}
-      onLogout={() => { setUser(null); setView('dashboard') }}
-      onContinueLesson={() => setView('lesson')}
+      onLogout={logout}
+      onContinueLesson={() => openLesson('continue')}
+      onStartLesson={() => openLesson('start')}
       onViewCourse={() => setView('course')}
     />
   )

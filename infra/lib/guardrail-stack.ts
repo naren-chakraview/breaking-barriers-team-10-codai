@@ -18,6 +18,14 @@ import { Construct } from 'constructs'
  * Lambda role is wired (invoke task).
  */
 export class GuardrailStack extends cdk.Stack {
+  /**
+   * The CMK that encrypts the Guardrail config. A caller that runs Converse/ApplyGuardrail
+   * with this guardrail must be granted kms:Decrypt on it, or Bedrock rejects the call with
+   * "You do not have access to the guardrail's KMS key". Exposed so ApiStack can grant its
+   * Lambda role that access (wired in bin/codeai.ts).
+   */
+  public readonly guardrailKey: kms.IKey
+
   constructor(scope: Construct, id: string, props?: cdk.StackProps) {
     super(scope, id, props)
 
@@ -26,6 +34,7 @@ export class GuardrailStack extends cdk.Stack {
       enableKeyRotation: true,
       removalPolicy: RemovalPolicy.DESTROY, // hackathon teardown
     })
+    this.guardrailKey = key
 
     // HIGH strength on every harmful category for both input and output — a minors'
     // audience warrants the strictest content filtering (P-18.4). PROMPT_ATTACK is
@@ -82,6 +91,19 @@ export class GuardrailStack extends cdk.Stack {
     new ssm.StringParameter(this, 'GuardrailVersionParam', {
       parameterName: '/codeai/guardrail/version',
       stringValue: version.attrVersion,
+    })
+
+    // Model ids per tier (P-7.2, C-27): verify/validate/passive use `fast` (Haiku), codegen
+    // and tutor use `strong` (Sonnet). The invoke wrapper reads these via the port's config
+    // so model choices live in one place and never in code. Cross-region inference profile
+    // ids (the `us.` prefix) for on-demand throughput.
+    new ssm.StringParameter(this, 'ModelFastParam', {
+      parameterName: '/codeai/model/fast',
+      stringValue: 'us.anthropic.claude-haiku-4-5-20251001-v1:0',
+    })
+    new ssm.StringParameter(this, 'ModelStrongParam', {
+      parameterName: '/codeai/model/strong',
+      stringValue: 'us.anthropic.claude-sonnet-4-5-20250929-v1:0',
     })
 
     new cdk.CfnOutput(this, 'GuardrailId', { value: guardrail.attrGuardrailId })

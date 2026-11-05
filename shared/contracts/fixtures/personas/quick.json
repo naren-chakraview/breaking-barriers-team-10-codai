@@ -4,10 +4,10 @@
   "description": "Quick learner. Strong diagnostic (level 2 on every skill), first-try success, no hints. The three skippable checkpoints are tested out after intro, so the student moves ahead to keep-or-redirect. Synthetic: no real student data. Track G refines the wording; ids and levels must stay valid (tests/fixtures.test.js).",
   "student": { "studentId": "stu-quick", "displayName": "Quick Quinn", "synthetic": true },
   "attempts": [
-    { "attemptId": "att-quick-01", "studentId": "stu-quick", "stepId": "intro-plan", "inputText": "A site for my robotics club so new kids can see what we build and sign up.", "projectSnapshotRef": null, "evidenceLevel": null, "confidence": null, "createdAt": "2026-11-04T10:00:40Z" },
-    { "attemptId": "att-quick-02", "studentId": "stu-quick", "stepId": "intro-web-dev", "inputText": "q103:b", "projectSnapshotRef": null, "evidenceLevel": 2, "confidence": 1, "createdAt": "2026-11-04T10:01:30Z" },
-    { "attemptId": "att-quick-03", "studentId": "stu-quick", "stepId": "intro-web-dev", "inputText": "q104:c", "projectSnapshotRef": null, "evidenceLevel": 2, "confidence": 1, "createdAt": "2026-11-04T10:02:10Z" },
-    { "attemptId": "att-quick-04", "studentId": "stu-quick", "stepId": "intro-web-dev", "inputText": "q105:d", "projectSnapshotRef": null, "evidenceLevel": 2, "confidence": 1, "createdAt": "2026-11-04T10:02:50Z" },
+    { "attemptId": "att-quick-01", "studentId": "stu-quick", "stepId": "intro-website", "inputText": "A site for my robotics club so new kids can see what we build and sign up.", "projectSnapshotRef": null, "evidenceLevel": null, "confidence": null, "createdAt": "2026-11-04T10:00:40Z" },
+    { "attemptId": "att-quick-02", "studentId": "stu-quick", "stepId": "skill-check-web-dev", "inputText": "q103:b", "projectSnapshotRef": null, "evidenceLevel": 2, "confidence": 1, "createdAt": "2026-11-04T10:01:30Z" },
+    { "attemptId": "att-quick-03", "studentId": "stu-quick", "stepId": "skill-check-web-dev", "inputText": "q104:c", "projectSnapshotRef": null, "evidenceLevel": 2, "confidence": 1, "createdAt": "2026-11-04T10:02:10Z" },
+    { "attemptId": "att-quick-04", "studentId": "stu-quick", "stepId": "skill-check-web-dev", "inputText": "q105:d", "projectSnapshotRef": null, "evidenceLevel": 2, "confidence": 1, "createdAt": "2026-11-04T10:02:50Z" },
     { "attemptId": "att-quick-05", "studentId": "stu-quick", "stepId": "keep-or-redirect-project", "inputText": "My plan: make the sign-up button stand out. The AI turned the whole page orange, so I will redirect: keep the layout and heading, and change only the button back to blue.", "projectSnapshotRef": "snap-quick-05", "evidenceLevel": 2, "confidence": 0.9, "createdAt": "2026-11-04T10:09:00Z" }
   ],
   "hints": [],

@@ -1,0 +1,150 @@
+{
+  "description": "Synthetic project-step submissions for the validator benchmark (C-17). SUBMISSIONS are synthetic (team-authored) — that is fine for a benchmark. The ratings are NOT in this file: a human assigns humanLevel via the rating helper, and the validator assigns modelLevel via the snapshot script; both land in golden-set.json. Spread across build/language/debug and levels 0..max so the kappa is meaningful. `expectedHint` is a non-binding author note for the rater, not a rating.",
+  "status": "synthetic",
+  "submissions": [
+    {
+      "submissionId": "sub-b01", "skillId": "build",
+      "condition": "The project changed to match a prompt with two or more specific details, or a follow-up that changes one thing.",
+      "prompts": ["make it better"],
+      "projectBefore": { "html": "<h1>My Page</h1>", "css": "", "js": "" },
+      "projectAfter": { "html": "<h1>My Page</h1>", "css": "", "js": "" },
+      "expectedHint": "vague one-liner, no change -> likely 0"
+    },
+    {
+      "submissionId": "sub-b02", "skillId": "build",
+      "condition": "The project changed to match a prompt with two or more specific details, or a follow-up that changes one thing.",
+      "prompts": ["make the heading bigger"],
+      "projectBefore": { "html": "<h1>Store</h1>", "css": "", "js": "" },
+      "projectAfter": { "html": "<h1>Store</h1>", "css": "h1{font-size:40px}", "js": "" },
+      "expectedHint": "one basic change -> likely 1"
+    },
+    {
+      "submissionId": "sub-b03", "skillId": "build",
+      "condition": "The project changed to match a prompt with two or more specific details, or a follow-up that changes one thing.",
+      "prompts": ["Make the heading say 'Robotics Club' in navy, and keep it centered; add a blue Sign up button below it."],
+      "projectBefore": { "html": "<h1>Club</h1>", "css": "", "js": "" },
+      "projectAfter": { "html": "<h1 style='color:navy;text-align:center'>Robotics Club</h1><button style='background:blue;color:white'>Sign up</button>", "css": "", "js": "" },
+      "expectedHint": "goal + constraint + specific change -> likely 2"
+    },
+    {
+      "submissionId": "sub-b04", "skillId": "build",
+      "condition": "Names a goal, a constraint and an edge case before generating, and revises by naming the exact element to change.",
+      "prompts": ["I want a hero section with a title and subtitle. Keep it under 3 lines on mobile. If the title is long, wrap it, don't cut it. Change only the subtitle to grey."],
+      "projectBefore": { "html": "<section class='hero'><h1>Welcome</h1><p>sub</p></section>", "css": "", "js": "" },
+      "projectAfter": { "html": "<section class='hero'><h1>Welcome</h1><p style='color:grey'>sub</p></section>", "css": ".hero p{color:grey}", "js": "" },
+      "expectedHint": "goal, constraint, edge case, exact element -> likely 2"
+    },
+    {
+      "submissionId": "sub-b05", "skillId": "build",
+      "condition": "The project changed to match a prompt with two or more specific details.",
+      "prompts": ["make it nice", "make it nicer"],
+      "projectBefore": { "html": "<p>hi</p>", "css": "", "js": "" },
+      "projectAfter": { "html": "<p>hi</p>", "css": "body{background:#eee}", "js": "" },
+      "expectedHint": "repeated vague prompts, tiny change -> 0 or 1"
+    },
+    {
+      "submissionId": "sub-b06", "skillId": "build",
+      "condition": "The project changed to match a prompt with two or more specific details.",
+      "prompts": ["Add a footer with my name and the year, right-aligned, in small grey text."],
+      "projectBefore": { "html": "<main>content</main>", "css": "", "js": "" },
+      "projectAfter": { "html": "<main>content</main><footer style='text-align:right;color:grey;font-size:12px'>Dana 2026</footer>", "css": "", "js": "" },
+      "expectedHint": "several specific details, matched -> 1 or 2"
+    },
+    {
+      "submissionId": "sub-l01", "skillId": "language",
+      "condition": "Names a block of their page and what it is for.",
+      "prompts": ["the thing at the top"],
+      "projectBefore": { "html": "<nav>...</nav>", "css": "", "js": "" },
+      "projectAfter": { "html": "<nav>...</nav>", "css": "", "js": "" },
+      "expectedHint": "no component vocabulary -> 0"
+    },
+    {
+      "submissionId": "sub-l02", "skillId": "language",
+      "condition": "Names a block of their page and what it is for.",
+      "prompts": ["the nav bar at the top, for links"],
+      "projectBefore": { "html": "<nav>...</nav>", "css": "", "js": "" },
+      "projectAfter": { "html": "<nav>...</nav>", "css": "", "js": "" },
+      "expectedHint": "names one component + purpose -> 1"
+    },
+    {
+      "submissionId": "sub-l03", "skillId": "language",
+      "condition": "Breaks a page into components with a clear hierarchy and says why.",
+      "prompts": ["Header with the nav, then a hero with the main call-to-action, then three feature cards, then a footer. The hero comes first because that's what converts visitors."],
+      "projectBefore": { "html": "<body></body>", "css": "", "js": "" },
+      "projectAfter": { "html": "<header><nav></nav></header><section class='hero'></section><section class='cards'></section><footer></footer>", "css": "", "js": "" },
+      "expectedHint": "multi-component hierarchy + rationale -> 2"
+    },
+    {
+      "submissionId": "sub-l04", "skillId": "language",
+      "condition": "Anticipates navigation needs and picks a layout pattern on purpose.",
+      "prompts": ["This is a multi-page product so I'll use a persistent top nav with dropdowns for the three sections, and a sticky sub-nav on the docs pages. Wireframe first, then the site map, because the nav depends on the page set."],
+      "projectBefore": { "html": "<body></body>", "css": "", "js": "" },
+      "projectAfter": { "html": "<header><nav class='top'></nav></header><aside class='subnav'></aside><main></main>", "css": "", "js": "" },
+      "expectedHint": "anticipates nav, deliberate pattern, moves between artifacts -> 3"
+    },
+    {
+      "submissionId": "sub-l05", "skillId": "language",
+      "condition": "Names a block of their page and what it is for.",
+      "prompts": ["make the boxes"],
+      "projectBefore": { "html": "<div></div>", "css": "", "js": "" },
+      "projectAfter": { "html": "<div class='card'></div><div class='card'></div>", "css": "", "js": "" },
+      "expectedHint": "vague 'boxes', no purpose -> 0 or 1"
+    },
+    {
+      "submissionId": "sub-l06", "skillId": "language",
+      "condition": "Breaks a page into components with a clear hierarchy.",
+      "prompts": ["A hero at the top, and under it a row of feature cards. The hero is the main banner; the cards show the three features."],
+      "projectBefore": { "html": "<body></body>", "css": "", "js": "" },
+      "projectAfter": { "html": "<section class='hero'></section><section class='features'><div class='card'></div></section>", "css": "", "js": "" },
+      "expectedHint": "two components + purpose, light hierarchy -> 1 or 2"
+    },
+    {
+      "submissionId": "sub-d01", "skillId": "debug",
+      "condition": "Reports a problem with what was expected, what happened and where.",
+      "prompts": ["it's broken"],
+      "projectBefore": { "html": "<button onclick='go()'>Go</button>", "css": "", "js": "" },
+      "projectAfter": { "html": "<button onclick='go()'>Go</button>", "css": "", "js": "" },
+      "expectedHint": "no context at all -> 0"
+    },
+    {
+      "submissionId": "sub-d02", "skillId": "debug",
+      "condition": "Reads an error and identifies the literal text.",
+      "prompts": ["the console says 'go is not defined' when I click the button"],
+      "projectBefore": { "html": "<button onclick='go()'>Go</button>", "css": "", "js": "" },
+      "projectAfter": { "html": "<button onclick='go()'>Go</button>", "css": "", "js": "" },
+      "expectedHint": "reads the error text literally -> 1"
+    },
+    {
+      "submissionId": "sub-d03", "skillId": "debug",
+      "condition": "Connects the error to the line at fault and restates it, giving intended behavior and what changed.",
+      "prompts": ["Clicking Go throws 'go is not defined'. I expected it to scroll down. The onclick calls go() but I never defined that function after I renamed it to scrollDown. I'll point the onclick at scrollDown."],
+      "projectBefore": { "html": "<button onclick='go()'>Go</button><script>function scrollDown(){}</script>", "css": "", "js": "" },
+      "projectAfter": { "html": "<button onclick='scrollDown()'>Go</button><script>function scrollDown(){}</script>", "css": "", "js": "" },
+      "expectedHint": "connects error to cause + intended behavior + fix -> 2"
+    },
+    {
+      "submissionId": "sub-d04", "skillId": "debug",
+      "condition": "Predicts likely causes from prior bugs and fixes from the explanation, asking for a patch only as a check.",
+      "prompts": ["The image flickers on hover. Last time a flicker was a transition on a property that re-layouts. I bet it's the transition on 'width'; I'll switch to transform:scale and only ask the AI to confirm the GPU-compositing approach."],
+      "projectBefore": { "html": "<img class='thumb'>", "css": ".thumb:hover{width:110%;transition:width .2s}", "js": "" },
+      "projectAfter": { "html": "<img class='thumb'>", "css": ".thumb{transition:transform .2s}.thumb:hover{transform:scale(1.1)}", "js": "" },
+      "expectedHint": "predicts cause from prior bug, fixes independently -> 3"
+    },
+    {
+      "submissionId": "sub-d05", "skillId": "debug",
+      "condition": "Reports a problem with what was expected, what happened and where.",
+      "prompts": ["the button doesn't work, help"],
+      "projectBefore": { "html": "<button>Go</button>", "css": "", "js": "" },
+      "projectAfter": { "html": "<button>Go</button>", "css": "", "js": "" },
+      "expectedHint": "says it's broken, no specifics -> 0 or 1"
+    },
+    {
+      "submissionId": "sub-d06", "skillId": "debug",
+      "condition": "Checks that a fix worked and nothing new broke.",
+      "prompts": ["I added the missing function and clicked Go — it scrolls now, and I re-checked the nav links still work. Expected scroll, got scroll, nothing else changed."],
+      "projectBefore": { "html": "<button onclick='scrollDown()'>Go</button>", "css": "", "js": "" },
+      "projectAfter": { "html": "<button onclick='scrollDown()'>Go</button><script>function scrollDown(){window.scrollBy(0,400)}</script>", "css": "", "js": "" },
+      "expectedHint": "verifies fix + checks for regressions -> 2"
+    }
+  ]
+}
