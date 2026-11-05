@@ -16,7 +16,6 @@ import LearnCard from './LearnCard.jsx'
 import IntroDiagnostic from './IntroDiagnostic.jsx'
 import IntroInterests from './IntroInterests.jsx'
 import { readProfile, writeProfile, clearProfile } from './profileStore.js'
-import { themeFor } from './themes.js'
 import CodeWorkspace from './CodeWorkspace.jsx'
 import Preview from './Preview.jsx'
 import Tutor from './Tutor.jsx'
@@ -48,11 +47,10 @@ export default function WeblabLesson({ user, mode = 'continue', onModeConsumed, 
     onModeConsumed?.()
   }
 
-  // Interests profile drives personalization + the visual theme. Captured first.
+  // Interests profile drives lesson/task personalization. Captured first.
   const [profile, setProfile] = useState(() => readProfile(user?.username))
   const [interestsDone, setInterestsDone] = useState(() => !!readProfile(user?.username))
   const [diagnosticDone, setDiagnosticDone] = useState(() => !!readProgress(user?.username)?.placedTier)
-  const theme = useMemo(() => themeFor(profile), [profile])
 
   // The lesson itself is BUILT from the four inputs (teacher assignment, skill-
   // check tier, interests profile, learn-focus), not read from a static table.
@@ -479,7 +477,7 @@ export default function WeblabLesson({ user, mode = 'continue', onModeConsumed, 
     return <IntroInterests user={user} onComplete={applyInterests} onSkip={skipInterests} />
   }
   if (!diagnosticDone) {
-    return <IntroDiagnostic user={user} theme={theme} onComplete={applyDiagnostic} onSkip={skipDiagnostic} />
+    return <IntroDiagnostic user={user} onComplete={applyDiagnostic} onSkip={skipDiagnostic} />
   }
 
   if (phase === 'complete') {
@@ -502,7 +500,7 @@ export default function WeblabLesson({ user, mode = 'continue', onModeConsumed, 
   }
 
   return (
-    <div className={`wf wfl th th--${theme.id}${theme.dark ? ' th--dark' : ''}`} style={theme.vars}>
+    <div className="wf wfl">
       <LessonTopBar
         user={user}
         completedCount={completedCount}
@@ -542,7 +540,7 @@ export default function WeblabLesson({ user, mode = 'continue', onModeConsumed, 
 
         <div className="wf-col wf-col--center">
           {learning ? (
-            <LearnCard objectiveId={level.objectiveId} objective={LESSON.objectives.find((o) => o.id === level.objectiveId)} projectTitle={LESSON.projectTitle} theme={theme} onStart={markLessonSeen} />
+            <LearnCard objectiveId={level.objectiveId} objective={LESSON.objectives.find((o) => o.id === level.objectiveId)} projectTitle={LESSON.projectTitle} onStart={markLessonSeen} />
           ) : (
           <>
             <TaskCard
