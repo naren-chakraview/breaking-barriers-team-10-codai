@@ -18,6 +18,10 @@ import { Construct } from 'constructs'
  * Lambda role is wired (invoke task).
  */
 export class GuardrailStack extends cdk.Stack {
+  /** The KMS key that encrypts the guardrail config. A Converse call with the guardrail
+   *  needs kms:Decrypt on it, so the API Lambda's role is granted against this ARN. */
+  public readonly guardrailKeyArn: string
+
   constructor(scope: Construct, id: string, props?: cdk.StackProps) {
     super(scope, id, props)
 
@@ -26,6 +30,7 @@ export class GuardrailStack extends cdk.Stack {
       enableKeyRotation: true,
       removalPolicy: RemovalPolicy.DESTROY, // hackathon teardown
     })
+    this.guardrailKeyArn = key.keyArn
 
     // HIGH strength on every harmful category for both input and output — a minors'
     // audience warrants the strictest content filtering (P-18.4). PROMPT_ATTACK is

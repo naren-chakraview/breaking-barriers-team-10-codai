@@ -39,6 +39,7 @@ const apiStack = new ApiStack(app, 'CodeAI-ApiStack', {
   databaseName: dataStack.dbName,
   secretArn: dataStack.cluster.secret!.secretArn,
   dataApiAccessPolicy: dataStack.dataApiAccessPolicy,
+  guardrailKeyArn: guardrailStack.guardrailKeyArn,
 })
 
 // The API Lambda reads the Guardrail + model ids from SSM (/codeai/*) at cold start. That is

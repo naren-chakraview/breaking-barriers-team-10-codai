@@ -22,6 +22,9 @@ export interface ApiStackProps extends cdk.StackProps {
   readonly secretArn: string
   /** The DataStack managed policy granting rds-data:*, GetSecretValue, kms:Decrypt. */
   readonly dataApiAccessPolicy: iam.IManagedPolicy
+  /** ARN of the GuardrailStack KMS key. A Converse call with the guardrail needs
+   *  kms:Decrypt on it, or Bedrock returns "You do not have access to the guardrail's KMS key". */
+  readonly guardrailKeyArn: string
 }
 
 /**
@@ -81,7 +84,7 @@ export class ApiStack extends cdk.Stack {
     // source of truth for data-tier access, so the API and agents stay in sync.
     fn.role!.addManagedPolicy(props.dataApiAccessPolicy)
 
-    this.grantModelAccess(fn)
+    this.grantModelAccess(fn, props.guardrailKeyArn)
 
     // Access log: request metadata only (standard fields: ip, method, path, status, latency).
     // API Gateway access logs never include request or response bodies, so no student text
@@ -139,7 +142,7 @@ export class ApiStack extends cdk.Stack {
    *   - Read the model ids + guardrail id/version from SSM at cold start (architecture 2.14).
    * Account/region come from the stack env, never the repo (ADR-013).
    */
-  private grantModelAccess(fn: lambda.Function): void {
+  private grantModelAccess(fn: lambda.Function, guardrailKeyArn: string): void {
     const { account, region } = cdk.Stack.of(this)
 
     fn.addToRolePolicy(
@@ -166,6 +169,16 @@ export class ApiStack extends cdk.Stack {
         sid: 'ReadCodeAiConfig',
         actions: ['ssm:GetParameter'],
         resources: [`arn:aws:ssm:${region}:${account}:parameter/codeai/*`],
+      }),
+    )
+    // A Converse call that applies the guardrail makes Bedrock decrypt the guardrail config
+    // with the GuardrailStack KMS key; without this the call fails with "You do not have
+    // access to the guardrail's KMS key" (ValidationException).
+    fn.addToRolePolicy(
+      new iam.PolicyStatement({
+        sid: 'DecryptGuardrailKey',
+        actions: ['kms:Decrypt', 'kms:DescribeKey'],
+        resources: [guardrailKeyArn],
       }),
     )
   }
